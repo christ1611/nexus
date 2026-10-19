@@ -1,0 +1,242 @@
+# NEXT ASEAN WhatsApp onboarding - demo runbook
+
+Step-by-step script for a live demo of the dealer flow, the customer document journey, the automated checks and the
+back-office events. Total running time is about 10 minutes. Everything below assumes the Meta webhook is already
+registered on the ngrok domain `amaretto-tipoff-excess.ngrok-free.dev` (it is), so only the tunnel has to be up.
+
+---
+
+## 0. What you need on the table
+
+| Item | Why |
+| --- | --- |
+| Laptop with JDK 21+ and this repo | runs the app on port 8080 |
+| ngrok installed and logged in | exposes port 8080 on the reserved domain |
+| **Dealer phone**: WhatsApp number listed as `DEMO_DEALER_1_PHONE` in `wa.env` | plays the dealer |
+| **Customer phone**: any other WhatsApp number added as a test recipient in the Meta dashboard | plays the customer |
+| A KTP photo (or any card photo) and a selfie on the customer phone | in stub mode the content does not matter |
+| Terminal with `curl` | back-office events (`/admin/**`) |
+
+Both phones must be in the "allowed recipients" list of the Meta test number (WhatsApp > API Setup), otherwise
+outgoing messages fail with a 131030 error.
+
+---
+
+## 1. The day before: configuration (5 minutes)
+
+1. Open `wa.env` and check these lines are filled (plain `KEY=VALUE`, no quotes):
+
+   ```
+   WHATSAPP_PHONE_NUMBER_ID=...
+   WHATSAPP_ACCESS_TOKEN=...        # see step 2
+   WHATSAPP_APP_SECRET=...
+   WHATSAPP_VERIFY_TOKEN=...
+   DEMO_DEALER_1_PHONE=62812xxxxxxx # digits only, with country code
+   DEMO_DEALER_1_NAME=...
+   ADMIN_API_KEY=any-long-random-string
+   DOCUMENT_CHECK=stub              # or claude, see section 6
+   ```
+
+2. **Access token.** The temporary token from the Meta dashboard expires after 24 hours. For a demo, generate a
+   System User token (Business Settings > System Users > Generate token, permissions `whatsapp_business_messaging`
+   and `whatsapp_business_management`) and paste it as `WHATSAPP_ACCESS_TOKEN`. If outgoing messages log `HTTP 401`
+   during the demo, this is why.
+
+3. Run the tests once so the build cache is warm and nothing surprises you on the day:
+
+   ```bash
+   ./gradlew test
+   ```
+
+   Expected: `BUILD SUCCESSFUL`, 58 tests, 1 skipped (the live Claude test).
+
+4. Optional but recommended: wipe the local database so application numbers start fresh at `APP-2026-001001`:
+
+   ```bash
+   rm -rf data/wa-webhook.mv.db data/documents
+   ```
+
+---
+
+## 2. Thirty minutes before: start everything (3 minutes)
+
+Terminal 1, the app:
+
+```bash
+./gradlew bootRun
+```
+
+Wait for `Started WaWebhookApplicationKt` and the line `Verification providers | country=ID | id=Dukcapil (mock) | credit=PEFINDO (mock)`.
+Also check the seeding log: `Demo dealer upserted | code=DLR-001 ...`. If it says a dealer was skipped, the phone in
+`wa.env` is blank.
+
+Terminal 2, the tunnel:
+
+```bash
+ngrok http --url=amaretto-tipoff-excess.ngrok-free.dev 8080
+```
+
+Terminal 3, smoke test the webhook through the tunnel (replace the token):
+
+```bash
+curl -i "https://amaretto-tipoff-excess.ngrok-free.dev/webhook?hub.mode=subscribe&hub.verify_token=<WHATSAPP_VERIFY_TOKEN>&hub.challenge=42"
+```
+
+Expected: `200` with body `42`. Then send `hi` from the dealer phone to the business number. If the main menu comes
+back, you are ready. Keep Terminal 1 visible on the projector: the structured log lines are part of the story.
+
+---
+
+## 3. Act 1 - the dealer creates an application (2 minutes)
+
+| # | On the dealer phone | What comes back | Say |
+| --- | --- | --- | --- |
+| 1 | send `hi` | list menu "NEXT ASEAN Dealer Desk": New application / Check status / Help | "Only registered dealer numbers get this menu; anyone else gets a polite rejection." |
+| 2 | tap **New application** | buttons Yes, create / Cancel | |
+| 3 | tap **Yes, create** | application number `APP-2026-001001` plus a one-time form link, then a second message to forward to the customer with a `wa.me/...?text=START APP-2026-001001` link | "The dealer never types anything; the link pre-fills the START message for the customer." |
+| 4 | forward that second message to the customer phone | | |
+| 5 | optional: tap **Check status** | list of applications with status Draft | |
+
+Side note for a sceptical audience: send `hi` from a third, unregistered number and show the rejection text.
+
+---
+
+## 4. Act 2 - the customer journey (4 minutes)
+
+Everything here happens on the **customer phone**.
+
+| # | Customer sends | Bot replies | What to point at in the log |
+| --- | --- | --- | --- |
+| 1 | tap the forwarded link, send `START APP-2026-001001` | greeting + consent text with **I Agree** / **Decline** | `Customer session started` |
+| 2 | tap **I Agree** | "Thank you. Step 1 of 2: Please send a photo of your KTP." | `Consent given ... at=<timestamp>` - consent is stored with a timestamp |
+| 3 | type `here you go` (text instead of a photo) | the request is simply repeated | the flow is strict about what it expects |
+| 4 | send any photo with caption **`blur`** | "Received: KTP ✅ (1 of 2)" then "❌ KTP could not be accepted: Photo is blurry. Step 1 of 2: ..." | `Document stored` then `Document check failed`; the file is under `data/documents/APP-2026-001001/` |
+| 5 | send the photo again with caption **`nik7`** | "Received: KTP ✅ (1 of 2)" then "Step 2 of 2: Please send a selfie of yourself holding your KTP..." | `Stub check | PASS | nik=***0007` - fields Budi Santoso, NIK ending in 7, are extracted |
+| 6 | send a selfie | "Received: Selfie with KTP ✅ (2 of 2)", "Checking your data...", then after 2 to 6 seconds "✅ Your documents are submitted..." | `Dukcapil mock | outcome=MISMATCH`, `PEFINDO mock | outcome=MISMATCH`, `Verification complete | status=READY_FOR_REVIEW` |
+
+At the same moment the **dealer phone** receives "Documents submitted" with customer name, masked NIK, ID verification
+result and credit bureau result, plus a Check status button.
+
+**Choosing the outcome.** The caption `nik<d>` sets the last digit of the demo NIK, and the mocks decide by that digit:
+
+| Caption | Dukcapil | PEFINDO | Score |
+| --- | --- | --- | --- |
+| `nik0` to `nik6` (or no caption) | Match | Match | 620 + 25 x digit (e.g. `nik4` = 720) |
+| `nik7` | Data mismatch | Data mismatch | none |
+| `nik8` | Not found | Not found | none |
+| `nik9` | Timed out | Timed out | none |
+
+Run the happy path (`nik4`) for the main demo and keep `nik7` or `nik9` for the "what if" question. Each provider
+call takes 1 to 3 seconds, so the pause after "Checking your data..." is deliberate.
+
+---
+
+## 5. Act 3 - the back office (2 minutes)
+
+Use the admin key from `wa.env`:
+
+```bash
+export ADMIN_API_KEY=$(grep '^ADMIN_API_KEY=' wa.env | cut -d= -f2-)
+export BASE=http://localhost:8080
+```
+
+1. Show the application as the reviewer sees it (extracted fields, provider results, documents):
+
+   ```bash
+   curl -s -H "X-Admin-Key: $ADMIN_API_KEY" $BASE/admin/applications/APP-2026-001001 | python3 -m json.tool
+   ```
+
+2. Ask for a resubmission. The dealer receives "Resubmission requested" with the reason and a fresh one-time link:
+
+   ```bash
+   curl -s -X POST -H "X-Admin-Key: $ADMIN_API_KEY" -H 'Content-Type: application/json' \
+     -d '{"reason":"Selfie too dark, please resend"}' \
+     $BASE/admin/applications/APP-2026-001001/request-resubmission
+   ```
+
+3. Record the decision. The dealer receives the decision notification:
+
+   ```bash
+   curl -s -X POST -H "X-Admin-Key: $ADMIN_API_KEY" -H 'Content-Type: application/json' \
+     -d '{"decision":"APPROVED","note":"Welcome aboard"}' \
+     $BASE/admin/applications/APP-2026-001001/decision
+   ```
+
+4. On the dealer phone tap **Check status** and pick the application: status Approved with the note.
+
+Without the header the endpoints return `401`; a second decision on the same application returns `409`.
+
+---
+
+## 6. Optional act - real document analysis with Claude (3 minutes)
+
+This replaces the stub with Claude vision and the review agent. Do a dry run the day before; the first live request
+also warms the prompt cache.
+
+1. In `wa.env` set:
+
+   ```
+   DOCUMENT_CHECK=claude
+   ANTHROPIC_API_KEY=sk-ant-...
+   ```
+
+   Restart the app and check the log line `Claude document analysis enabled | ClaudeProperties(model=claude-opus-5-5, ...)`.
+
+2. Use a **real KTP photo** on the customer phone (a sample card or your own; the image is sent to the Claude API).
+   Captions are ignored in this mode. Repeat Act 2 with a new application.
+
+3. What to show:
+   - A blurry or glaring photo: the customer gets "❌ KTP could not be accepted: The photo is blurry" and is asked
+     again. Log: `Analysis result | detected=KTP | usable=false`.
+   - A clean photo: log `Analysis result | detected=KTP | usable=true | officerReview=false | reasons=[]`. The NIK
+     has been checked for 16 digits, province code, regency and district, the date of birth encoded in it against the
+     date printed on the card, and the female +40 rule against the stated gender.
+   - After the selfie, the agent step: `Review agent turn | stop=tool_use` followed by either
+     `Review agent requested documents | items=[...]` (the customer receives a message naming the document and the
+     reason) or `Review agent wrote summary` with the one-page summary printed in the log.
+   - The summary and per-document analysis in the admin view:
+
+     ```bash
+     curl -s -H "X-Admin-Key: $ADMIN_API_KEY" $BASE/admin/applications/APP-2026-001002 | python3 -m json.tool
+     ```
+
+     Look at `review.summary`, `review.officerReviewRequired` and `documents[].analysis` (each field with its
+     confidence and `EXTRACTED` / `NEEDS_OFFICER_REVIEW` / `NOT_VISIBLE` status).
+
+4. Talking points: fields below 0.85 confidence are never used, only flagged; a NIK that contradicts the card goes to
+   an officer, not back to the customer; the agent may send the customer back at most twice before it must write the
+   summary; if the API is unreachable the document is kept and flagged instead of blocking the customer.
+
+Switch back to `DOCUMENT_CHECK=stub` afterwards if you want the caption tricks again.
+
+---
+
+## 7. Reset between runs
+
+- New application numbers are issued automatically; just create another application from the dealer menu.
+- To re-use the **same customer phone** on a new application, send `START <new number>`; the old session is closed.
+- To start completely clean: stop the app, delete `data/`, start again (dealers are re-seeded from `wa.env`).
+- The dealer's `CANCEL` or a customer's `cancel` ends the current session.
+
+---
+
+## 8. If something goes wrong
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Dealer sends `hi`, nothing comes back, no log line | tunnel down or webhook not subscribed | restart ngrok; Meta dashboard > Webhooks > `messages` subscribed |
+| Log shows the message but reply fails with `401` from Graph API | access token expired | new System User token in `wa.env`, restart |
+| Reply fails with error `131030` | phone not in the test recipients list | add it in WhatsApp > API Setup |
+| Dealer gets the polite rejection instead of the menu | phone not seeded | check `DEMO_DEALER_1_PHONE` (digits only), restart, look for `Demo dealer upserted` |
+| Customer's `START` says "could not find application" | typo or old number | copy the number from the dealer's message |
+| "already linked to another phone" | the application was started from another phone earlier | create a new application |
+| Image is accepted but no check happens / check takes long | `demo-data.check-delay` is 2 s, providers 1 to 3 s each | normal; up to 8 s total |
+| App refuses to start: `Missing required WhatsApp configuration` | a key is blank in `wa.env` | fill it; names are listed in the error |
+| Claude mode: `Analysis unavailable` in log, document passes but flagged | API key wrong, no credit, or network | check the key; the flow deliberately does not block the customer |
+
+Useful while the app is stopped:
+
+```bash
+java -cp "$(find ~/.gradle/caches -name 'h2-2*.jar' | head -1)" org.h2.tools.Shell \
+  -url jdbc:h2:file:./data/wa-webhook -user sa -password "" -sql "SELECT application_number, status, extracted_nik, review_decision FROM APPLICATIONS;"
+```

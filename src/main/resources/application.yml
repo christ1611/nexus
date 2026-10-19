@@ -1,0 +1,88 @@
+spring:
+  application:
+    name: wa-webhook
+  config:
+    # Load KEY=VALUE files from the working directory. Real environment variables still win.
+    import:
+      - "optional:file:./wa.env[.properties]"
+      - "optional:file:./.env[.properties]"
+      - "classpath:demo-data.yml"
+  threads:
+    virtual:
+      enabled: true
+  task:
+    execution:
+      thread-name-prefix: webhook-
+      shutdown:
+        # Let in-flight webhook processing finish before the JVM exits.
+        await-termination: true
+        await-termination-period: 20s
+  http:
+    client:
+      connect-timeout: 5s
+      read-timeout: 15s
+
+  datasource:
+    # Embedded H2 database stored under ./data (ignored by git).
+    url: jdbc:h2:file:./data/wa-webhook
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 8080
+
+app:
+  # Base URL dealers open one-time links on (your ngrok domain).
+  public-base-url: ${APP_PUBLIC_BASE_URL:https://amaretto-tipoff-excess.ngrok-free.dev}
+  link-ttl: 24h
+  # Where downloaded customer documents are stored (one folder per application).
+  documents-dir: ./data/documents
+  time-zone: Asia/Jakarta
+  # Required for the /admin/** endpoints (sent as X-Admin-Key header).
+  admin-api-key: ${ADMIN_API_KEY:}
+  # stub = demo document check (default); claude = Claude vision analysis + review agent (needs ANTHROPIC_API_KEY).
+  document-check: ${DOCUMENT_CHECK:stub}
+
+# Claude API (used only when app.document-check=claude).
+claude:
+  api-key: ${ANTHROPIC_API_KEY:}
+  model: ${CLAUDE_MODEL:claude-opus-5-5}
+  effort: high
+  timeout: 120s
+  max-retries: 2
+  # Fields read below this confidence are marked "needs officer review" and never used automatically.
+  min-field-confidence: 0.85
+  # How often the review agent may send the customer back for documents before it must write the summary.
+  max-review-rounds: 2
+
+# Demo dealers are upserted at startup by dealer code; entries with a blank phone are skipped.
+demo:
+  dealers:
+    - code: DLR-001
+      name: ${DEMO_DEALER_1_NAME:Demo Dealer One}
+      phone: ${DEMO_DEALER_1_PHONE:}
+    - code: DLR-002
+      name: ${DEMO_DEALER_2_NAME:Demo Dealer Two}
+      phone: ${DEMO_DEALER_2_PHONE:}
+
+# WHATSAPP_* names are read first; the short names (PHONE_NUMBER_ID, ACCESS_TOKEN,
+# APP_SECRET, VERIFY_TOKEN) work as fallbacks.
+whatsapp:
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:${PHONE_NUMBER_ID:}}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:${ACCESS_TOKEN:}}
+  app-secret: ${WHATSAPP_APP_SECRET:${APP_SECRET:}}
+  verify-token: ${WHATSAPP_VERIFY_TOKEN:${VERIFY_TOKEN:}}
+  graph-api-base-url: https://graph.facebook.com
+  graph-api-version: v23.0
+  # Business number used in wa.me links (digits only). Optional: learned from webhook metadata when blank.
+  business-phone: ${WHATSAPP_BUSINESS_PHONE:}
+
+webhook:
+  dedupe-cache-size: 10000
+
+logging:
+  level:
+    com.nextasean.wawebhook: INFO

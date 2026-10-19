@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+
+whatsapp:
+  phone-number-id: "123456"
+  access-token: test-access-token
+  app-secret: test-app-secret
+  verify-token: test-verify-token
+
+app:
+  public-base-url: https://example.test
+  admin-api-key: test-admin-key
+  documents-dir: build/test-documents
+
+demo:
+  dealers:
+    - code: DLR-T01
+      name: Test Dealer One
+      phone: "6281111111111"
+    - code: DLR-T02
+      name: Test Dealer Two
+      phone: "6282222222222"
+
+demo-data:
+  check-delay: 0s
+
+verification:
+  min-latency: 0s
+  max-latency: 0s
