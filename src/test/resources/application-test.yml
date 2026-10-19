@@ -21,6 +21,11 @@ demo:
     - code: DLR-T02
       name: Test Dealer Two
       phone: "6282222222222"
+      tier: EXCELLENT
+    - code: DLR-T03
+      name: Test Dealer Myanmar
+      phone: "6285555555555"
+      country: MM
 
 demo-data:
   check-delay: 0s

@@ -15,6 +15,7 @@ import com.nextasean.wawebhook.documents.analysis.DocumentAnalysisCodec
 import com.nextasean.wawebhook.review.ReviewAgent
 import com.nextasean.wawebhook.review.ReviewContextBuilder
 import com.nextasean.wawebhook.review.ReviewDecision
+import com.nextasean.wawebhook.risk.RiskAssessmentService
 import com.nextasean.wawebhook.verification.VerificationService
 import com.nextasean.wawebhook.webhook.Message
 import com.nextasean.wawebhook.whatsapp.OutboundMessage
@@ -43,6 +44,7 @@ class CustomerConversationService(
     private val sender: WhatsAppSender,
     private val reviewContext: ReviewContextBuilder,
     private val analysisCodec: DocumentAnalysisCodec,
+    private val risk: RiskAssessmentService,
     private val reviewAgent: ReviewAgent?,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -207,8 +209,9 @@ class CustomerConversationService(
             )
             sessions.save(session.copy(state = CustomerSessionState.COMPLETED, updatedAt = Instant.now()))
             log.info("Application handed to officer without provider checks | number={}", saved.applicationNumber)
-            send(session.phone, CustomerMessages.submitted(saved))
-            notifier.documentsForOfficerReview(saved)
+            val (assessed, assessment) = risk.assessAndStore(saved)
+            send(session.phone, CustomerMessages.submitted(assessed))
+            notifier.documentsForOfficerReview(assessed, assessment)
             return
         }
         val outcome = try {
@@ -220,8 +223,9 @@ class CustomerConversationService(
             return
         }
         sessions.save(session.copy(state = CustomerSessionState.COMPLETED, updatedAt = Instant.now()))
-        send(session.phone, CustomerMessages.submitted(outcome.application))
-        notifier.documentsSubmitted(outcome)
+        val (assessed, assessment) = risk.assessAndStore(outcome.application)
+        send(session.phone, CustomerMessages.submitted(assessed))
+        notifier.documentsSubmitted(outcome.copy(application = assessed), assessment)
     }
 
     /**

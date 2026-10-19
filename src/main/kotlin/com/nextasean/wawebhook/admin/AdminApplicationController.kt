@@ -9,6 +9,8 @@ import com.nextasean.wawebhook.conversation.DealerNotifier
 import com.nextasean.wawebhook.dealer.Dealer
 import com.nextasean.wawebhook.dealer.DealerRepository
 import com.nextasean.wawebhook.documents.DocumentRepository
+import com.nextasean.wawebhook.risk.RiskAssessment
+import com.nextasean.wawebhook.risk.RiskAssessmentService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -31,13 +33,14 @@ class AdminApplicationController(
     private val service: ApplicationService,
     private val notifier: DealerNotifier,
     private val documents: DocumentRepository,
+    private val risk: RiskAssessmentService,
 ) {
 
     data class ResubmissionRequest(val reason: String)
 
     data class DecisionRequest(val decision: Decision, val note: String? = null)
 
-    data class DealerView(val code: String, val name: String, val phone: String, val active: Boolean)
+    data class DealerView(val code: String, val name: String, val phone: String, val active: Boolean, val country: String, val tier: String)
 
     data class ApplicationView(
         val applicationNumber: String,
@@ -55,6 +58,9 @@ class AdminApplicationController(
         val creditCheck: Map<String, Any?>?,
         val verifiedAt: Instant?,
         val review: ReviewView?,
+        val country: String,
+        /** Risk flags, AI risk grade and badges (Step 5); null until the documents have been checked. */
+        val risk: RiskView?,
         val documents: List<DocumentView>? = null,
         val createdAt: Instant,
         val updatedAt: Instant,
@@ -74,10 +80,37 @@ class AdminApplicationController(
         val analysis: String?,
     )
 
+    data class RiskView(
+        val grade: String,
+        val gradeLabel: String,
+        val gradeLabelKo: String,
+        val score: Int,
+        val highRisk: Boolean,
+        val method: String,
+        val methodLabel: String,
+        val fraudWarnings: Int,
+        val flags: List<Map<String, Any?>>,
+        val badges: List<Map<String, String>>,
+        val assessedAt: Instant,
+    ) {
+        companion object {
+            fun of(a: RiskAssessment) = RiskView(
+                grade = a.grade.name, gradeLabel = a.grade.label, gradeLabelKo = a.grade.labelKo, score = a.score, highRisk = a.grade.highRisk,
+                method = a.method.name, methodLabel = a.method.label, fraudWarnings = a.fraudFlags.size,
+                flags = a.flags.map {
+                    mapOf("code" to it.code, "severity" to it.severity.name, "source" to it.source.name, "fraud" to it.fraudSignal,
+                        "title" to it.title, "titleKo" to it.titleKo, "detail" to it.detail)
+                },
+                badges = a.badges.map { mapOf("code" to it.name, "label" to it.label, "labelKo" to it.labelKo) },
+                assessedAt = a.assessedAt,
+            )
+        }
+    }
+
     data class ActionResult(val application: ApplicationView, val dealerNotified: Boolean)
 
     @GetMapping("/dealers")
-    fun dealers(): List<DealerView> = dealers.findAll().map { DealerView(it.dealerCode, it.name, it.phone, it.active) }
+    fun dealers(): List<DealerView> = dealers.findAll().map { DealerView(it.dealerCode, it.name, it.phone, it.active, it.country, it.tier.name) }
 
     @GetMapping("/applications")
     fun applications(): List<ApplicationView> {
@@ -113,6 +146,18 @@ class AdminApplicationController(
         return ResponseEntity.ok(ActionResult(decided.toView(dealers.findById(app.dealerId).orElse(null)), notified))
     }
 
+    /** Re-runs the risk rules on one application (e.g. after the officer corrected data). */
+    @PostMapping("/applications/{number}/assess-risk")
+    fun assessRisk(@PathVariable number: String): ResponseEntity<Any> {
+        val app = service.findByNumber(number) ?: return notFound(number)
+        val (saved, _) = risk.assessAndStore(app)
+        return ResponseEntity.ok(saved.toView(dealers.findById(app.dealerId).orElse(null)))
+    }
+
+    /** Re-runs the risk rules on every assessed application, after a rule change. */
+    @PostMapping("/risk/reassess-all")
+    fun reassessAll(): Map<String, Int> = mapOf("reassessed" to risk.reassessAll())
+
     private fun notFound(number: String): ResponseEntity<Any> =
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "application $number not found"))
 
@@ -136,6 +181,8 @@ class AdminApplicationController(
         creditCheck = creditCheckStatus?.let { mapOf("status" to it, "detail" to creditCheckDetail, "score" to creditScore) },
         verifiedAt = verifiedAt,
         review = reviewDecision?.let { ReviewView(it, officerReviewRequired, reviewRounds, reviewedAt, reviewSummary) },
+        country = country,
+        risk = risk.stored(this)?.let(RiskView::of),
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

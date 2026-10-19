@@ -6,7 +6,7 @@ import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.stereotype.Component
 
-/** Upserts the demo dealers from `demo.dealers` (DEMO_DEALER_n_PHONE / _NAME in wa.env). */
+/** Upserts the demo dealers from `demo.dealers` (DEMO_DEALER_n_PHONE / _NAME / _COUNTRY / _TIER in wa.env). */
 @Component
 class DemoDealerSeeder(
     private val props: DemoProperties,
@@ -26,17 +26,19 @@ class DemoDealerSeeder(
                 return@forEachIndexed
             }
             val name = demo.name.ifBlank { demo.code }
+            val country = Countries.normalize(demo.country)
+            val tier = DealerTier.parse(demo.tier)
             val existing = dealers.findByDealerCode(demo.code)
             when {
                 existing == null -> {
-                    dealers.save(Dealer(phone = phone, name = name, dealerCode = demo.code))
-                    log.info("Seeded demo dealer | code={} | name={} | phone={}", demo.code, name, phone)
+                    dealers.save(Dealer(phone = phone, name = name, dealerCode = demo.code, country = country, tier = tier))
+                    log.info("Seeded demo dealer | code={} | name={} | phone={} | country={} | tier={}", demo.code, name, phone, country, tier)
                 }
-                existing.phone != phone || existing.name != name -> {
-                    dealers.save(existing.copy(phone = phone, name = name, active = true))
-                    log.info("Updated demo dealer | code={} | name={} | phone={}", demo.code, name, phone)
+                existing.phone != phone || existing.name != name || existing.country != country || existing.tier != tier -> {
+                    dealers.save(existing.copy(phone = phone, name = name, active = true, country = country, tier = tier))
+                    log.info("Updated demo dealer | code={} | name={} | phone={} | country={} | tier={}", demo.code, name, phone, country, tier)
                 }
-                else -> log.info("Demo dealer present | code={} | phone={}", demo.code, phone)
+                else -> log.info("Demo dealer present | code={} | phone={} | country={} | tier={}", demo.code, phone, country, tier)
             }
         }
     }

@@ -50,6 +50,7 @@ class ApplicationService(
                 applicationNumber = number,
                 dealerId = dealer.id!!,
                 status = ApplicationStatus.DRAFT,
+                country = dealer.country,
                 linkTokenHash = hash(token),
                 linkExpiresAt = now.plus(props.linkTtl),
                 createdAt = now,

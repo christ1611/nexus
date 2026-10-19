@@ -59,14 +59,29 @@ claude:
   max-review-rounds: 2
 
 # Demo dealers are upserted at startup by dealer code; entries with a blank phone are skipped.
+# country: ID / MM / KH (market and verification providers); tier: STANDARD / EXCELLENT (customer badge).
 demo:
   dealers:
     - code: DLR-001
       name: ${DEMO_DEALER_1_NAME:Demo Dealer One}
       phone: ${DEMO_DEALER_1_PHONE:}
+      country: ${DEMO_DEALER_1_COUNTRY:ID}
+      tier: ${DEMO_DEALER_1_TIER:EXCELLENT}
     - code: DLR-002
       name: ${DEMO_DEALER_2_NAME:Demo Dealer Two}
       phone: ${DEMO_DEALER_2_PHONE:}
+      country: ${DEMO_DEALER_2_COUNTRY:ID}
+      tier: ${DEMO_DEALER_2_TIER:STANDARD}
+    - code: DLR-003
+      name: ${DEMO_DEALER_3_NAME:Demo Dealer Myanmar}
+      phone: ${DEMO_DEALER_3_PHONE:}
+      country: ${DEMO_DEALER_3_COUNTRY:MM}
+      tier: ${DEMO_DEALER_3_TIER:STANDARD}
+    - code: DLR-004
+      name: ${DEMO_DEALER_4_NAME:Demo Dealer Cambodia}
+      phone: ${DEMO_DEALER_4_PHONE:}
+      country: ${DEMO_DEALER_4_COUNTRY:KH}
+      tier: ${DEMO_DEALER_4_TIER:STANDARD}
 
 # WHATSAPP_* names are read first; the short names (PHONE_NUMBER_ID, ACCESS_TOKEN,
 # APP_SECRET, VERIFY_TOKEN) work as fallbacks.

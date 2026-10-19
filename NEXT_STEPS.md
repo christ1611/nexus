@@ -1,8 +1,8 @@
 # NEXT ASEAN WhatsApp webhook - where we are and what comes next
 
-_Last updated: 17 Oct 2026_
+_Last updated: 19 Oct 2026_
 
-## Current state (done and tested, 35 tests green)
+## Current state (done and tested, 69 tests green, 1 skipped live test)
 
 - **Step 1 - Webhook**: `GET /webhook` verification, `POST /webhook` with `X-Hub-Signature-256` check,
   async processing, duplicate message IDs ignored, structured logging of messages and statuses.
@@ -20,10 +20,17 @@ _Last updated: 17 Oct 2026_
   Default stays `stub`, so the demo and the 35 earlier tests are unchanged. Not yet exercised against the live API from
   this machine (no key here); `ClaudeDocumentAnalysisLiveTest` runs automatically when `ANTHROPIC_API_KEY` is set.
 
+- **Step 5 - Statistics dashboard + risk flags** (19 Oct 2026): `risk/` (`RiskRules` -> flags, score, grade A-D, badges;
+  `RiskAssessmentService` stores them on APPLICATIONS after verification and puts a "Risk grade" line in the dealer summary),
+  dealer `country` (ID/MM/KH) + `tier`, application `country`, per-country mock providers (MM, KH) selected per application,
+  `GET /admin/dashboard/stats`, `POST /admin/applications/{n}/assess-risk`, `POST /admin/risk/reassess-all`, and the page
+  `/dashboard` (`static/dashboard.html`, inline SVG, Korean-first labels, admin key entered in the page). Demo NIK now ends in 4
+  so the happy path is grade A with the "financial stability" badge; caption `nik7` produces grade C with a fraud warning.
+
 Code map: `src/main/kotlin/com/nextasean/wawebhook/` -> `webhook/` (inbound), `conversation/` (dealer flow +
-router), `customer/` (customer flow), `documents/` (+ `analysis/`), `review/` (agent step), `verification/`,
-`application/`, `admin/`, `web/` (one-time link page), `whatsapp/` (Graph API client). Schema in
-`src/main/resources/schema.sql`, demo data in `demo-data.yml`.
+router), `customer/` (customer flow), `documents/` (+ `analysis/`), `review/` (agent step), `risk/` (flags, grade, badges),
+`verification/`, `application/`, `admin/` (admin API + dashboard stats), `web/` (one-time link page, dashboard page),
+`whatsapp/` (Graph API client). Schema in `src/main/resources/schema.sql`, demo data in `demo-data.yml`.
 
 ## To do first next session (10 minutes)
 
@@ -53,12 +60,18 @@ router), `customer/` (customer flow), `documents/` (+ `analysis/`), `review/` (a
 - Session timeouts: expire customer sessions idle for N hours and tell the customer how to resume.
 
 ### B. Step 4 - Review / back-office
-- Simple reviewer UI (or at least richer `/admin` JSON): list `READY_FOR_REVIEW` applications, view documents
-  (serve files from `data/documents` behind the admin key), see extracted fields and provider results.
+- Grow `/dashboard` into the reviewer UI: click an application to see documents (serve files from `data/documents`
+  behind the admin key), extracted fields, provider results, the risk flags with their evidence, and decide from there.
 - Decision from the UI -> existing `/decision` endpoint -> dealer + customer notification
   (customer notification on decision is not sent yet; only the dealer is).
 - Resubmission flow for the customer: on `RESUBMISSION_REQUESTED`, message the customer directly with which
   document to resend instead of (or in addition to) the dealer link.
+
+### B2. Step 5 follow-ups
+- Collateral data is not collected yet; once it is, add it to the "financial consistency and collateral stability" badge rule.
+- Let Claude write a short natural-language risk narrative per application (the grade and flags stay rule-based).
+- Date-range filter and trend charts (applications and high-risk share per week, per country) on the dashboard.
+- Tune `RiskRules` thresholds on real KTP photos and real provider responses.
 
 ### C. Replace stubs with real integrations
 - Claude document check: run `ANTHROPIC_API_KEY=... ./gradlew test --tests '*Live*'`, then a live WhatsApp run with
@@ -89,6 +102,8 @@ router), `customer/` (customer flow), `documents/` (+ `analysis/`), `review/` (a
 ./gradlew test                       # all tests (H2 in-memory, fake Graph API)
 ./gradlew bootRun                    # run on :8080 reading wa.env
 curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/applications
+curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/dashboard/stats   # dashboard numbers
+open http://localhost:8080/dashboard                                                 # dashboard page
 # inspect DB while app is stopped:
 java -cp "$(find ~/.gradle/caches -name 'h2-2*.jar' | head -1)" org.h2.tools.Shell \
   -url jdbc:h2:file:./data/wa-webhook -user sa -password "" -sql "SELECT * FROM APPLICATIONS;"

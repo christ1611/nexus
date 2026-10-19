@@ -82,3 +82,14 @@ ALTER TABLE applications ADD COLUMN IF NOT EXISTS review_summary VARCHAR(16000);
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS officer_review_required BOOLEAN;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS review_rounds INT DEFAULT 0 NOT NULL;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;
+
+-- Step 5: countries, dealer tier, risk flags / AI risk grade and customer badges for the dashboard
+ALTER TABLE dealers ADD COLUMN IF NOT EXISTS country VARCHAR(2) DEFAULT 'ID' NOT NULL;
+ALTER TABLE dealers ADD COLUMN IF NOT EXISTS tier VARCHAR(20) DEFAULT 'STANDARD' NOT NULL;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS country VARCHAR(2) DEFAULT 'ID' NOT NULL;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS risk_grade VARCHAR(2);
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS risk_score INT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS risk_flags_json VARCHAR(16000);
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS risk_method VARCHAR(40);
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS customer_badges VARCHAR(255);
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS risk_assessed_at TIMESTAMP;

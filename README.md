@@ -19,9 +19,10 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 | Step 3 | 고객 여정: wa.me `START <신청번호>` 링크, 동의 버튼, KTP → 셀피 수집(미디어 다운로드·저장), 스텁 문서 검사, 목업 Dukcapil + PEFINDO 조회, `READY_FOR_REVIEW` 전환, 양측 알림 | ✅ 완료 |
 | Step 3b | Claude 문서 분석 + 리뷰 에이전트 (`DOCUMENT_CHECK=claude`): 비전 분석(JSON 스키마), NIK 검증, 신뢰도 임계값, 도구 사용 에이전트(`request_documents` / `write_summary`), 규칙 기반 폴백 | ✅ 코드·테스트 완료, **실 API 미검증** |
 | Step 4 | 심사자 UI / 백오피스 화면, 고객에게 결정 알림, 고객 직접 재제출 흐름 | ⬜ 미착수 |
+| Step 5 | 통계 대시보드(`/dashboard`): 국가별 통계(인도네시아·미얀마·캄보디아), **Fraud/위조 감지 Risk Flag**, **고객 리스크 등급(A~D) AI 표시**, 고객 배지(재무 정합성·우수 딜러 유입), 퍼널·딜러별 현황. 딜러 국가·등급, 국가별 조회 제공자(목업) | ✅ 완료 (2026-10-19) |
 | 운영 | 실 Meta 미디어 다운로드 검증, PostgreSQL + Flyway, 영속 중복 제거, 시크릿·문서 암호화, 관측성, ngrok 대신 고정 도메인 | ⬜ 미착수 |
 
-- 테스트: `./gradlew test` → **58개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
+- 테스트: `./gradlew test` → **69개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
 - Meta 웹훅은 ngrok 예약 도메인(`amaretto-tipoff-excess.ngrok-free.dev`)에 이미 등록·검증되어 있어 터널만 올리면 됩니다.
 - 데모 진행 순서는 `DEMO.md`, 남은 작업의 우선순위는 `NEXT_STEPS.md`에 정리되어 있습니다.
 
@@ -71,6 +72,7 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 ### 데모 제어 (`src/main/resources/demo-data.yml`)
 
 - `StubDocumentCheck`는 `demo-data.check-delay`(2초)만큼 기다린 뒤 샘플 이름·NIK·생년월일·주소로 PASS를 반환합니다.
+  기본 NIK는 4로 끝나(신용 점수 720) 리스크 등급 **A**와 "재무 정합성 우수" 배지가 나오고, 캡션 `nik1`은 645점으로 **B**, `nik7`은 불일치로 **C**(위조 경고)가 됩니다.
 - 이미지 캡션에 `blur`가 있으면 "Photo is blurry"로 FAIL.
 - 이미지 캡션에 `nik7`(임의 숫자)이 있으면 데모 NIK 마지막 자리를 덮어씁니다.
 - 목업 제공자는 NIK 마지막 자리로 결과를 정합니다: 0~6 일치, 7 불일치, 8 미발견, 9 타임아웃. 1~3초 지연을 흉내 냅니다.
@@ -104,7 +106,74 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 ---
 
-## 5. 백오피스 이벤트와 Admin API
+## 5. Risk Flag · 고객 리스크 등급 · 통계 대시보드 (Step 5)
+
+> **Q. 단순 서류 확인 외에 Fraud/위조 감지 경고(Risk Flag) 화면과 "리스크 있는 고객" 요약(고객 리스크 등급 AI 표시)이 포함되어 있는가?**
+>
+> **A. 네, Step 5부터 포함됩니다.** Step 3b까지는 문서 분석이 "사진을 다시 찍어 달라"는 품질 판정과 담당자 검토 플래그에만 쓰였고,
+> 위조·사기 신호를 모아 보여 주는 화면은 없었습니다. Step 5에서 모든 신청에 대해 **Risk Flag 목록, 0~100 리스크 점수, A~D 리스크 등급,
+> 고객 배지**를 계산해 저장하고, `/dashboard`에 "Risk Flag · 위조/사기 감지 경고" 섹션과 국가별·등급별 통계로 표시합니다.
+> 등급은 Claude 비전 분석이 찾아낸 근거(화면 재촬영, 변조, 서류 종류 불일치, NIK 구조 오류, 셀피 신분증 불일치 등)와 신원·신용 조회,
+> 고객 행동을 **코드의 규칙**이 합산해 산출합니다. 모델이 등급을 직접 정하지 않으므로 모든 등급은 설명 가능하고 재계산할 수 있습니다.
+> 스텁 모드에서는 비전 근거가 없어 조회 결과·행동 규칙만 적용되며, 대시보드에 평가 방식("Claude 비전 + 규칙" / "규칙(스텁)")을 함께 표시합니다.
+
+### 5.1 Risk Flag (위조·사기 감지 경고)
+
+| 코드 | 출처 | 심각도 | 의미 | 위조 신호 |
+| --- | --- | --- | --- | --- |
+| `SCREEN_OR_COPY` | 서류 분석 | 높음 (LOW 품질 이슈면 중간) | 화면 재촬영 또는 복사본으로 보임 | ⚠ |
+| `TAMPERING_SUSPECTED` | 서류 분석 | 중간 | 서류 일부가 가려지거나 변조된 흔적 | ⚠ |
+| `WRONG_DOCUMENT_TYPE` | 서류 분석 | 중간 | 접수된 서류가 요청한 종류와 다름 | ⚠ |
+| `INVALID_ID_NUMBER` | 서류 분석 | 높음 | NIK 16자리·지역 코드·생년월일 인코딩 검증 실패 | ⚠ |
+| `ID_CHANGED_BETWEEN_UPLOADS` | 서류 분석 | 높음 | 재업로드 사이에 신분증 번호가 바뀜 | ⚠ |
+| `SELFIE_ID_MISMATCH` | 서류 분석 | 높음 | 셀피에 든 신분증 번호와 제출 서류 번호가 다름 | ⚠ |
+| `MULTIPLE_FACES` | 서류 분석 | 중간 | 셀피에 얼굴이 1명이 아님 | ⚠ |
+| `LOW_CONFIDENCE_FIELDS` | 서류 분석 | 낮음 | 핵심 필드 판독 신뢰도 낮음 | |
+| `IDENTITY_MISMATCH` | 신원 조회 | 높음 | 등록부 데이터와 서류 불일치 | ⚠ |
+| `IDENTITY_NOT_FOUND` | 신원 조회 | 높음 | 등록부에 없는 번호 | |
+| `IDENTITY_UNVERIFIED` | 신원 조회 | 중간 | 조회 시간 초과 | |
+| `CREDIT_IDENTITY_MISMATCH` | 신용 조회 | 중간 | 신용 기록의 신원 불일치 | |
+| `NO_CREDIT_HISTORY` / `LOW_CREDIT_SCORE` / `CREDIT_UNVERIFIED` | 신용 조회 | 낮음 / 중간 / 낮음 | 기록 없음 / 650점 미만 / 시간 초과 | |
+| `REPEATED_RESUBMISSION` / `MANY_FAILED_UPLOADS` / `AGE_OUT_OF_RANGE` | 고객 행동 | 중간 / 낮음 / 중간 | 재요청 2회 이상 / 검사 실패 3회 이상 / 연령 17~80세 밖 | |
+
+### 5.2 고객 리스크 등급 (AI 표시)
+
+- 점수 = 플래그 심각도 합계 (낮음 10, 중간 20, 높음 35, 최대 100).
+- **A 저위험** 0~14 · **B 중위험** 15~39 · **C 고위험** 40~69 · **D 위험 고객** 70 이상. 심각도 "높음"의 위조 신호가 하나라도 있으면 최소 C.
+- 저장 위치: `APPLICATIONS.risk_grade / risk_score / risk_flags_json / risk_method / customer_badges / risk_assessed_at`.
+- 계산 시점: 고객 서류가 모두 접수되어 조회가 끝난 직후(담당자 인계 경로 포함). 딜러에게 가는 "Documents submitted" 메시지에도
+  `Risk grade: C (High risk) - ⚠️ 1 fraud/forgery warning`과 배지가 한 줄로 들어갑니다.
+- 재계산: `POST /admin/applications/{number}/assess-risk`(한 건), `POST /admin/risk/reassess-all`(규칙 변경 후 전체).
+
+### 5.3 고객 배지 (요약 정보)
+
+| 배지 | 조건 |
+| --- | --- |
+| **재무 정합성 및 담보 안정성 우수 고객** | 신원 조회 일치 + 신용 기록 일치 및 점수 700 이상 + 위조 신호 없음 + 등급 A. 담보 데이터는 아직 수집하지 않으므로 현재는 신용·신원 정합성으로 판정하며, 담보 필드가 추가되면 조건에 합류합니다. |
+| **우수 딜러 유입 고객** | 신청을 만든 딜러의 등급이 `EXCELLENT` (`DEMO_DEALER_n_TIER`) |
+| **신원 확인 완료 고객** | 신원 조회 일치 + 위조 신호 없음 |
+
+### 5.4 국가별 통계 (Indonesia · Myanmar · Cambodia)
+
+- 딜러에 `country`(ID / MM / KH)와 `tier`가 생겼고, 신청서는 생성 시점에 딜러의 국가를 복사합니다(`APPLICATIONS.country`).
+- 신원·신용 조회는 **신청서 국가**에 맞는 제공자 쌍을 고릅니다. ID = Dukcapil + PEFINDO 목업, MM = Myanmar NRC registry + Myanmar Credit Bureau 목업,
+  KH = Cambodia GDI registry + Credit Bureau Cambodia 목업. 모두 NIK 마지막 자리 규칙을 공유합니다. 제공자가 없는 국가는 `VERIFICATION_COUNTRY` 기본값으로 폴백합니다.
+- 대시보드의 국가별 표는 세 나라를 항상 표시합니다(데이터가 없어도 0으로). 열: 딜러 수, 신청 수, 진행 중, 심사 대기, 승인, 거절, 고위험(C·D), 위조 경고,
+  신원 일치율, 평균 신용 점수, 등급 A/B/C/D 분포, 배지 수.
+
+### 5.5 대시보드 사용법
+
+1. 앱 실행 후 브라우저에서 `http://localhost:8080/dashboard` (또는 ngrok 도메인 `/dashboard`)을 엽니다. 페이지 자체는 공개지만 데이터가 없습니다.
+2. `ADMIN_API_KEY`를 입력하고 **불러오기**를 누르면 `GET /admin/dashboard/stats`를 `X-Admin-Key` 헤더로 호출합니다. 키는 브라우저 세션 저장소에만 남고 60초마다 자동 갱신됩니다.
+3. 섹션: 요약 타일(총 신청·진행 중·심사 대기·승인·거절·고위험·위조 경고·담당자 검토), 국가별 신청 현황(상태 누적 막대), 리스크 등급 분포, 국가별 통계 표,
+   **Risk Flag · 위조/사기 감지 경고**(고위험 고객 목록: 등급·점수·플래그 칩·배지·평가 방식), Risk Flag 발생 건수, 고객 배지 요약, 온보딩 퍼널, 딜러별 현황, 최근 신청.
+4. 차트는 외부 라이브러리 없이 인라인 SVG로 그리며 라이트/다크 모드와 색각 이상 검증(국가 3색: 파랑·주황·청록, 등급은 상태색 + 아이콘 + 라벨)을 거쳤습니다.
+
+통계 JSON(`GET /admin/dashboard/stats`) 최상위 키: `totals`, `funnel`, `byCountry`, `riskGrades`, `flagCounts`, `badges`, `dealers`, `highRiskApplications`, `recent`.
+
+---
+
+## 6. 백오피스 이벤트와 Admin API
 
 딜러에게 WhatsApp으로 푸시되는 이벤트:
 
@@ -112,20 +181,22 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 - `POST /admin/applications/{number}/request-resubmission` + `{"reason": "..."}` → 새 1회용 링크와 함께 재제출 요청
 - `POST /admin/applications/{number}/decision` + `{"decision": "APPROVED"|"REJECTED", "note": "..."}` → 결정 알림
 
-Admin 엔드포인트(`GET /admin/dealers`, `GET /admin/applications`, `GET /admin/applications/{number}`, 위 두 POST)는
+Admin 엔드포인트(`GET /admin/dealers`, `GET /admin/applications`, `GET /admin/applications/{number}`, `GET /admin/dashboard/stats`,
+`POST /admin/applications/{number}/assess-risk`, `POST /admin/risk/reassess-all`, 위 두 POST)는
 `X-Admin-Key` 헤더가 `ADMIN_API_KEY`와 일치해야 합니다. `GET /admin/applications/{number}`는 문서별 감지 종류,
-검사 결과, 담당자 검토 플래그, 저장된 분석까지 함께 반환합니다.
+검사 결과, 담당자 검토 플래그, 저장된 분석, 그리고 `risk` 블록(등급·점수·플래그·배지·평가 방식)을 함께 반환합니다.
 1회용 링크는 `GET /apply/{token}`을 한 번만 열 수 있고, 자리표시자 폼을 제출하면 신청서가 `SUBMITTED`로 바뀝니다.
 
 ---
 
-## 6. 데이터 모델
+## 7. 데이터 모델
 
-테이블: `DEALERS`, `CONVERSATIONS`(딜러당 1행, 현재 상태), `APPLICATIONS`, `CUSTOMER_SESSIONS`, `DOCUMENTS`.
+테이블: `DEALERS`(국가·등급 포함), `CONVERSATIONS`(딜러당 1행, 현재 상태), `APPLICATIONS`(국가·리스크 등급·플래그·배지 포함), `CUSTOMER_SESSIONS`, `DOCUMENTS`.
 스키마는 `src/main/resources/schema.sql`에 있고, H2 파일은 `./data/`에 첫 기동 시 생성됩니다.
 
-데모 딜러는 `wa.env`의 `DEMO_DEALER_1_PHONE` / `DEMO_DEALER_2_PHONE`(및 `_NAME`)에서 읽어
-기동 시 `DLR-001` / `DLR-002` 코드로 upsert합니다. 전화번호가 비어 있으면 경고만 남기고 건너뜁니다.
+데모 딜러는 `wa.env`의 `DEMO_DEALER_n_PHONE` / `_NAME` / `_COUNTRY` / `_TIER`(n = 1~4)에서 읽어
+기동 시 `DLR-001`~`DLR-004` 코드로 upsert합니다. 기본값은 1·2번 인도네시아(1번 `EXCELLENT`), 3번 미얀마, 4번 캄보디아이며,
+전화번호가 비어 있으면 경고만 남기고 건너뜁니다.
 
 코드 구조 (`src/main/kotlin/com/nextasean/wawebhook/`):
 
@@ -136,15 +207,16 @@ Admin 엔드포인트(`GET /admin/dealers`, `GET /admin/applications`, `GET /adm
 | `customer/` | 고객 세션 상태 머신과 문구 |
 | `documents/`, `documents/analysis/` | 미디어 다운로드·저장, 스텁/Claude 문서 검사, NIK 검증 |
 | `review/` | 리뷰 에이전트(Claude / 규칙 기반), 요약 템플릿 |
+| `risk/` | Risk Flag 규칙(`RiskRules`), 등급·배지 모델, 평가 저장 서비스 |
 | `verification/` | 신원·신용 조회 제공자 레지스트리(목업) |
 | `application/` | 신청서 생성, 1회용 링크, 상태 전환 |
-| `admin/`, `web/` | Admin API와 키 필터, 1회용 링크 페이지 |
+| `admin/`, `web/` | Admin API와 키 필터, 대시보드 통계 API, 1회용 링크·대시보드 페이지 (`static/dashboard.html`) |
 | `whatsapp/` | Graph API 클라이언트, 발신 메시지 모델 |
 | `config/` | 환경 변수 바인딩, Claude 설정 |
 
 ---
 
-## 7. 설정
+## 8. 설정
 
 작업 디렉터리에 `wa.env`(또는 `.env`)를 두고 `KEY=VALUE` 형식으로 작성합니다(`wa.env.example` 참고).
 같은 이름의 실제 환경 변수가 있으면 그것이 우선합니다.
@@ -155,11 +227,11 @@ Admin 엔드포인트(`GET /admin/dealers`, `GET /admin/applications`, `GET /adm
 | `WHATSAPP_ACCESS_TOKEN` | 발신 메시지 Bearer 토큰 |
 | `WHATSAPP_APP_SECRET` | 수신 POST의 `X-Hub-Signature-256` 검증 |
 | `WHATSAPP_VERIFY_TOKEN` | GET 핸드셰이크의 `hub.verify_token`과 비교 |
-| `DEMO_DEALER_1_PHONE`, `DEMO_DEALER_2_PHONE` | 데모 딜러 두 명의 WhatsApp 번호(숫자만) |
+| `DEMO_DEALER_n_PHONE`, `_NAME`, `_COUNTRY`, `_TIER` (n = 1~4) | 데모 딜러 WhatsApp 번호(숫자만), 이름, 국가(ID/MM/KH), 등급(STANDARD/EXCELLENT) |
 | `ADMIN_API_KEY` | `/admin/**` 공유 키 |
 | `APP_PUBLIC_BASE_URL` | 1회용 링크의 기본 URL(기본값은 ngrok 도메인) |
 | `WHATSAPP_BUSINESS_PHONE` | wa.me 링크용 비즈니스 번호(선택, 없으면 웹훅에서 학습) |
-| `VERIFICATION_COUNTRY` | 신원·신용 조회 제공자 쌍(기본 `ID`) |
+| `VERIFICATION_COUNTRY` | 제공자가 없는 국가의 폴백 제공자 쌍(기본 `ID`); 평소에는 신청서 국가로 선택 |
 | `DOCUMENT_CHECK` | `stub`(기본) 또는 `claude` |
 | `ANTHROPIC_API_KEY` | `DOCUMENT_CHECK=claude`일 때 필수 |
 | `CLAUDE_MODEL` | Claude 모델(기본 `claude-opus-5-5`) |
@@ -170,7 +242,7 @@ Admin 엔드포인트(`GET /admin/dealers`, `GET /admin/applications`, `GET /adm
 
 ---
 
-## 8. 실행
+## 9. 실행
 
 JDK 21 이상이 `PATH`에 있어야 합니다. Gradle은 설치할 필요 없이 래퍼를 사용합니다.
 
@@ -189,7 +261,7 @@ java -jar build/libs/wa-webhook-0.0.1-SNAPSHOT.jar
 
 ---
 
-## 9. 로컬 테스트
+## 10. 로컬 테스트
 
 단위·통합 테스트 실행:
 
@@ -223,15 +295,17 @@ curl -i -X POST http://localhost:8080/webhook \
 기대 결과: `200 OK`와 `Status update | messageId=wamid.TEST | status=delivered ...` 로그.
 서명이 틀리면 `401`.
 
-Admin API 확인:
+Admin API와 대시보드 통계 확인:
 
 ```bash
 curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/applications
+curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/dashboard/stats
+open http://localhost:8080/dashboard
 ```
 
 ---
 
-## 10. ngrok으로 Meta 연결
+## 11. ngrok으로 Meta 연결
 
 1. 앱 실행: `./gradlew bootRun`
 2. 다른 터미널에서 예약 도메인으로 ngrok 실행:
@@ -249,12 +323,13 @@ curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/applications
 
 ---
 
-## 11. 다음 할 일 (요약)
+## 12. 다음 할 일 (요약)
 
 자세한 우선순위는 `NEXT_STEPS.md`를 보세요.
 
 - **A. 기존 기능 강화**: 실 Meta 미디어 다운로드 검증, 읽음 표시·입력 중 표시, Graph API 재시도와 `OUTBOUND_LOG`, 미등록 번호 거절 속도 제한, 세션 타임아웃
-- **B. Step 4 심사 / 백오피스**: 심사자 UI, 고객에게 결정 알림, 고객 직접 재제출
+- **B. Step 4 심사 / 백오피스**: 심사자 UI(대시보드에서 신청 상세·서류 열람·결정까지), 고객에게 결정 알림, 고객 직접 재제출
+- **B2. Step 5 후속**: 담보 데이터 수집 후 "담보 안정성" 배지 조건 반영, Claude에게 리스크 요약 문장 생성 위임(현재 등급·플래그는 규칙 기반), 기간 필터와 추세 차트, 실 KTP로 임계값 튜닝
 - **C. 실 연동**: `ANTHROPIC_API_KEY`로 라이브 테스트 후 `DOCUMENT_CHECK=claude` 실사용, 실 Dukcapil / PEFINDO 클라이언트, 병렬 조회와 실제 타임아웃
 - **D. 운영 준비**: PostgreSQL + Flyway, 영속 중복 제거 저장소, 시크릿·문서 암호화, 관측성(Actuator), 고정 HTTPS 도메인
 - **E. 제품 다듬기**: 인도네시아어 현지화, 24시간 창 밖 템플릿 메시지, 딜러 통계
@@ -269,7 +344,28 @@ curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/applications
 [한국어](#korean) | **English**
 
 Spring Boot 3 (Kotlin, Gradle) webhook for the WhatsApp Cloud API.
-_Current status (19 Oct 2026): Steps 1-3b done, 58 tests passing (1 skipped live Claude test); Step 4 review UI and production hardening not started. See the Korean section above or `NEXT_STEPS.md` for the full status table._
+_Current status (19 Oct 2026): Steps 1-3b and Step 5 (statistics dashboard with fraud/forgery risk flags, AI risk grade A-D, customer badges and per-country statistics for Indonesia, Myanmar and Cambodia) done, 69 tests passing (1 skipped live Claude test); Step 4 review UI and production hardening not started. See the Korean section above or `NEXT_STEPS.md` for the full status table._
+
+## Step 5 - Risk flags, customer risk grade and the statistics dashboard
+
+**Does the product show fraud / forgery warnings (risk flags) and a "risky customer" summary beyond the plain document check?**
+Yes, since Step 5. Every application that completes the document journey gets a list of `RiskFlag`s, a 0-100 score, a grade
+**A (low) / B (medium) / C (high) / D (critical)** and customer badges, stored on `APPLICATIONS` and shown on `/dashboard`
+(section "Risk Flag - fraud / forgery warnings"). The evidence comes from the Claude vision analysis (screen photo or photocopy,
+tampering, wrong document type, structurally invalid NIK, ID changed between uploads, selfie holding a different ID, several
+faces), the identity registry and credit bureau results, and customer behaviour (repeated resubmission, many failed uploads,
+age out of range). The rules that turn evidence into flags and grades live in code (`risk/RiskRules.kt`), so every grade is
+explainable and can be recomputed with `POST /admin/risk/reassess-all`. In stub mode only the provider and behaviour rules apply,
+and the dashboard labels the method ("Claude vision + rules" vs "rules (stub)").
+
+Badges: **Strong financial consistency and collateral stability** (identity match, credit match with score >= 700, no fraud
+signal, grade A; collateral data is not collected yet), **Referred by an excellent dealer** (dealer tier `EXCELLENT`), **Identity verified**.
+
+Countries: dealers carry `country` (ID / MM / KH) and `tier`; applications copy the dealer's country; verification picks the provider
+pair for that country (Dukcapil + PEFINDO mocks for ID, mock NRC registry + credit bureau for MM, mock GDI registry + credit bureau for
+KH). `GET /admin/dashboard/stats` returns totals, funnel, per-country statistics (always all three countries), grade distribution,
+flag counts, badge counts, per-dealer counts, the high-risk list and recent applications. The page at `/dashboard` renders it with
+inline SVG charts after you enter the admin key.
 
 - `GET /webhook` answers Meta's verification handshake.
 - `POST /webhook` validates `X-Hub-Signature-256` (HMAC-SHA256 with the app secret) over the raw body,

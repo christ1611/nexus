@@ -5,9 +5,10 @@ demo-data:
   # Sample fields the stub "extracts" from every KTP photo.
   # The LAST DIGIT of the NIK drives the mock providers: 0-6 match, 7 mismatch, 8 not found, 9 timeout.
   # Caption tricks while demoing: "blur" fails the check; "nik7" (any digit) overrides the NIK's last digit.
+  # Default last digit 4 -> match + score 720 -> risk grade A with the "financial stability" badge; "nik1" -> score 645 -> grade B.
   extracted:
     name: Budi Santoso
-    nik: "3171051705900001"
+    nik: "3171051705900004"
     dob: "1990-05-17"
     address: "Jl. Merdeka No. 10, RT 03/RW 05, Gambir, Jakarta Pusat 10110"
 

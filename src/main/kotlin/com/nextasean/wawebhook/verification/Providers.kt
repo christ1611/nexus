@@ -97,3 +97,71 @@ class MockPefindo(private val latency: LatencySimulator) : CreditBureauProvider 
         return CreditCheckResult(name, outcome, detail, score, took)
     }
 }
+
+/**
+ * Generic mock population-registry provider for markets without a dedicated client yet (Myanmar, Cambodia).
+ * Same demo rule as [MockDukcapil]: the last digit of the ID number decides the outcome.
+ */
+class MockRegistryProvider(
+    override val country: String,
+    override val name: String,
+    private val registryLabel: String,
+    private val latency: LatencySimulator,
+) : IdVerificationProvider {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    override fun verify(fields: ExtractedFields): IdVerificationResult {
+        val took = latency.simulate()
+        val outcome = DemoOutcome.fromNik(fields.nik)
+        val detail = when (outcome) {
+            ProviderOutcome.MATCH -> "ID number, name and date of birth match the $registryLabel"
+            ProviderOutcome.MISMATCH -> "ID number found but name/date of birth do not match the $registryLabel"
+            ProviderOutcome.NOT_FOUND -> "ID number is not registered"
+            ProviderOutcome.TIMEOUT -> "$name did not respond in time"
+        }
+        log.info("{} | id=***{} | outcome={} | latencyMs={}", name, fields.nik.takeLast(4), outcome, took)
+        return IdVerificationResult(name, outcome, detail, took)
+    }
+}
+
+/** Generic mock credit bureau for markets without a dedicated client yet. Scores follow the same rule as [MockPefindo]. */
+class MockBureauProvider(
+    override val country: String,
+    override val name: String,
+    private val latency: LatencySimulator,
+) : CreditBureauProvider {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    override fun check(fields: ExtractedFields): CreditCheckResult {
+        val took = latency.simulate()
+        val outcome = DemoOutcome.fromNik(fields.nik)
+        val lastDigit = fields.nik.trim().lastOrNull()?.digitToIntOrNull() ?: 0
+        val score = if (outcome == ProviderOutcome.MATCH) 620 + lastDigit * 25 else null
+        val detail = when (outcome) {
+            ProviderOutcome.MATCH -> "Credit record found, score $score, no delinquencies in the last 24 months"
+            ProviderOutcome.MISMATCH -> "Identity data does not match the bureau record"
+            ProviderOutcome.NOT_FOUND -> "No credit record for this ID number"
+            ProviderOutcome.TIMEOUT -> "$name did not respond in time"
+        }
+        log.info("{} | id=***{} | outcome={} | score={} | latencyMs={}", name, fields.nik.takeLast(4), outcome, score, took)
+        return CreditCheckResult(name, outcome, detail, score, took)
+    }
+}
+
+/** Registers the mock providers for the markets that have no dedicated client yet. */
+@org.springframework.context.annotation.Configuration
+class RegionalMockProvidersConfig {
+    @org.springframework.context.annotation.Bean
+    fun myanmarRegistry(latency: LatencySimulator): IdVerificationProvider =
+        MockRegistryProvider("MM", "Myanmar NRC registry (mock)", "national registration database", latency)
+
+    @org.springframework.context.annotation.Bean
+    fun myanmarBureau(latency: LatencySimulator): CreditBureauProvider = MockBureauProvider("MM", "Myanmar Credit Bureau (mock)", latency)
+
+    @org.springframework.context.annotation.Bean
+    fun cambodiaRegistry(latency: LatencySimulator): IdVerificationProvider =
+        MockRegistryProvider("KH", "Cambodia GDI registry (mock)", "civil registry", latency)
+
+    @org.springframework.context.annotation.Bean
+    fun cambodiaBureau(latency: LatencySimulator): CreditBureauProvider = MockBureauProvider("KH", "Credit Bureau Cambodia (mock)", latency)
+}

@@ -4,6 +4,7 @@ import com.nextasean.wawebhook.application.DealerApplication
 import com.nextasean.wawebhook.application.IssuedLink
 import com.nextasean.wawebhook.config.AppProperties
 import com.nextasean.wawebhook.dealer.DealerRepository
+import com.nextasean.wawebhook.risk.RiskAssessment
 import com.nextasean.wawebhook.verification.VerificationOutcome
 import com.nextasean.wawebhook.whatsapp.OutboundMessage
 import com.nextasean.wawebhook.whatsapp.WhatsAppSender
@@ -26,9 +27,11 @@ class DealerNotifier(
 
     fun decision(app: DealerApplication): Boolean = notify(app, messages.decision(app))
 
-    fun documentsSubmitted(outcome: VerificationOutcome): Boolean = notify(outcome.application, messages.documentsSubmitted(outcome))
+    fun documentsSubmitted(outcome: VerificationOutcome, risk: RiskAssessment? = null): Boolean =
+        notify(outcome.application, messages.documentsSubmitted(outcome, risk))
 
-    fun documentsForOfficerReview(app: DealerApplication): Boolean = notify(app, messages.documentsForOfficerReview(app))
+    fun documentsForOfficerReview(app: DealerApplication, risk: RiskAssessment? = null): Boolean =
+        notify(app, messages.documentsForOfficerReview(app, risk))
 
     private fun notify(app: DealerApplication, message: OutboundMessage): Boolean {
         val dealer = dealers.findById(app.dealerId).orElse(null)

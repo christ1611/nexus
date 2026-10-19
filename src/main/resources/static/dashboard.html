@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXT ASEAN 온보딩 대시보드</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --surface-2: #f3f2ef; --border: #e2e1dc;
+    --text: #0b0b0b; --text-2: #52514e; --text-3: #7a7975;
+    --c-id: #2a78d6; --c-mm: #eb6834; --c-kh: #1baf7a;          /* categorical slots 1-3: Indonesia, Myanmar, Cambodia */
+    --seq: #2a78d6; --seq-light: #9ec5f4;                         /* sequential blue */
+    --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --grid: #e8e7e2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --surface-2: #242423; --border: #353533;
+      --text: #f0efec; --text-2: #c3c2b7; --text-3: #8f8e88;
+      --c-id: #3987e5; --c-mm: #d95926; --c-kh: #199e70;
+      --seq: #3987e5; --seq-light: #1c5cab; --grid: #2e2e2c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --surface-2: #242423; --border: #353533;
+    --text: #f0efec; --text-2: #c3c2b7; --text-3: #8f8e88;
+    --c-id: #3987e5; --c-mm: #d95926; --c-kh: #199e70;
+    --seq: #3987e5; --seq-light: #1c5cab; --grid: #2e2e2c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--text); font: 14px/1.45 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", Segoe UI, Roboto, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 18px; margin: 0; }
+  h1 small { display: block; font-size: 12px; font-weight: 400; color: var(--text-3); }
+  h2 { font-size: 15px; margin: 0 0 4px; }
+  h2 small, .sub { display: block; font-size: 12px; font-weight: 400; color: var(--text-3); }
+  main { padding: 16px; display: grid; gap: 16px; max-width: 1200px; margin: 0 auto; }
+  .row { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .tile { background: var(--surface-2); border-radius: 8px; padding: 12px; }
+  .tile .k { font-size: 12px; color: var(--text-2); }
+  .tile .k small { color: var(--text-3); }
+  .tile .v { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .tile.alert .v { color: var(--critical); }
+  .key { display: flex; gap: 8px; align-items: center; }
+  input[type=password], input[type=text] { font: inherit; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); min-width: 220px; }
+  button { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
+  button.primary { background: var(--seq); color: #fff; border-color: transparent; }
+  .status { font-size: 12px; color: var(--text-3); }
+  .status.err { color: var(--critical); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 500; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .chip { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border); margin: 2px 4px 2px 0; color: var(--text-2); white-space: nowrap; }
+  .chip.fraud { border-color: var(--critical); color: var(--critical); }
+  .chip.badge { border-color: var(--good); color: var(--good); }
+  .grade { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+  .grade .ic { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-2); margin-top: 8px; }
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  svg text { fill: var(--text-2); font-size: 11px; }
+  svg .lbl { fill: var(--text); font-size: 11px; }
+  svg .grid { stroke: var(--grid); stroke-width: 1; }
+  .bar { cursor: default; }
+  .bar:hover { filter: brightness(0.9); }
+  #tip { position: fixed; pointer-events: none; background: var(--text); color: var(--surface); font-size: 12px; padding: 6px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s; z-index: 10; max-width: 260px; }
+  .empty { color: var(--text-3); font-size: 13px; padding: 12px 0; }
+  details summary { cursor: pointer; color: var(--text-2); font-size: 12px; }
+  .scroll { overflow-x: auto; }
+  @media (max-width: 600px) { main, header { padding: 12px 16px; } .tile .v { font-size: 22px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>NEXT ASEAN 온보딩 대시보드 <small>WhatsApp onboarding dashboard · Indonesia / Myanmar / Cambodia</small></h1>
+  <div class="key">
+    <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">
+    <button class="primary" id="load">불러오기</button>
+    <button id="refresh" title="Refresh">새로고침</button>
+    <span class="status" id="status"></span>
+  </div>
+</header>
+<main id="main">
+  <p class="empty">관리자 키를 입력하고 <b>불러오기</b>를 누르세요. 키는 이 브라우저 세션에만 저장됩니다. <br><span class="sub">Enter the admin key and press Load. The key stays in this browser session only.</span></p>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+(function () {
+  const $ = (s, el = document) => el.querySelector(s);
+  const main = $('#main'), status = $('#status'), keyInput = $('#key'), tip = $('#tip');
+  const COUNTRY_COLOR = { ID: 'var(--c-id)', MM: 'var(--c-mm)', KH: 'var(--c-kh)' };
+  const GRADE = {
+    A: { color: 'var(--good)', icon: '●', ko: '저위험', en: 'Low' },
+    B: { color: 'var(--warn)', icon: '▲', ko: '중위험', en: 'Medium' },
+    C: { color: 'var(--serious)', icon: '◆', ko: '고위험', en: 'High' },
+    D: { color: 'var(--critical)', icon: '■', ko: '위험 고객', en: 'Critical' },
+  };
+  const STATUS_KO = { DRAFT: '작성 중', SUBMITTED: '제출됨', RESUBMISSION_REQUESTED: '재제출 요청', READY_FOR_REVIEW: '심사 대기', APPROVED: '승인', REJECTED: '거절' };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
+  const num = v => v == null ? '–' : (Number.isInteger(v) ? v : v.toFixed(0));
+  const fmtTime = iso => { try { return new Date(iso).toLocaleString('ko-KR', { hour12: false }); } catch { return iso; } };
+
+  try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
+
+  function showTip(e, html) { tip.innerHTML = html; tip.style.opacity = 1; moveTip(e); }
+  function moveTip(e) { tip.style.left = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; }
+  function hideTip() { tip.style.opacity = 0; }
+  function bindTips(root) {
+    root.querySelectorAll('[data-tip]').forEach(el => {
+      el.addEventListener('mouseenter', e => showTip(e, el.dataset.tip));
+      el.addEventListener('mousemove', moveTip);
+      el.addEventListener('mouseleave', hideTip);
+    });
+  }
+
+  /* Horizontal bar chart: rows = [{label, value, color, tip}] ; one axis, thin marks, rounded data-end, gaps between bars. */
+  function hbars(rows, opts = {}) {
+    const W = 520, rowH = 26, left = opts.left || 120, right = 44, top = 4;
+    const H = top + rows.length * rowH + 4;
+    const max = Math.max(1, ...rows.map(r => r.value));
+    const scale = v => (W - left - right) * v / max;
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria || '')}">`;
+    [0.25, 0.5, 0.75, 1].forEach(f => { const x = left + scale(max * f); s += `<line class="grid" x1="${x}" x2="${x}" y1="${top}" y2="${H - 4}"/>`; });
+    rows.forEach((r, i) => {
+      const y = top + i * rowH + 5, h = rowH - 10, w = Math.max(r.value > 0 ? 4 : 0, scale(r.value));
+      s += `<text x="${left - 8}" y="${y + h / 2 + 4}" text-anchor="end" class="lbl">${esc(r.label)}</text>`;
+      if (w > 0) s += `<path class="bar" data-tip="${esc(r.tip || r.label + ': ' + r.value)}" d="M${left},${y} h${w - 4} a4,4 0 0 1 4,4 v${h - 8} a4,4 0 0 1 -4,4 h-${w - 4} z" fill="${r.color}"/>`;
+      s += `<text x="${left + w + 6}" y="${y + h / 2 + 4}">${r.value}</text>`;
+    });
+    return s + '</svg>';
+  }
+
+  /* Grouped bars per country for one measure set: groups = countries, series = statuses (sequential steps of one hue). */
+  function countryStacked(byCountry) {
+    const series = [
+      { key: 'inProgress', ko: '진행 중', en: 'In progress', color: 'var(--seq-light)' },
+      { key: 'readyForReview', ko: '심사 대기', en: 'Ready for review', color: 'var(--seq)' },
+      { key: 'approved', ko: '승인', en: 'Approved', color: 'var(--good)' },
+      { key: 'rejected', ko: '거절', en: 'Rejected', color: 'var(--critical)' },
+    ];
+    const W = 520, rowH = 34, left = 110, right = 40, top = 4, H = top + byCountry.length * rowH + 4;
+    const max = Math.max(1, ...byCountry.map(c => c.applications));
+    const scale = v => (W - left - right) * v / max;
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Applications by country and status">`;
+    byCountry.forEach((c, i) => {
+      const y = top + i * rowH + 7, h = rowH - 14;
+      s += `<text x="${left - 8}" y="${y + h / 2 + 4}" text-anchor="end" class="lbl">${esc(c.nameKo)} ${esc(c.code)}</text>`;
+      let x = left;
+      series.forEach(sr => {
+        const v = c[sr.key]; if (!v) return;
+        const w = Math.max(3, scale(v)) - 2;
+        s += `<rect class="bar" x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${sr.color}" data-tip="${esc(c.nameKo + ' · ' + sr.ko + ' (' + sr.en + '): ' + v)}"/>`;
+        x += w + 2;
+      });
+      s += `<text x="${x + 6}" y="${y + h / 2 + 4}">${c.applications}</text>`;
+    });
+    s += '</svg><div class="legend">' + series.map(sr => `<span><span class="dot" style="background:${sr.color}"></span>${sr.ko} <span class="sub" style="display:inline">${sr.en}</span></span>`).join('') + '</div>';
+    return s;
+  }
+
+  function gradeCell(g) { const m = GRADE[g] || { color: 'var(--text-3)', icon: '○', ko: '미평가', en: 'n/a' }; return `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g || '–')} <span class="sub" style="display:inline">${m.ko}</span></span>`; }
+
+  function render(d) {
+    const t = d.totals;
+    const tiles = [
+      ['총 신청', 'Applications', t.applications], ['진행 중', 'In progress', t.inProgress], ['심사 대기', 'Ready for review', t.readyForReview],
+      ['승인', 'Approved', t.approved], ['거절', 'Rejected', t.rejected],
+      ['고위험 고객 (C·D)', 'High-risk customers', t.highRisk, true], ['위조·사기 경고', 'Fraud / forgery warnings', t.fraudWarnings, true],
+      ['담당자 검토 필요', 'Officer review required', t.officerReviewRequired],
+    ];
+    let h = `<section class="card"><div class="tiles">${tiles.map(([ko, en, v, alert]) =>
+      `<div class="tile ${alert && v > 0 ? 'alert' : ''}"><div class="k">${ko} <small>${en}</small></div><div class="v">${v}</div></div>`).join('')}</div></section>`;
+
+    h += `<div class="row">
+      <section class="card"><h2>국가별 신청 현황 <small>Applications by country and status</small></h2>${countryStacked(d.byCountry)}</section>
+      <section class="card"><h2>고객 리스크 등급 분포 <small>AI risk grade distribution (${esc(d.totals.assessed)} assessed)</small></h2>
+        ${hbars(d.riskGrades.map(g => ({ label: `${g.grade} ${g.labelKo}`, value: g.count, color: GRADE[g.grade].color, tip: `${g.grade} · ${g.labelKo} (${g.label}): ${g.count}` })), { left: 90, aria: 'Risk grade distribution' })}
+        <div class="legend">${d.riskGrades.map(g => `<span><span class="ic grade" style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${GRADE[g.grade].color}"></span> ${g.grade} = ${g.labelKo} · ${g.label}</span>`).join('')}</div>
+      </section>
+    </div>`;
+
+    h += `<section class="card"><h2>국가별 통계 <small>Per-country statistics (Indonesia · Myanmar · Cambodia)</small></h2><div class="scroll"><table>
+      <thead><tr><th>국가<br><span class="sub">Country</span></th><th>신분증<br><span class="sub">ID doc</span></th><th class="num">딜러<br><span class="sub">Dealers</span></th><th class="num">신청<br><span class="sub">Apps</span></th><th class="num">진행 중</th><th class="num">심사 대기</th><th class="num">승인</th><th class="num">거절</th><th class="num">고위험<br><span class="sub">C·D</span></th><th class="num">위조 경고<br><span class="sub">Fraud</span></th><th class="num">신원 일치율<br><span class="sub">ID match</span></th><th class="num">평균 신용점수<br><span class="sub">Avg score</span></th><th>등급 A/B/C/D</th><th class="num">우수 재무<br><span class="sub">Fin. badge</span></th><th class="num">우수 딜러 유입<br><span class="sub">Dealer badge</span></th></tr></thead>
+      <tbody>${d.byCountry.map(c => `<tr><td><span class="dot" style="background:${COUNTRY_COLOR[c.code]}"></span>${esc(c.nameKo)} <span class="sub" style="display:inline">${esc(c.name)}</span></td><td>${esc(c.idDocument)}</td><td class="num">${c.dealers}</td><td class="num">${c.applications}</td><td class="num">${c.inProgress}</td><td class="num">${c.readyForReview}</td><td class="num">${c.approved}</td><td class="num">${c.rejected}</td><td class="num">${c.highRisk}</td><td class="num">${c.fraudWarnings}</td><td class="num">${pct(c.identityMatchRate)}</td><td class="num">${num(c.avgCreditScore)}</td><td>${['A','B','C','D'].map(g => `<span title="${g}">${g}:${c.grades[g] || 0}</span>`).join(' ')}</td><td class="num">${c.badges.FINANCIAL_STABILITY || 0}</td><td class="num">${c.badges.EXCELLENT_DEALER_REFERRAL || 0}</td></tr>`).join('')}</tbody>
+    </table></div></section>`;
+
+    h += `<section class="card"><h2>Risk Flag · 위조/사기 감지 경고 <small>Fraud / forgery warnings and high-risk customers (grade C or D)</small></h2>`;
+    if (!d.highRiskApplications.length) h += `<p class="empty">현재 고위험(C·D) 고객이 없습니다. <span class="sub">No high-risk customers right now.</span></p>`;
+    else h += `<div class="scroll"><table><thead><tr><th>신청번호<br><span class="sub">Application</span></th><th>국가</th><th>딜러</th><th>고객<br><span class="sub">Customer</span></th><th>상태</th><th>AI 리스크 등급<br><span class="sub">Grade · score</span></th><th>Risk Flags</th><th>배지<br><span class="sub">Badges</span></th><th>평가 방식<br><span class="sub">Method</span></th></tr></thead><tbody>${
+      d.highRiskApplications.map(r => `<tr><td><b>${esc(r.applicationNumber)}</b><br><span class="sub">${fmtTime(r.assessedAt)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${esc(STATUS_KO[r.status] || r.status)}</td><td>${gradeCell(r.grade)} <span class="sub">score ${r.score}${r.fraudWarnings ? ` · ⚠ 위조 경고 ${r.fraudWarnings}` : ''}</span></td><td>${r.flags.map(f => `<span class="chip ${f.fraud ? 'fraud' : ''}" data-tip="${esc(f.title + ' — ' + f.detail)}">${f.fraud ? '⚠ ' : ''}${esc(f.titleKo)} · ${esc(f.severity)}</span>`).join('')}</td><td>${r.badgesKo.map(b => `<span class="chip badge">✓ ${esc(b)}</span>`).join('') || '–'}</td><td><span class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')}</span></td></tr>`).join('')
+    }</tbody></table></div>`;
+    h += `</section>`;
+
+    h += `<div class="row">
+      <section class="card"><h2>Risk Flag 발생 건수 <small>Flag counts (⚠ = fraud / forgery signal)</small></h2>${d.flagCounts.length ? hbars(d.flagCounts.slice(0, 10).map(f => ({ label: (f.fraud ? '⚠ ' : '') + f.titleKo, value: f.count, color: f.fraud ? 'var(--critical)' : 'var(--seq)', tip: `${f.titleKo} · ${f.title} (${f.severity}): ${f.count}` })), { left: 200, aria: 'Risk flag counts' }) : '<p class="empty">아직 발생한 Risk Flag가 없습니다. <span class="sub">No flags yet.</span></p>'}</section>
+      <section class="card"><h2>고객 배지 요약 <small>Customer badges</small></h2><div class="tiles">${d.badges.map(b => `<div class="tile"><div class="k">${esc(b.labelKo)} <small>${esc(b.label)}</small></div><div class="v">${b.count}</div></div>`).join('')}</div></section>
+    </div>`;
+
+    h += `<div class="row">
+      <section class="card"><h2>온보딩 퍼널 <small>Onboarding funnel</small></h2>${hbars(d.funnel.map((f, i) => ({ label: f.stageKo, value: f.count, color: 'var(--seq)', tip: `${f.stageKo} · ${f.stage}: ${f.count}` })), { left: 110, aria: 'Onboarding funnel' })}</section>
+      <section class="card"><h2>딜러별 현황 <small>Per dealer</small></h2><div class="scroll"><table><thead><tr><th>코드</th><th>딜러</th><th>국가</th><th>등급<br><span class="sub">Tier</span></th><th class="num">신청</th><th class="num">승인</th><th class="num">고위험</th></tr></thead><tbody>${d.dealers.map(x => `<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${x.tier === 'EXCELLENT' ? '★ 우수 딜러' : '일반'}</td><td class="num">${x.applications}</td><td class="num">${x.approved}</td><td class="num">${x.highRisk}</td></tr>`).join('')}</tbody></table></div></section>
+    </div>`;
+
+    h += `<section class="card"><h2>최근 신청 <small>Recent applications</small></h2><div class="scroll"><table><thead><tr><th>신청번호</th><th>국가</th><th>딜러</th><th>상태</th><th>등급</th><th>생성</th></tr></thead><tbody>${d.recent.map(r => `<tr><td>${esc(r.applicationNumber)}</td><td>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(STATUS_KO[r.status] || r.status)}</td><td>${gradeCell(r.grade)}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">아직 신청이 없습니다.</td></tr>'}</tbody></table></div>
+      <details style="margin-top:10px"><summary>등급 산정 기준 · How the grade is computed</summary><p class="sub" style="display:block;margin:8px 0 0">점수 = Risk Flag 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A: 0-14, B: 15-39, C: 40-69, D: 70+. 심각도 '높음'의 위조·사기 신호가 하나라도 있으면 최소 C. 근거: Claude 비전 분석(화면 재촬영·변조·서류 종류·NIK 구조·셀피 불일치), 신원 조회, 신용 조회, 고객 행동(재요청·실패 업로드·연령). 스텁 모드에서는 조회 결과와 행동 규칙만 적용됩니다.<br>Score = sum of flag severities (LOW 10, MEDIUM 20, HIGH 35, capped at 100). A 0-14, B 15-39, C 40-69, D 70+. Any HIGH fraud signal floors the grade at C.</p></details>
+    </section>`;
+    h += `<p class="status">생성 시각 ${fmtTime(d.generatedAt)} · generated ${fmtTime(d.generatedAt)}</p>`;
+    main.innerHTML = h;
+    bindTips(main);
+  }
+
+  async function load() {
+    const key = keyInput.value.trim();
+    if (!key) { status.textContent = '관리자 키를 입력하세요.'; status.className = 'status err'; return; }
+    try { sessionStorage.setItem('adminKey', key); } catch {}
+    status.textContent = '불러오는 중…'; status.className = 'status';
+    try {
+      const res = await fetch('/admin/dashboard/stats', { headers: { 'X-Admin-Key': key } });
+      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.error || ('HTTP ' + res.status)); }
+      render(await res.json());
+      status.textContent = '업데이트 완료 ' + new Date().toLocaleTimeString('ko-KR', { hour12: false });
+    } catch (e) {
+      status.textContent = '오류: ' + e.message; status.className = 'status err';
+    }
+  }
+  $('#load').addEventListener('click', load);
+  $('#refresh').addEventListener('click', load);
+  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+  if (keyInput.value) load();
+  setInterval(() => { if (keyInput.value.trim()) load(); }, 60000);
+})();
+</script>
+</body>
+</html>

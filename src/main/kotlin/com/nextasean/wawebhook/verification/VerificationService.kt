@@ -10,7 +10,10 @@ import java.time.Instant
 
 data class VerificationOutcome(val application: DealerApplication, val id: IdVerificationResult, val credit: CreditCheckResult)
 
-/** Picks the providers for the configured country, runs them, and stores the results on the application. */
+/**
+ * Picks the identity and credit providers for the application's country (falling back to the configured default
+ * country), runs them, and stores the results on the application.
+ */
 @Service
 class VerificationService(
     idProviders: List<IdVerificationProvider>,
@@ -19,18 +22,29 @@ class VerificationService(
     private val applications: ApplicationRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val country = props.country.uppercase()
-    private val idProvider = idProviders.firstOrNull { it.country.equals(country, ignoreCase = true) }
-        ?: error("No IdVerificationProvider for country '$country' (available: ${idProviders.map { it.country }})")
-    private val creditProvider = creditProviders.firstOrNull { it.country.equals(country, ignoreCase = true) }
-        ?: error("No CreditBureauProvider for country '$country' (available: ${creditProviders.map { it.country }})")
+    private val defaultCountry = props.country.uppercase()
+    private val idByCountry = idProviders.associateBy { it.country.uppercase() }
+    private val creditByCountry = creditProviders.associateBy { it.country.uppercase() }
 
     init {
-        log.info("Verification providers | country={} | id={} | credit={}", country, idProvider.name, creditProvider.name)
+        require(defaultCountry in idByCountry) { "No IdVerificationProvider for country '$defaultCountry' (available: ${idByCountry.keys})" }
+        require(defaultCountry in creditByCountry) { "No CreditBureauProvider for country '$defaultCountry' (available: ${creditByCountry.keys})" }
+        val countries = idByCountry.keys intersect creditByCountry.keys
+        log.info("Verification providers | default={} | countries={}", defaultCountry, countries.sorted())
+        countries.sorted().forEach { c -> log.info("Verification providers | country={} | id={} | credit={}", c, idByCountry[c]?.name, creditByCountry[c]?.name) }
     }
 
-    /** Runs both checks with the fields extracted from the KTP and marks the application READY_FOR_REVIEW. */
+    /** Countries with both an identity and a credit provider. */
+    val supportedCountries: Set<String> get() = idByCountry.keys intersect creditByCountry.keys
+
+    /** Runs both checks with the fields extracted from the ID document and marks the application READY_FOR_REVIEW. */
     fun verifyAndSubmit(application: DealerApplication): VerificationOutcome {
+        val country = application.country.uppercase().takeIf { it in supportedCountries } ?: run {
+            log.warn("No providers for country {} on {}; using default {}", application.country, application.applicationNumber, defaultCountry)
+            defaultCountry
+        }
+        val idProvider = idByCountry.getValue(country)
+        val creditProvider = creditByCountry.getValue(country)
         val fields = ExtractedFields(
             name = application.extractedName ?: "",
             nik = application.extractedNik ?: "",
@@ -54,8 +68,8 @@ class VerificationService(
             ),
         )
         log.info(
-            "Verification complete | number={} | id={} | credit={} | score={} | status={}",
-            saved.applicationNumber, id.outcome, credit.outcome, credit.score, saved.status,
+            "Verification complete | number={} | country={} | id={} | credit={} | score={} | status={}",
+            saved.applicationNumber, country, id.outcome, credit.outcome, credit.score, saved.status,
         )
         return VerificationOutcome(saved, id, credit)
     }

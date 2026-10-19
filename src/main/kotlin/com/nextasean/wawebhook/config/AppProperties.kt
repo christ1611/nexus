@@ -22,7 +22,15 @@ data class AppProperties(
 
 @ConfigurationProperties(prefix = "demo")
 data class DemoProperties(val dealers: List<DemoDealer> = emptyList()) {
-    data class DemoDealer(val code: String = "", val name: String = "", val phone: String = "")
+    data class DemoDealer(
+        val code: String = "",
+        val name: String = "",
+        val phone: String = "",
+        /** Market code (ID / MM / KH); unknown values fall back to ID. */
+        val country: String = "ID",
+        /** STANDARD or EXCELLENT. */
+        val tier: String = "STANDARD",
+    )
 }
 
 @ConfigurationProperties(prefix = "demo-data")

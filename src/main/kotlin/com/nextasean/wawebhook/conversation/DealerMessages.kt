@@ -4,6 +4,7 @@ import com.nextasean.wawebhook.application.ApplicationStatus
 import com.nextasean.wawebhook.application.DealerApplication
 import com.nextasean.wawebhook.application.IssuedLink
 import com.nextasean.wawebhook.dealer.Dealer
+import com.nextasean.wawebhook.risk.RiskAssessment
 import com.nextasean.wawebhook.verification.VerificationOutcome
 import com.nextasean.wawebhook.whatsapp.OutboundMessage
 import com.nextasean.wawebhook.whatsapp.OutboundMessage.Button
@@ -188,16 +189,17 @@ class DealerMessages(private val zone: ZoneId) {
     )
 
     /** Documents are complete but some data could not be read automatically, so no provider check was run. */
-    fun documentsForOfficerReview(app: DealerApplication): OutboundMessage = Buttons(
+    fun documentsForOfficerReview(app: DealerApplication, risk: RiskAssessment? = null): OutboundMessage = Buttons(
         header = "Documents submitted",
         body = "Customer documents for *${app.applicationNumber}* are complete and have been handed to the review team, " +
             "because some data on the KTP could not be confirmed automatically.\n\n" +
             "Customer: ${app.extractedName ?: app.customerName ?: "unknown"} (+${app.customerPhone ?: "?"})\n" +
+            riskLines(risk) +
             "Status: ${app.status.label}.\n\nWe will notify you here as soon as a decision is made.",
         buttons = listOf(Button(ReplyIds.status(app.applicationNumber), "Check status"), mainMenuButton),
     )
 
-    fun documentsSubmitted(outcome: VerificationOutcome): OutboundMessage {
+    fun documentsSubmitted(outcome: VerificationOutcome, risk: RiskAssessment? = null): OutboundMessage {
         val app = outcome.application
         return Buttons(
             header = "Documents submitted",
@@ -205,7 +207,8 @@ class DealerMessages(private val zone: ZoneId) {
                 "Customer: ${app.extractedName ?: app.customerName ?: "unknown"} (+${app.customerPhone ?: "?"})\n" +
                 "NIK: ${app.extractedNik?.let { "***" + it.takeLast(4) } ?: "n/a"}\n" +
                 "ID verification: ${outcome.id.outcome.label}\n" +
-                "Credit bureau: ${outcome.credit.outcome.label}${outcome.credit.score?.let { ", score $it" } ?: ""}\n\n" +
+                "Credit bureau: ${outcome.credit.outcome.label}${outcome.credit.score?.let { ", score $it" } ?: ""}\n" +
+                riskLines(risk) + "\n" +
                 "Status: ${app.status.label}.",
             buttons = listOf(Button(ReplyIds.status(app.applicationNumber), "Check status"), mainMenuButton),
         )
@@ -223,4 +226,17 @@ class DealerMessages(private val zone: ZoneId) {
     }
 
     private fun fmt(instant: Instant): String = dateFormat.format(instant)
+
+    /** "Risk grade" and badge lines for the dealer summary; empty when no assessment was made. */
+    private fun riskLines(risk: RiskAssessment?): String {
+        if (risk == null) return ""
+        val fraud = risk.fraudFlags.size
+        val warnings = when {
+            fraud > 0 -> " - ⚠️ $fraud fraud/forgery warning${if (fraud > 1) "s" else ""}"
+            risk.flags.isEmpty() -> " - no warnings"
+            else -> " - ${risk.flags.size} warning${if (risk.flags.size > 1) "s" else ""}"
+        }
+        val badges = if (risk.badges.isEmpty()) "" else "\nBadges: " + risk.badges.joinToString(", ") { it.label }
+        return "Risk grade: *${risk.grade.name}* (${risk.grade.label})$warnings$badges\n"
+    }
 }

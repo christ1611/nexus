@@ -48,7 +48,7 @@ outgoing messages fail with a 131030 error.
    ./gradlew test
    ```
 
-   Expected: `BUILD SUCCESSFUL`, 58 tests, 1 skipped (the live Claude test).
+   Expected: `BUILD SUCCESSFUL`, 69 tests, 1 skipped (the live Claude test).
 
 4. Optional but recommended: wipe the local database so application numbers start fresh at `APP-2026-001001`:
 
@@ -240,3 +240,26 @@ Useful while the app is stopped:
 java -cp "$(find ~/.gradle/caches -name 'h2-2*.jar' | head -1)" org.h2.tools.Shell \
   -url jdbc:h2:file:./data/wa-webhook -user sa -password "" -sql "SELECT application_number, status, extracted_nik, review_decision FROM APPLICATIONS;"
 ```
+
+
+---
+
+## 7. Dashboard: risk flags, customer risk grade and per-country statistics (2 minutes)
+
+Open `https://amaretto-tipoff-excess.ngrok-free.dev/dashboard` (or `http://localhost:8080/dashboard`) on the laptop, paste
+`ADMIN_API_KEY` and press **불러오기**. Nothing is shown until the key is accepted; the page refreshes every minute.
+
+What to point at:
+
+1. **Summary tiles** - total applications, ready for review, high-risk customers (grade C/D) and fraud/forgery warnings.
+2. **국가별 통계** - Indonesia, Myanmar and Cambodia are always listed. Dealers `DLR-003` / `DLR-004` are the Myanmar and
+   Cambodia demo dealers; give them a phone in `wa.env` to produce rows for those countries (their verification runs on the
+   mock NRC / GDI registries and credit bureaus).
+3. **Risk Flag · 위조/사기 감지 경고** - the application you created with caption `nik7` appears here as grade **C** with the
+   `IDENTITY_MISMATCH` (fraud) and `CREDIT_IDENTITY_MISMATCH` flags. The plain run (default NIK, score 720) is grade **A**
+   with the badges **재무 정합성 및 담보 안정성 우수 고객** and, for `DLR-001`, **우수 딜러 유입 고객**.
+4. The same grade line reached the dealer on WhatsApp in the "Documents submitted" message.
+5. With `DOCUMENT_CHECK=claude`, screen photos, tampering, wrong document types, invalid NIKs and a selfie holding a different
+   KTP become additional fraud flags, and the method column switches to "Claude 비전 + 규칙".
+
+Hover a bar or a flag chip for the exact numbers and evidence. `POST /admin/risk/reassess-all` recomputes every grade after a rule change.
