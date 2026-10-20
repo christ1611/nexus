@@ -9,7 +9,7 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 
 ---
 
-## 1. 개발 현황 (2026-10-19 기준)
+## 1. 개발 현황 (2026-10-20 기준)
 
 | 단계 | 내용 | 상태 |
 | --- | --- | --- |
@@ -18,11 +18,11 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 | Step 2b | 백오피스 이벤트: 폼 제출, 재제출 요청, 승인/거절 알림을 딜러에게 WhatsApp으로 푸시 (`/admin/**`) | ✅ 완료 |
 | Step 3 | 고객 여정: wa.me `START <신청번호>` 링크, 동의 버튼, KTP → 셀피 수집(미디어 다운로드·저장), 스텁 문서 검사, 목업 Dukcapil + PEFINDO 조회, `READY_FOR_REVIEW` 전환, 양측 알림 | ✅ 완료 |
 | Step 3b | Claude 문서 분석 + 리뷰 에이전트 (`DOCUMENT_CHECK=claude`): 비전 분석(JSON 스키마), NIK 검증, 신뢰도 임계값, 도구 사용 에이전트(`request_documents` / `write_summary`), 규칙 기반 폴백 | ✅ 코드·테스트 완료, **실 API 미검증** |
-| Step 4 | 심사자 UI / 백오피스 화면, 고객에게 결정 알림, 고객 직접 재제출 흐름 | ⬜ 미착수 |
-| Step 5 | 통계 대시보드(`/dashboard`): 국가별 통계(인도네시아·미얀마·캄보디아), **Fraud/위조 감지 Risk Flag**, **고객 리스크 등급(A~D) AI 표시**, 고객 배지(재무 정합성·우수 딜러 유입), 퍼널·딜러별 현황. 딜러 국가·등급, 국가별 조회 제공자(목업) | ✅ 완료 (2026-10-19) |
+| Step 4 | **심사 백오피스 (`/review`)**: 심사 큐(필터·검색), 신청 상세(서류 이미지·분석 상세·추출 데이터·조회 결과·Risk Flag 근거·리뷰 요약·심사 이력), 승인/거절(딜러 **+ 고객** WhatsApp 알림), 고객 서류 재요청(고객 WhatsApp으로 직접, 재접수 시 검사·조회 재실행), 딜러 폼 재제출 요청, 심사 메모, 리스크 재평가, `REVIEW_EVENTS` 감사 이력, 심사자 이름 기록 | ✅ 완료 (2026-10-20) |
+| Step 5 | 통계 대시보드(`/dashboard`): 국가별 통계(인도네시아·미얀마·캄보디아), **Fraud/위조 감지 Risk Flag**, **고객 리스크 등급(A~D) AI 표시**, 고객 배지(재무 정합성·우수 딜러 유입), 퍼널·딜러별 현황. 딜러 국가·등급, 국가별 조회 제공자(목업). 10-20 추가: 심사 대기 큐(대기 시간), 주간 추이 차트(8주, 국가별 누적 + 고위험 건수), 고객 서류 재요청·최장 대기·평균 결정 시간 타일, 신청번호 → 심사 화면 링크 | ✅ 완료 (2026-10-19, 보강 10-20) |
 | 운영 | 실 Meta 미디어 다운로드 검증, PostgreSQL + Flyway, 영속 중복 제거, 시크릿·문서 암호화, 관측성, ngrok 대신 고정 도메인 | ⬜ 미착수 |
 
-- 테스트: `./gradlew test` → **69개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
+- 테스트: `./gradlew test` → **71개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
 - Meta 웹훅은 ngrok 예약 도메인(`amaretto-tipoff-excess.ngrok-free.dev`)에 이미 등록·검증되어 있어 터널만 올리면 됩니다.
 - 데모 진행 순서는 `DEMO.md`, 남은 작업의 우선순위는 `NEXT_STEPS.md`에 정리되어 있습니다.
 
@@ -30,8 +30,8 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 
 - Meta 대시보드의 임시 액세스 토큰은 24시간 후 만료됩니다. 발신 로그에 `HTTP 401`이 보이면 System User 토큰으로 교체하세요.
 - 중복 메시지 캐시는 인메모리라 재시작·다중 인스턴스 간에 공유되지 않습니다.
-- 고객에게 보내는 승인/거절 알림은 아직 없고 딜러에게만 전송됩니다.
-- 24시간 고객 서비스 창 밖의 알림은 템플릿 메시지가 필요하며 아직 적용하지 않았습니다.
+- 24시간 고객 서비스 창 밖의 알림(고객 결정 알림·서류 재요청 포함)은 템플릿 메시지가 필요하며 아직 적용하지 않았습니다. 응답 JSON의 `customerNotified`가 `false`면 이 경우일 가능성이 큽니다.
+- 심사자 인증은 공유 `ADMIN_API_KEY` 하나뿐입니다. 심사 화면의 심사자 이름은 기록용이며 로그인은 아닙니다.
 
 ---
 
@@ -173,25 +173,56 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 ---
 
-## 6. 백오피스 이벤트와 Admin API
+## 6. 심사 백오피스 (Step 4) · Admin API
 
-딜러에게 WhatsApp으로 푸시되는 이벤트:
+### 6.1 심사 화면 `/review`
 
-- 1회용 링크로 폼 제출 → "Application received, under review"
-- `POST /admin/applications/{number}/request-resubmission` + `{"reason": "..."}` → 새 1회용 링크와 함께 재제출 요청
-- `POST /admin/applications/{number}/decision` + `{"decision": "APPROVED"|"REJECTED", "note": "..."}` → 결정 알림
+1. 앱 실행 후 `http://localhost:8080/review` (또는 ngrok 도메인 `/review`)를 엽니다. 대시보드와 같은 `ADMIN_API_KEY`를 쓰며 키는 브라우저 세션에만 남습니다.
+   **심사자 이름**을 입력하면 결정·메모·재요청에 기록됩니다(로그인이 아니라 기록용).
+2. **심사 큐(왼쪽)**: 기본은 열린 건만, 심사 대기 → 폼 제출 → 재요청 중 → 작성 중 순, 같은 상태 안에서는 리스크 점수 높은 순·오래된 순.
+   상태 / 국가 / 등급 필터와 신청번호·고객·딜러 검색, 60초 자동 갱신. 대시보드의 신청번호를 누르면 `/review?app=번호`로 바로 열립니다.
+3. **신청 상세(오른쪽)**: 상태·AI 리스크 등급(점수, 위조 경고 수, 평가 방식)·배지 → **심사 결정** → **서류**(이미지 썸네일, 클릭하면 확대, 검사 결과·캡션·감지 종류,
+   Claude 모드에서는 품질 문제·필드별 신뢰도·NIK 검증·검토 사유까지, 이전 제출본은 접힘) → **추출 데이터** / **신원·신용 조회** → **Risk Flag · 근거**(심각도 아이콘, 출처, 증거 문장) →
+   **자동 리뷰 요약**(Claude 모드) → **심사 이력**(타임라인).
+4. **심사 결정 카드의 동작**
 
-Admin 엔드포인트(`GET /admin/dealers`, `GET /admin/applications`, `GET /admin/applications/{number}`, `GET /admin/dashboard/stats`,
-`POST /admin/applications/{number}/assess-risk`, `POST /admin/risk/reassess-all`, 위 두 POST)는
-`X-Admin-Key` 헤더가 `ADMIN_API_KEY`와 일치해야 합니다. `GET /admin/applications/{number}`는 문서별 감지 종류,
-검사 결과, 담당자 검토 플래그, 저장된 분석, 그리고 `risk` 블록(등급·점수·플래그·배지·평가 방식)을 함께 반환합니다.
+   | 동작 | 결과 | 알림 |
+   | --- | --- | --- |
+   | ✓ 승인 / ✕ 거절 (+메모) | `APPROVED` / `REJECTED`, `decided_by`·`decided_at` 저장, 링크 폐기 | 딜러 + **고객** WhatsApp |
+   | 📷 고객에게 재요청 (KTP / 셀피 선택 + 이유) | 해당 서류 superseded, KTP면 추출 데이터 초기화, 상태 `DOCUMENTS_REQUESTED`, 고객 세션을 해당 단계에서 재개(동의는 유지). 새 사진이 오면 검사 → 조회 → 리스크 평가가 다시 돌고 `READY_FOR_REVIEW`로 복귀 | 고객(어떤 서류를 왜) + 딜러(안내) |
+   | 🔗 딜러 재제출 요청 (+이유) | 기존과 같이 `RESUBMISSION_REQUESTED` + 새 1회용 링크 | 딜러 |
+   | ↻ 리스크 재평가 | 규칙 재실행, 이력에 기록 | 없음 |
+   | ✎ 메모 추가 | 이력에만 기록 | 없음 |
+
+   결정이 끝난 신청은 메모만 추가할 수 있고 다른 동작은 `409`를 돌려줍니다.
+
+### 6.2 Admin API
+
+`/admin/**`는 모두 `X-Admin-Key` 헤더가 `ADMIN_API_KEY`와 일치해야 합니다. 본문의 `reviewer`는 선택이며 이력에 기록됩니다.
+
+| 메서드 · 경로 | 설명 |
+| --- | --- |
+| `GET /admin/dealers` | 딜러 목록(국가·등급) |
+| `GET /admin/applications?status=&country=&grade=&q=&queue=true` | 신청 목록(최신순). `status`·`grade`는 쉼표로 여러 개, `queue=true`면 열린 건만 심사 우선순위로 정렬 |
+| `GET /admin/applications/{number}` | 상세: 추출 데이터, 조회 결과, `review`, `risk`, `documents[]`(id·`fileUrl`·검사 결과·분석 JSON·superseded), `events[]`(이력), `decidedBy/At` |
+| `GET /admin/applications/{number}/documents/{id}/file` | 저장된 서류 이미지(원본 MIME) |
+| `POST /admin/applications/{number}/decision` `{"decision":"APPROVED"\|"REJECTED","note":"...","reviewer":"..."}` | 결정 → 딜러·고객 알림. 응답 `dealerNotified`, `customerNotified`(고객 번호가 없으면 `null`) |
+| `POST /admin/applications/{number}/request-documents` `{"items":[{"type":"KTP"\|"SELFIE_KTP","reason":"..."}],"note":"...","reviewer":"..."}` | 고객 서류 재요청(위 표 참고). 고객 번호가 없으면 `409` |
+| `POST /admin/applications/{number}/request-resubmission` `{"reason":"...","reviewer":"..."}` | 딜러 폼 재제출 요청 + 새 1회용 링크 |
+| `POST /admin/applications/{number}/note` `{"note":"...","reviewer":"..."}` | 심사 메모 |
+| `POST /admin/applications/{number}/assess-risk?reviewer=` | 리스크 재평가(한 건) |
+| `POST /admin/risk/reassess-all` | 전체 재평가(규칙 변경 후) |
+| `GET /admin/dashboard/stats` | 대시보드 통계(`totals`, `funnel`, `byCountry`, `riskGrades`, `flagCounts`, `badges`, `dealers`, `highRiskApplications`, `recent`, `reviewQueue`, `trend`) |
+
 1회용 링크는 `GET /apply/{token}`을 한 번만 열 수 있고, 자리표시자 폼을 제출하면 신청서가 `SUBMITTED`로 바뀝니다.
 
 ---
 
 ## 7. 데이터 모델
 
-테이블: `DEALERS`(국가·등급 포함), `CONVERSATIONS`(딜러당 1행, 현재 상태), `APPLICATIONS`(국가·리스크 등급·플래그·배지 포함), `CUSTOMER_SESSIONS`, `DOCUMENTS`.
+테이블: `DEALERS`(국가·등급 포함), `CONVERSATIONS`(딜러당 1행, 현재 상태), `APPLICATIONS`(국가·리스크 등급·플래그·배지·`decided_by/at` 포함), `CUSTOMER_SESSIONS`, `DOCUMENTS`,
+`REVIEW_EVENTS`(Step 4 감사 이력: 서류 접수 완료, 리스크 평가/재평가, 고객 서류 재요청, 딜러 재제출 요청, 메모, 승인/거절 — 행위자·내용·시각).
+신청 상태: `DRAFT` → `SUBMITTED`(딜러 폼) / `RESUBMISSION_REQUESTED` → `READY_FOR_REVIEW` ⇄ `DOCUMENTS_REQUESTED`(심사자가 고객 서류 재요청) → `APPROVED` / `REJECTED`.
 스키마는 `src/main/resources/schema.sql`에 있고, H2 파일은 `./data/`에 첫 기동 시 생성됩니다.
 
 데모 딜러는 `wa.env`의 `DEMO_DEALER_n_PHONE` / `_NAME` / `_COUNTRY` / `_TIER`(n = 1~4)에서 읽어
@@ -328,7 +359,7 @@ open http://localhost:8080/dashboard
 자세한 우선순위는 `NEXT_STEPS.md`를 보세요.
 
 - **A. 기존 기능 강화**: 실 Meta 미디어 다운로드 검증, 읽음 표시·입력 중 표시, Graph API 재시도와 `OUTBOUND_LOG`, 미등록 번호 거절 속도 제한, 세션 타임아웃
-- **B. Step 4 심사 / 백오피스**: 심사자 UI(대시보드에서 신청 상세·서류 열람·결정까지), 고객에게 결정 알림, 고객 직접 재제출
+- **B. Step 4 후속**: 심사자 개별 로그인·권한(현재 공유 키 + 이름 기록), 서류 재요청 시 Claude가 이유 문구를 현지어로 작성, 결정 사유 템플릿
 - **B2. Step 5 후속**: 담보 데이터 수집 후 "담보 안정성" 배지 조건 반영, Claude에게 리스크 요약 문장 생성 위임(현재 등급·플래그는 규칙 기반), 기간 필터와 추세 차트, 실 KTP로 임계값 튜닝
 - **C. 실 연동**: `ANTHROPIC_API_KEY`로 라이브 테스트 후 `DOCUMENT_CHECK=claude` 실사용, 실 Dukcapil / PEFINDO 클라이언트, 병렬 조회와 실제 타임아웃
 - **D. 운영 준비**: PostgreSQL + Flyway, 영속 중복 제거 저장소, 시크릿·문서 암호화, 관측성(Actuator), 고정 HTTPS 도메인
@@ -344,7 +375,25 @@ open http://localhost:8080/dashboard
 [한국어](#korean) | **English**
 
 Spring Boot 3 (Kotlin, Gradle) webhook for the WhatsApp Cloud API.
-_Current status (19 Oct 2026): Steps 1-3b and Step 5 (statistics dashboard with fraud/forgery risk flags, AI risk grade A-D, customer badges and per-country statistics for Indonesia, Myanmar and Cambodia) done, 69 tests passing (1 skipped live Claude test); Step 4 review UI and production hardening not started. See the Korean section above or `NEXT_STEPS.md` for the full status table._
+_Current status (20 Oct 2026): Steps 1-3b, Step 4 (reviewer back office at `/review`) and Step 5 (statistics dashboard with fraud/forgery risk flags, AI risk grade A-D, customer badges and per-country statistics for Indonesia, Myanmar and Cambodia) done, 71 tests passing (1 skipped live Claude test); production hardening not started. See the Korean section above or `NEXT_STEPS.md` for the full status table._
+
+## Step 4 - Reviewer back office (`/review`)
+
+Open `/review`, enter the admin key (same as the dashboard) and optionally a reviewer name (recorded on every action; it is not a login).
+The left column is the work queue (open applications, ready-for-review first, then by risk score and age; filters by status, country,
+grade and free text; refreshes every minute). Clicking a row opens the detail: status and AI risk grade, the decision card, the stored
+document images (click to enlarge; in Claude mode also quality issues, per-field confidence, NIK validation and review reasons; superseded
+uploads collapsed), extracted data, provider results, risk flags with their evidence, the review-agent summary and the audit timeline.
+
+Decision card actions: **approve / reject** (note included; dealer **and customer** are notified on WhatsApp, `decided_by/at` stored),
+**request documents from the customer** (pick KTP and/or selfie with a reason; the records are superseded, the application becomes
+`DOCUMENTS_REQUESTED`, the customer session reopens at that step, the customer is told what to resend and why, the dealer gets a heads-up;
+once the new photo arrives the checks, provider calls and risk assessment run again and the application returns to `READY_FOR_REVIEW`),
+**request form resubmission from the dealer** (new one-time link), **re-assess risk** and **add a note**. Final applications only accept notes.
+Every action lands in `REVIEW_EVENTS` and the API gained `GET /admin/applications?status=&country=&grade=&q=&queue=true`,
+`GET /admin/applications/{n}/documents/{id}/file`, `POST .../request-documents`, `POST .../note`, plus `reviewer` on the existing POSTs
+and `customerNotified` in their responses. The dashboard now also shows the review queue with waiting times, an 8-week trend chart and
+links every application number to `/review?app=<number>`.
 
 ## Step 5 - Risk flags, customer risk grade and the statistics dashboard
 

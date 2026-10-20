@@ -1,8 +1,8 @@
 # NEXT ASEAN WhatsApp webhook - where we are and what comes next
 
-_Last updated: 19 Oct 2026_
+_Last updated: 20 Oct 2026_
 
-## Current state (done and tested, 69 tests green, 1 skipped live test)
+## Current state (done and tested, 71 tests green, 1 skipped live test)
 
 - **Step 1 - Webhook**: `GET /webhook` verification, `POST /webhook` with `X-Hub-Signature-256` check,
   async processing, duplicate message IDs ignored, structured logging of messages and statuses.
@@ -27,10 +27,19 @@ _Last updated: 19 Oct 2026_
   `/dashboard` (`static/dashboard.html`, inline SVG, Korean-first labels, admin key entered in the page). Demo NIK now ends in 4
   so the happy path is grade A with the "financial stability" badge; caption `nik7` produces grade C with a fraud warning.
 
+- **Step 4 - Reviewer back office** (20 Oct 2026): `/review` (`static/review.html`): work queue with filters, application detail
+  with document images (`GET /admin/applications/{n}/documents/{id}/file`), analysis details, extracted data, provider results,
+  risk flags with evidence, agent summary and an audit timeline (`REVIEW_EVENTS`, `review/ReviewEvents.kt`). Actions: approve /
+  reject (dealer **and customer** notified, `CustomerNotifier`, `decided_by/at`), request documents from the customer
+  (`POST .../request-documents` -> `CustomerConversationService.requestDocuments`: supersedes records, status `DOCUMENTS_REQUESTED`,
+  reopens the customer session at that step, customer + dealer messaged; new photo re-runs checks and verification), dealer form
+  resubmission, re-assess risk, notes. `reviewer` is accepted on every POST. Dashboard additions: review queue with waiting times,
+  8-week trend chart, documents-requested / oldest-waiting / avg-decision tiles, links to `/review?app=`.
+
 Code map: `src/main/kotlin/com/nextasean/wawebhook/` -> `webhook/` (inbound), `conversation/` (dealer flow +
-router), `customer/` (customer flow), `documents/` (+ `analysis/`), `review/` (agent step), `risk/` (flags, grade, badges),
-`verification/`, `application/`, `admin/` (admin API + dashboard stats), `web/` (one-time link page, dashboard page),
-`whatsapp/` (Graph API client). Schema in `src/main/resources/schema.sql`, demo data in `demo-data.yml`.
+router), `customer/` (customer flow + customer notifier), `documents/` (+ `analysis/`), `review/` (agent step + audit events),
+`risk/` (flags, grade, badges), `verification/`, `application/`, `admin/` (admin API + dashboard stats), `web/` (one-time link page,
+dashboard + review pages), `whatsapp/` (Graph API client). Schema in `src/main/resources/schema.sql`, demo data in `demo-data.yml`.
 
 ## To do first next session (10 minutes)
 
@@ -43,8 +52,9 @@ router), `customer/` (customer flow), `documents/` (+ `analysis/`), `review/` (a
 4. Run the live demo from a dealer phone: `hi` -> New application -> Yes, create -> forward the wa.me message
    -> from the customer phone send `START ...` -> I Agree -> KTP photo (try caption `blur` once) -> selfie
    -> watch "Checking your data..." and the dealer summary.
-5. Trigger the back-office events with curl (key in `wa.env`):
-   `POST /admin/applications/{number}/request-resubmission` and `POST /admin/applications/{number}/decision`.
+5. Open `/review`, paste the admin key, type a reviewer name, pick the application: send the customer back for the KTP
+   (📷 고객에게 재요청), let the customer resend it, then approve. Both phones receive the decision.
+   (curl still works: `POST /admin/applications/{number}/request-documents`, `.../decision`, `.../request-resubmission`.)
 
 ## Possible next steps (pick by priority)
 
@@ -59,18 +69,17 @@ router), `customer/` (customer flow), `documents/` (+ `analysis/`), `review/` (a
 - Rate-limit the polite rejection for unregistered numbers (one per hour per number).
 - Session timeouts: expire customer sessions idle for N hours and tell the customer how to resume.
 
-### B. Step 4 - Review / back-office
-- Grow `/dashboard` into the reviewer UI: click an application to see documents (serve files from `data/documents`
-  behind the admin key), extracted fields, provider results, the risk flags with their evidence, and decide from there.
-- Decision from the UI -> existing `/decision` endpoint -> dealer + customer notification
-  (customer notification on decision is not sent yet; only the dealer is).
-- Resubmission flow for the customer: on `RESUBMISSION_REQUESTED`, message the customer directly with which
-  document to resend instead of (or in addition to) the dealer link.
+### B. Step 4 follow-ups (the back office itself is done)
+- Per-reviewer login and roles instead of the shared key plus a typed name; show who is working on what.
+- Decision notifications to customers outside the 24 h window need a pre-approved template (see E); `customerNotified: false`
+  in the response is the symptom.
+- Let Claude phrase the "please resend" reason for the customer in Bahasa Indonesia / Burmese / Khmer from the officer's note.
+- Decision reason templates and a required reason on rejection.
 
 ### B2. Step 5 follow-ups
 - Collateral data is not collected yet; once it is, add it to the "financial consistency and collateral stability" badge rule.
 - Let Claude write a short natural-language risk narrative per application (the grade and flags stay rule-based).
-- Date-range filter and trend charts (applications and high-risk share per week, per country) on the dashboard.
+- Date-range filter on the dashboard (the 8-week trend chart exists; a custom range and per-dealer trends do not).
 - Tune `RiskRules` thresholds on real KTP photos and real provider responses.
 
 ### C. Replace stubs with real integrations

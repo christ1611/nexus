@@ -3,6 +3,7 @@ package com.nextasean.wawebhook.admin
 import com.nextasean.wawebhook.application.ApplicationRepository
 import com.nextasean.wawebhook.application.ApplicationStatus
 import com.nextasean.wawebhook.application.DealerApplication
+import com.nextasean.wawebhook.config.AppProperties
 import com.nextasean.wawebhook.customer.CustomerSessionRepository
 import com.nextasean.wawebhook.dealer.Countries
 import com.nextasean.wawebhook.dealer.Dealer
@@ -16,7 +17,12 @@ import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseBody
+import java.time.DayOfWeek
+import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
 
 /**
  * Step 5: statistics for the back-office dashboard (`/dashboard` renders them). Everything is computed from the
@@ -29,19 +35,27 @@ class DashboardController(
     private val dealers: DealerRepository,
     private val sessions: CustomerSessionRepository,
     private val risk: RiskAssessmentService,
+    props: AppProperties,
 ) {
+    private val zone: ZoneId = props.zoneId
 
     data class Totals(
         val applications: Int,
         val dealers: Int,
         val inProgress: Int,
         val readyForReview: Int,
+        /** Step 4: waiting for the customer to resend documents the officer asked for. */
+        val documentsRequested: Int,
         val approved: Int,
         val rejected: Int,
         val assessed: Int,
         val highRisk: Int,
         val fraudWarnings: Int,
         val officerReviewRequired: Int,
+        /** Oldest application still waiting for a decision, in hours (null when the queue is empty). */
+        val oldestWaitingHours: Double?,
+        /** Average time from document completion to decision over decided applications, in hours. */
+        val avgDecisionHours: Double?,
     )
 
     data class FunnelStage(val stage: String, val stageKo: String, val count: Int)
@@ -89,6 +103,35 @@ class DashboardController(
     )
     data class RecentRow(val applicationNumber: String, val country: String, val dealerCode: String?, val status: String, val grade: String?, val createdAt: Instant)
 
+    /** Step 4: one application waiting for an officer, with what makes it urgent. */
+    data class QueueRow(
+        val applicationNumber: String,
+        val country: String,
+        val dealerCode: String?,
+        val customerName: String?,
+        val status: String,
+        val grade: String?,
+        val score: Int?,
+        val fraudWarnings: Int,
+        val officerReviewRequired: Boolean,
+        val waitingSince: Instant,
+        val waitingHours: Double,
+    )
+
+    /** One ISO week: applications created, completed (documents + checks done), decided, and high-risk share, per country. */
+    data class TrendWeek(
+        val weekStart: String,
+        val label: String,
+        val created: Int,
+        val completed: Int,
+        val approved: Int,
+        val rejected: Int,
+        val highRisk: Int,
+        val fraudWarnings: Int,
+        val createdByCountry: Map<String, Int>,
+        val highRiskByCountry: Map<String, Int>,
+    )
+
     data class Stats(
         val generatedAt: Instant,
         val countries: List<String>,
@@ -101,6 +144,8 @@ class DashboardController(
         val dealers: List<DealerStats>,
         val highRiskApplications: List<RiskRow>,
         val recent: List<RecentRow>,
+        val reviewQueue: List<QueueRow>,
+        val trend: List<TrendWeek>,
     )
 
     @GetMapping("/stats")
@@ -112,17 +157,23 @@ class DashboardController(
         val assessments = apps.mapNotNull { app -> risk.stored(app)?.let { app to it } }
         val consented = sessions.findAll().filter { it.consentAt != null }.map { it.applicationId }.toSet()
 
+        val now = Instant.now()
+        val waiting = apps.filter { it.status == ApplicationStatus.READY_FOR_REVIEW }
+        val decided = apps.filter { it.status.isFinal && it.decidedAt != null && (it.riskAssessedAt ?: it.verifiedAt) != null }
         val totals = Totals(
             applications = apps.size,
             dealers = allDealers.size,
             inProgress = apps.count { !it.status.isFinal && it.status != ApplicationStatus.READY_FOR_REVIEW },
-            readyForReview = apps.count { it.status == ApplicationStatus.READY_FOR_REVIEW },
+            readyForReview = waiting.size,
+            documentsRequested = apps.count { it.status == ApplicationStatus.DOCUMENTS_REQUESTED },
             approved = apps.count { it.status == ApplicationStatus.APPROVED },
             rejected = apps.count { it.status == ApplicationStatus.REJECTED },
             assessed = assessments.size,
             highRisk = assessments.count { it.second.grade.highRisk },
             fraudWarnings = assessments.count { it.second.fraudFlags.isNotEmpty() },
             officerReviewRequired = apps.count { it.officerReviewRequired == true },
+            oldestWaitingHours = waiting.minOfOrNull { hours(waitingSince(it), now) },
+            avgDecisionHours = decided.takeIf { it.isNotEmpty() }?.map { hours((it.riskAssessedAt ?: it.verifiedAt)!!, it.decidedAt!!) }?.average(),
         )
         val funnel = listOf(
             FunnelStage("Created by dealer", "딜러 신청 생성", apps.size),
@@ -173,8 +224,53 @@ class DashboardController(
             .take(20)
             .map { (app, a) -> riskRow(app, a, dealerById[app.dealerId]) }
         val recent = apps.take(10).map { RecentRow(it.applicationNumber, it.country, dealerById[it.dealerId]?.dealerCode, it.status.name, it.riskGrade, it.createdAt) }
+        val queue = waiting
+            .sortedWith(compareByDescending<DealerApplication> { it.riskScore ?: -1 }.thenBy { waitingSince(it) })
+            .take(20)
+            .map { app ->
+                val a = risk.stored(app)
+                QueueRow(
+                    app.applicationNumber, app.country, dealerById[app.dealerId]?.dealerCode, app.extractedName ?: app.customerName, app.status.name,
+                    a?.grade?.name, a?.score, a?.fraudFlags?.size ?: 0, app.officerReviewRequired == true, waitingSince(app), hours(waitingSince(app), now),
+                )
+            }
 
-        return Stats(Instant.now(), Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, recent)
+        return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, recent, queue, trend(apps, assessments, now))
+    }
+
+    /** Since when an application has been waiting for an officer: documents completed, else last update. */
+    private fun waitingSince(app: DealerApplication): Instant = app.riskAssessedAt ?: app.verifiedAt ?: app.updatedAt
+
+    private fun hours(from: Instant, to: Instant): Double = Duration.between(from, to).toMinutes() / 60.0
+
+    /** The last [TREND_WEEKS] ISO weeks (Monday start, dashboard time zone), oldest first, always present even when empty. */
+    private fun trend(apps: List<DealerApplication>, assessments: List<Pair<DealerApplication, RiskAssessment>>, now: Instant): List<TrendWeek> {
+        val thisWeek = LocalDate.ofInstant(now, zone).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val assessedById = assessments.associate { it.first.id to it.second }
+        fun week(i: Instant?): LocalDate? = i?.let { LocalDate.ofInstant(it, zone).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
+        return (TREND_WEEKS - 1 downTo 0).map { back ->
+            val start = thisWeek.minusWeeks(back.toLong())
+            val created = apps.filter { week(it.createdAt) == start }
+            val completed = apps.filter { week(it.riskAssessedAt ?: it.verifiedAt) == start }
+            val decidedThisWeek = apps.filter { it.status.isFinal && week(it.decidedAt ?: it.updatedAt) == start }
+            val assessedThisWeek = completed.mapNotNull { assessedById[it.id] }
+            TrendWeek(
+                weekStart = start.toString(),
+                label = "${start.monthValue}/${start.dayOfMonth}",
+                created = created.size,
+                completed = completed.size,
+                approved = decidedThisWeek.count { it.status == ApplicationStatus.APPROVED },
+                rejected = decidedThisWeek.count { it.status == ApplicationStatus.REJECTED },
+                highRisk = assessedThisWeek.count { it.grade.highRisk },
+                fraudWarnings = assessedThisWeek.count { it.fraudFlags.isNotEmpty() },
+                createdByCountry = Countries.ALL.associate { c -> c.code to created.count { it.country.equals(c.code, ignoreCase = true) } },
+                highRiskByCountry = Countries.ALL.associate { c -> c.code to completed.count { it.country.equals(c.code, ignoreCase = true) && assessedById[it.id]?.grade?.highRisk == true } },
+            )
+        }
+    }
+
+    private companion object {
+        const val TREND_WEEKS = 8
     }
 
     private fun riskRow(app: DealerApplication, a: RiskAssessment, dealer: Dealer?) = RiskRow(

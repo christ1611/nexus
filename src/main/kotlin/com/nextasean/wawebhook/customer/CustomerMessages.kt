@@ -1,5 +1,6 @@
 package com.nextasean.wawebhook.customer
 
+import com.nextasean.wawebhook.application.ApplicationStatus
 import com.nextasean.wawebhook.application.DealerApplication
 import com.nextasean.wawebhook.documents.DocumentType
 import com.nextasean.wawebhook.review.DocumentRequest
@@ -61,6 +62,32 @@ object CustomerMessages {
         "✅ Your documents are submitted. Application *${app.applicationNumber}* is now with our review team.\n\n" +
             "Your dealer will contact you with the result. Thank you!",
     )
+
+    /** Step 4: the reviewing officer asked for one or more documents again; [next] is the step asked for first. */
+    fun documentsRequestedByOfficer(app: DealerApplication, items: List<DocumentRequest>, next: DocumentType, note: String? = null): OutboundMessage = Text(
+        buildString {
+            append("Hello, our review team looked at application *${app.applicationNumber}* and needs the following again:\n")
+            items.forEach { append("\u2022 ${it.type.label}: ${it.reason.trimEnd('.')}.\n") }
+            note?.takeIf { it.isNotBlank() }?.let { append("\n$it\n") }
+            append("\nStep ${next.step} of ${DocumentType.total}: Please send ${next.request}.")
+        },
+    )
+
+    /** Step 4: the final decision, sent to the customer as well as the dealer. */
+    fun decision(app: DealerApplication): OutboundMessage {
+        val approved = app.status == ApplicationStatus.APPROVED
+        return Text(
+            if (approved) {
+                "\uD83C\uDF89 Good news! Your application *${app.applicationNumber}* has been *APPROVED*." +
+                    (app.decisionNote?.takeIf { it.isNotBlank() }?.let { "\n\nNote from our team: $it" } ?: "") +
+                    "\n\nYour dealer will contact you about the next steps. Thank you for choosing NEXT ASEAN!"
+            } else {
+                "We are sorry: your application *${app.applicationNumber}* could not be approved at this time." +
+                    (app.decisionNote?.takeIf { it.isNotBlank() }?.let { "\n\nReason: $it" } ?: "") +
+                    "\n\nPlease contact your dealer if you have questions or would like to apply again later."
+            },
+        )
+    }
 
     fun cancelled(app: DealerApplication): OutboundMessage = Text(
         "Your session for application *${app.applicationNumber}* has been cancelled. Send START ${app.applicationNumber} to begin again.",

@@ -48,7 +48,7 @@ outgoing messages fail with a 131030 error.
    ./gradlew test
    ```
 
-   Expected: `BUILD SUCCESSFUL`, 69 tests, 1 skipped (the live Claude test).
+   Expected: `BUILD SUCCESSFUL`, 71 tests, 1 skipped (the live Claude test).
 
 4. Optional but recommended: wipe the local database so application numbers start fresh at `APP-2026-001001`:
 
@@ -131,9 +131,22 @@ call takes 1 to 3 seconds, so the pause after "Checking your data..." is deliber
 
 ---
 
-## 5. Act 3 - the back office (2 minutes)
+## 5. Act 3 - the back office (3 minutes)
 
-Use the admin key from `wa.env`:
+**Preferred: the review page.** Open `https://amaretto-tipoff-excess.ngrok-free.dev/review` (or `http://localhost:8080/review`),
+paste `ADMIN_API_KEY`, type your name as reviewer and press **불러오기**.
+
+1. The queue lists the application you just created at the top (심사 대기, grade and fraud warnings visible). Click it.
+2. Walk down the detail: the KTP and selfie images (click to enlarge), extracted data, Dukcapil / PEFINDO results, the Risk Flags
+   with their evidence, and the timeline (서류 접수 완료, 리스크 평가).
+3. Tick **신분증 (KTP)** in "고객 서류 재요청", type a reason such as `the photo is blurry`, press **📷 고객에게 재요청**.
+   The customer phone receives "our review team ... needs the following again: KTP ..." and "Step 1 of 2"; the dealer gets a heads-up;
+   the status becomes 고객 서류 재요청.
+4. On the customer phone send a new KTP photo. The checks and provider lookups run again and the application is back in 심사 대기.
+5. Press **✓ 승인** with a note. The dealer gets "Application approved" and the customer gets the approval message with the note.
+   The timeline now shows 고객 서류 재요청, 승인 with your name.
+
+**Alternative: curl.** Use the admin key from `wa.env`:
 
 ```bash
 export ADMIN_API_KEY=$(grep '^ADMIN_API_KEY=' wa.env | cut -d= -f2-)
@@ -154,7 +167,7 @@ export BASE=http://localhost:8080
      $BASE/admin/applications/APP-2026-001001/request-resubmission
    ```
 
-3. Record the decision. The dealer receives the decision notification:
+3. Record the decision. The dealer and the customer receive the decision notification:
 
    ```bash
    curl -s -X POST -H "X-Admin-Key: $ADMIN_API_KEY" -H 'Content-Type: application/json' \
@@ -165,6 +178,7 @@ export BASE=http://localhost:8080
 4. On the dealer phone tap **Check status** and pick the application: status Approved with the note.
 
 Without the header the endpoints return `401`; a second decision on the same application returns `409`.
+`POST .../request-documents` with `{"items":[{"type":"KTP","reason":"the photo is blurry"}]}` is the curl form of step 3 above.
 
 ---
 
@@ -251,7 +265,9 @@ Open `https://amaretto-tipoff-excess.ngrok-free.dev/dashboard` (or `http://local
 
 What to point at:
 
-1. **Summary tiles** - total applications, ready for review, high-risk customers (grade C/D) and fraud/forgery warnings.
+1. **Summary tiles** - total applications, ready for review, high-risk customers (grade C/D), fraud/forgery warnings, documents
+   requested from customers, oldest waiting and average time to decision. Below them the **심사 대기 큐** lists what an officer
+   should open next (click a number to jump to `/review`), and the **주간 추이** chart shows applications per week by country.
 2. **국가별 통계** - Indonesia, Myanmar and Cambodia are always listed. Dealers `DLR-003` / `DLR-004` are the Myanmar and
    Cambodia demo dealers; give them a phone in `wa.env` to produce rows for those countries (their verification runs on the
    mock NRC / GDI registries and credit bureaus).

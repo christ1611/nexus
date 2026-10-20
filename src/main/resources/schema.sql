@@ -93,3 +93,17 @@ ALTER TABLE applications ADD COLUMN IF NOT EXISTS risk_flags_json VARCHAR(16000)
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS risk_method VARCHAR(40);
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS customer_badges VARCHAR(255);
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS risk_assessed_at TIMESTAMP;
+
+-- Step 4: reviewer back office (decision metadata and the audit trail shown on the review page)
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS decided_by VARCHAR(80);
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS decided_at TIMESTAMP;
+
+CREATE TABLE IF NOT EXISTS review_events (
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    application_id BIGINT       NOT NULL REFERENCES applications (id),
+    kind           VARCHAR(40)  NOT NULL,
+    actor          VARCHAR(80),
+    detail         VARCHAR(1000),
+    created_at     TIMESTAMP    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_review_events_application ON review_events (application_id);

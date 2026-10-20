@@ -11,11 +11,18 @@ enum class ApplicationStatus(val label: String) {
     SUBMITTED("Submitted - under review"),
     RESUBMISSION_REQUESTED("Resubmission requested"),
     READY_FOR_REVIEW("Documents submitted - ready for review"),
+    /** Step 4: the reviewing officer asked the customer to send one or more documents again. */
+    DOCUMENTS_REQUESTED("Documents requested from customer"),
     APPROVED("Approved"),
     REJECTED("Rejected");
 
     val isFinal: Boolean get() = this == APPROVED || this == REJECTED
+    /** The dealer form (one-time link) can still be submitted. */
     val acceptsSubmission: Boolean get() = this == DRAFT || this == RESUBMISSION_REQUESTED
+    /** The customer may START / resume the WhatsApp document journey. */
+    val acceptsCustomerDocuments: Boolean get() = acceptsSubmission || this == DOCUMENTS_REQUESTED
+    /** An officer can approve, reject or send the application back. */
+    val reviewable: Boolean get() = !isFinal
 }
 
 @Table("APPLICATIONS")
@@ -67,6 +74,10 @@ data class DealerApplication(
     /** Comma-separated [com.nextasean.wawebhook.risk.CustomerBadge] names. */
     val customerBadges: String? = null,
     val riskAssessedAt: Instant? = null,
+    // Step 4: back-office decision metadata.
+    /** Name the officer typed in the review UI (or API) when deciding; null for decisions made before Step 4. */
+    val decidedBy: String? = null,
+    val decidedAt: Instant? = null,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now(),
 )
@@ -77,4 +88,5 @@ interface ApplicationRepository : CrudRepository<DealerApplication, Long> {
     fun findByDealerIdOrderByCreatedAtDesc(dealerId: Long): List<DealerApplication>
     fun findAllByOrderByCreatedAtDesc(): List<DealerApplication>
     fun findByCountryOrderByCreatedAtDesc(country: String): List<DealerApplication>
+    fun findByStatusOrderByCreatedAtDesc(status: ApplicationStatus): List<DealerApplication>
 }

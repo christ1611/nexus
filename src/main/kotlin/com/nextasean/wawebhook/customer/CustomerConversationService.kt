@@ -12,9 +12,12 @@ import com.nextasean.wawebhook.documents.DocumentStorage
 import com.nextasean.wawebhook.documents.DocumentType
 import com.nextasean.wawebhook.documents.MediaDownloader
 import com.nextasean.wawebhook.documents.analysis.DocumentAnalysisCodec
+import com.nextasean.wawebhook.review.DocumentRequest
 import com.nextasean.wawebhook.review.ReviewAgent
+import com.nextasean.wawebhook.review.ReviewAuditService
 import com.nextasean.wawebhook.review.ReviewContextBuilder
 import com.nextasean.wawebhook.review.ReviewDecision
+import com.nextasean.wawebhook.review.ReviewEventKind
 import com.nextasean.wawebhook.risk.RiskAssessmentService
 import com.nextasean.wawebhook.verification.VerificationService
 import com.nextasean.wawebhook.webhook.Message
@@ -45,9 +48,69 @@ class CustomerConversationService(
     private val reviewContext: ReviewContextBuilder,
     private val analysisCodec: DocumentAnalysisCodec,
     private val risk: RiskAssessmentService,
+    private val audit: ReviewAuditService,
     private val reviewAgent: ReviewAgent?,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    /** Outcome of an officer asking the customer for documents again (Step 4). */
+    sealed interface OfficerRequestResult {
+        data class Sent(val application: DealerApplication, val customerNotified: Boolean) : OfficerRequestResult
+        data class NotReviewable(val application: DealerApplication) : OfficerRequestResult
+        data class NoCustomerPhone(val application: DealerApplication) : OfficerRequestResult
+    }
+
+    /**
+     * Step 4: the reviewing officer sends the customer back for specific documents. The listed records are superseded,
+     * the application moves to DOCUMENTS_REQUESTED, a customer session is (re)opened at the first requested step and the
+     * customer is told on WhatsApp which photos to resend and why. When the new photos are in, the normal checks run again.
+     */
+    fun requestDocuments(app: DealerApplication, items: List<DocumentRequest>, note: String?, actor: String?): OfficerRequestResult {
+        require(items.isNotEmpty()) { "at least one document must be requested" }
+        if (!app.status.reviewable) return OfficerRequestResult.NotReviewable(app)
+        val phone = app.customerPhone ?: return OfficerRequestResult.NoCustomerPhone(app)
+        val now = Instant.now()
+        val types = items.map { it.type }.toSet()
+        documents.findByApplicationIdOrderByCreatedAtAsc(app.id!!)
+            .filter { it.type in types && !it.superseded }
+            .forEach { documents.save(it.copy(superseded = true)) }
+        val cleared = if (DocumentType.KTP in types) {
+            app.copy(extractedName = null, extractedNik = null, extractedDob = null, extractedAddress = null)
+        } else {
+            app
+        }
+        val reason = items.joinToString("; ") { "${it.type.label}: ${it.reason.trim().trimEnd('.')}" }
+        val saved = applications.save(
+            cleared.copy(
+                status = ApplicationStatus.DOCUMENTS_REQUESTED,
+                resubmissionReason = reason.take(500),
+                reviewDecision = "OFFICER_REQUEST_DOCUMENTS",
+                reviewRounds = app.reviewRounds + 1,
+                reviewedAt = now,
+                linkTokenHash = null,
+                linkExpiresAt = null,
+                updatedAt = now,
+            ),
+        )
+        val previous = sessions.findByApplicationIdOrderByCreatedAtDesc(saved.id!!).firstOrNull()
+        sessions.findActiveByPhone(phone)?.let { sessions.save(it.copy(state = CustomerSessionState.CANCELLED, updatedAt = now)) }
+        val next = items.minBy { it.type.step }.type
+        val consented = previous?.consentAt != null
+        sessions.save(
+            CustomerSession(
+                phone = phone,
+                customerName = previous?.customerName ?: saved.customerName,
+                applicationId = saved.id,
+                state = if (consented) stateFor(next) else CustomerSessionState.AWAITING_CONSENT,
+                consentAt = previous?.consentAt,
+            ),
+        )
+        log.info("Officer requested documents | number={} | by={} | round={} | items={}", saved.applicationNumber, actor ?: "n/a", saved.reviewRounds, items)
+        audit.record(saved, ReviewEventKind.DOCUMENTS_REQUESTED, actor, reason + (note?.takeIf { it.isNotBlank() }?.let { " | note: $it" } ?: ""))
+        val notified = send(phone, CustomerMessages.documentsRequestedByOfficer(saved, items, next, note))
+        if (!consented) send(phone, CustomerMessages.greetingAndConsent(saved, previous?.customerName ?: saved.customerName))
+        return OfficerRequestResult.Sent(saved, notified)
+    }
 
     /** Handles "START <application number>" from any phone. */
     fun start(phone: String, contactName: String?, applicationNumber: String?) {
@@ -60,7 +123,7 @@ class CustomerConversationService(
             send(phone, CustomerMessages.linkedToOtherPhone(app))
             return
         }
-        if (!app.status.acceptsSubmission) {
+        if (!app.status.acceptsCustomerDocuments) {
             send(phone, CustomerMessages.notAcceptingDocuments(app))
             return
         }
@@ -210,6 +273,8 @@ class CustomerConversationService(
             sessions.save(session.copy(state = CustomerSessionState.COMPLETED, updatedAt = Instant.now()))
             log.info("Application handed to officer without provider checks | number={}", saved.applicationNumber)
             val (assessed, assessment) = risk.assessAndStore(saved)
+            audit.record(assessed, ReviewEventKind.DOCUMENTS_COMPLETE, ReviewAuditService.SYSTEM, "Handed to officer without provider checks (ID number not read confidently)")
+            audit.record(assessed, ReviewEventKind.RISK_ASSESSED, ReviewAuditService.SYSTEM, assessment.headline)
             send(session.phone, CustomerMessages.submitted(assessed))
             notifier.documentsForOfficerReview(assessed, assessment)
             return
@@ -224,6 +289,12 @@ class CustomerConversationService(
         }
         sessions.save(session.copy(state = CustomerSessionState.COMPLETED, updatedAt = Instant.now()))
         val (assessed, assessment) = risk.assessAndStore(outcome.application)
+        audit.record(
+            assessed, ReviewEventKind.DOCUMENTS_COMPLETE, ReviewAuditService.SYSTEM,
+            "ID verification: ${outcome.id.outcome.label}; credit bureau: ${outcome.credit.outcome.label}${outcome.credit.score?.let { ", score $it" } ?: ""}" +
+                (if (assessed.reviewRounds > 0) " (document round ${assessed.reviewRounds + 1})" else ""),
+        )
+        audit.record(assessed, ReviewEventKind.RISK_ASSESSED, ReviewAuditService.SYSTEM, assessment.headline)
         send(session.phone, CustomerMessages.submitted(assessed))
         notifier.documentsSubmitted(outcome.copy(application = assessed), assessment)
     }
@@ -285,9 +356,7 @@ class CustomerConversationService(
         DocumentType.SELFIE_KTP -> CustomerSessionState.AWAITING_SELFIE
     }
 
-    private fun send(phone: String, message: OutboundMessage) {
-        sender.send(phone, message)
-    }
+    private fun send(phone: String, message: OutboundMessage): Boolean = sender.send(phone, message)
 
     private companion object {
         val AGREE_WORDS = setOf("agree", "i agree", "yes", "ya", "setuju", "ok", "oke")

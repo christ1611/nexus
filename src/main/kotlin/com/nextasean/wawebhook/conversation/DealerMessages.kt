@@ -122,6 +122,10 @@ class DealerMessages(private val zone: ZoneId) {
                 ApplicationStatus.DRAFT -> append("\n\nThe form has not been submitted. Need the link again? Tap Get new link.")
                 ApplicationStatus.RESUBMISSION_REQUESTED -> append("\n\nTap Resubmit now to receive a fresh one-time link.")
                 ApplicationStatus.SUBMITTED, ApplicationStatus.READY_FOR_REVIEW -> append("\n\nWe will notify you here as soon as a decision is made.")
+                ApplicationStatus.DOCUMENTS_REQUESTED -> append(
+                    "\n\nThe review team asked the customer to send some documents again" +
+                        (app.resubmissionReason?.let { ": $it" } ?: "") + ". Please remind the customer to check WhatsApp.",
+                )
                 else -> Unit
             }
         }
@@ -213,6 +217,16 @@ class DealerMessages(private val zone: ZoneId) {
             buttons = listOf(Button(ReplyIds.status(app.applicationNumber), "Check status"), mainMenuButton),
         )
     }
+
+    /** Step 4: the review team sent the customer back for documents; the dealer is told so they can follow up. */
+    fun documentsRequestedFromCustomer(app: DealerApplication, items: List<String>): OutboundMessage = Buttons(
+        header = "Documents requested",
+        body = "The review team asked the customer of *${app.applicationNumber}* to send the following again:\n" +
+            items.joinToString("\n") { "\u2022 $it" } +
+            "\n\nThe request was sent to the customer on WhatsApp (+${app.customerPhone ?: "?"}). " +
+            "Please remind them if they do not respond.",
+        buttons = listOf(Button(ReplyIds.status(app.applicationNumber), "Check status"), mainMenuButton),
+    )
 
     fun decision(app: DealerApplication): OutboundMessage {
         val approved = app.status == ApplicationStatus.APPROVED

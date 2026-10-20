@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXT ASEAN 심사 (Review)</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --surface-2: #f3f2ef; --border: #e2e1dc;
+    --text: #0b0b0b; --text-2: #52514e; --text-3: #7a7975;
+    --c-id: #2a78d6; --c-mm: #eb6834; --c-kh: #1baf7a;
+    --seq: #2a78d6; --seq-light: #9ec5f4;
+    --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --good-bg: #e6f6e6; --warn-bg: #fff4d6; --serious-bg: #fde9df; --critical-bg: #fbe3e3; --info-bg: #e4eefb;
+    --grid: #e8e7e2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --surface-2: #242423; --border: #353533;
+      --text: #f0efec; --text-2: #c3c2b7; --text-3: #8f8e88;
+      --c-id: #3987e5; --c-mm: #d95926; --c-kh: #199e70;
+      --seq: #3987e5; --seq-light: #1c5cab; --grid: #2e2e2c;
+      --good-bg: #163a16; --warn-bg: #3d2f0a; --serious-bg: #3f2416; --critical-bg: #3f1b1b; --info-bg: #182b45;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --surface-2: #242423; --border: #353533;
+    --text: #f0efec; --text-2: #c3c2b7; --text-3: #8f8e88;
+    --c-id: #3987e5; --c-mm: #d95926; --c-kh: #199e70;
+    --seq: #3987e5; --seq-light: #1c5cab; --grid: #2e2e2c;
+    --good-bg: #163a16; --warn-bg: #3d2f0a; --serious-bg: #3f2416; --critical-bg: #3f1b1b; --info-bg: #182b45;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--text); font: 14px/1.45 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", Segoe UI, Roboto, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 5; }
+  h1 { font-size: 18px; margin: 0; }
+  h1 small { display: block; font-size: 12px; font-weight: 400; color: var(--text-3); }
+  h2 { font-size: 15px; margin: 0 0 6px; }
+  h2 small, .sub { font-size: 12px; font-weight: 400; color: var(--text-3); }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: var(--text-2); }
+  nav a { color: var(--text-2); text-decoration: none; margin-right: 12px; font-size: 13px; }
+  nav a.active { color: var(--text); font-weight: 600; border-bottom: 2px solid var(--seq); }
+  .key { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input, select, textarea { font: inherit; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+  input[type=password], input[type=text] { min-width: 160px; }
+  textarea { width: 100%; min-height: 56px; resize: vertical; }
+  button { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.primary { background: var(--seq); color: #fff; border-color: transparent; }
+  button.approve { background: var(--good); color: #fff; border-color: transparent; }
+  button.reject { background: var(--critical); color: #fff; border-color: transparent; }
+  .status { font-size: 12px; color: var(--text-3); }
+  .status.err { color: var(--critical); }
+  main { display: grid; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; grid-template-columns: minmax(300px, 420px) minmax(0, 1fr); }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .filters select, .filters input { flex: 1 1 100px; min-width: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 500; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.row { cursor: pointer; }
+  tr.row:hover { background: var(--surface-2); }
+  tr.row.selected { background: var(--info-bg); }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .chip { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border); margin: 2px 4px 2px 0; color: var(--text-2); white-space: nowrap; }
+  .chip.fraud { border-color: var(--critical); color: var(--critical); }
+  .chip.badge { border-color: var(--good); color: var(--good); }
+  .chip.warn { border-color: var(--warn); color: var(--text); background: var(--warn-bg); }
+  .pill { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; font-weight: 600; }
+  .pill.READY_FOR_REVIEW { background: var(--info-bg); color: var(--seq); }
+  .pill.DOCUMENTS_REQUESTED, .pill.RESUBMISSION_REQUESTED { background: var(--warn-bg); color: var(--text); }
+  .pill.APPROVED { background: var(--good-bg); color: var(--good); }
+  .pill.REJECTED { background: var(--critical-bg); color: var(--critical); }
+  .pill.DRAFT, .pill.SUBMITTED { background: var(--surface-2); color: var(--text-2); }
+  .grade { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+  .grade .ic { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .gradebox { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); }
+  .gradebox .big { font-size: 26px; font-weight: 700; line-height: 1; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 13px; }
+  .kv dt { color: var(--text-3); } .kv dd { margin: 0; word-break: break-word; }
+  .grid2 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .docs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .doc { border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--surface-2); }
+  .doc.superseded { opacity: .6; }
+  .doc .img { width: 100%; aspect-ratio: 4/3; background: var(--grid); border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: zoom-in; color: var(--text-3); font-size: 12px; }
+  .doc .img img { width: 100%; height: 100%; object-fit: contain; }
+  .doc .meta { font-size: 12px; color: var(--text-2); margin-top: 6px; }
+  .ok { color: var(--good); font-weight: 600; } .bad { color: var(--critical); font-weight: 600; } .mid { color: var(--serious); font-weight: 600; }
+  .flag { display: grid; grid-template-columns: 22px 1fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--grid); }
+  .flag .sev { font-size: 16px; line-height: 1; }
+  .flag .t { font-weight: 600; } .flag .d { color: var(--text-2); font-size: 13px; }
+  .actions { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .action { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .action h3 { margin-top: 0; }
+  .action .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .action label { display: block; font-size: 12px; color: var(--text-2); margin: 6px 0 2px; }
+  .action label.inline { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); }
+  pre { white-space: pre-wrap; word-break: break-word; background: var(--surface-2); padding: 10px; border-radius: 6px; font-size: 12px; max-height: 420px; overflow: auto; }
+  .timeline { list-style: none; margin: 0; padding: 0; }
+  .timeline li { display: grid; grid-template-columns: 150px 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--grid); font-size: 13px; }
+  .timeline time { color: var(--text-3); font-variant-numeric: tabular-nums; font-size: 12px; }
+  .empty { color: var(--text-3); font-size: 13px; padding: 12px 0; }
+  details summary { cursor: pointer; color: var(--text-2); font-size: 12px; }
+  .scroll { overflow-x: auto; }
+  .notice { padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; }
+  .notice.warn { background: var(--warn-bg); } .notice.crit { background: var(--critical-bg); color: var(--critical); } .notice.ok { background: var(--good-bg); color: var(--good); } .notice.info { background: var(--info-bg); }
+  #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; z-index: 20; cursor: zoom-out; }
+  #lightbox img { max-width: 96vw; max-height: 96vh; object-fit: contain; }
+  #tip { position: fixed; pointer-events: none; background: var(--text); color: var(--surface); font-size: 12px; padding: 6px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s; z-index: 10; max-width: 280px; }
+  @media (max-width: 600px) { .timeline li { grid-template-columns: 1fr; gap: 2px; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>NEXT ASEAN 심사 <small>Reviewer back office · documents, evidence, decisions</small></h1>
+    <nav style="margin-top:4px"><a href="/dashboard">대시보드 Dashboard</a><a href="/review" class="active">심사 Review</a></nav>
+  </div>
+  <div class="key">
+    <input id="reviewer" type="text" placeholder="심사자 이름 (reviewer)" autocomplete="off" title="Recorded on decisions and the timeline">
+    <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">
+    <button class="primary" id="load">불러오기</button>
+    <span class="status" id="status"></span>
+  </div>
+</header>
+<main>
+  <section class="card" id="queue">
+    <h2>심사 큐 <small>Work queue</small></h2>
+    <div class="filters">
+      <select id="f-scope"><option value="open">열린 건 (open)</option><option value="all">전체 (all)</option><option value="READY_FOR_REVIEW">심사 대기만</option><option value="DOCUMENTS_REQUESTED">고객 서류 재요청</option><option value="APPROVED,REJECTED">결정 완료</option></select>
+      <select id="f-country"><option value="">모든 국가</option><option value="ID">인도네시아 ID</option><option value="MM">미얀마 MM</option><option value="KH">캄보디아 KH</option></select>
+      <select id="f-grade"><option value="">모든 등급</option><option value="C,D">고위험 C·D</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+      <input id="f-q" type="text" placeholder="신청번호 · 고객 · 딜러 검색" style="min-width:120px">
+    </div>
+    <div id="list"><p class="empty">관리자 키를 입력하고 <b>불러오기</b>를 누르세요. <span class="sub">Enter the admin key and press Load.</span></p></div>
+  </section>
+  <section id="detail">
+    <div class="card"><p class="empty">왼쪽 큐에서 신청을 선택하면 서류·추출 데이터·조회 결과·Risk Flag 근거와 결정 버튼이 여기에 표시됩니다.<br><span class="sub">Pick an application from the queue to see its documents, extracted data, provider results, risk evidence and the decision buttons.</span></p></div>
+  </section>
+</main>
+<div id="lightbox"><img alt=""></div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+(function () {
+  const $ = (s, el = document) => el.querySelector(s);
+  const list = $('#list'), detail = $('#detail'), status = $('#status'), keyInput = $('#key'), reviewerInput = $('#reviewer'), tip = $('#tip'), lightbox = $('#lightbox');
+  const COUNTRY_COLOR = { ID: 'var(--c-id)', MM: 'var(--c-mm)', KH: 'var(--c-kh)' };
+  const COUNTRY_KO = { ID: '인도네시아', MM: '미얀마', KH: '캄보디아' };
+  const GRADE = {
+    A: { color: 'var(--good)', icon: '●', ko: '저위험', en: 'Low risk' },
+    B: { color: 'var(--warn)', icon: '▲', ko: '중위험', en: 'Medium risk' },
+    C: { color: 'var(--serious)', icon: '◆', ko: '고위험', en: 'High risk' },
+    D: { color: 'var(--critical)', icon: '■', ko: '위험 고객', en: 'Critical risk' },
+  };
+  const STATUS_KO = { DRAFT: '작성 중', SUBMITTED: '폼 제출됨', RESUBMISSION_REQUESTED: '폼 재제출 요청', READY_FOR_REVIEW: '심사 대기', DOCUMENTS_REQUESTED: '고객 서류 재요청', APPROVED: '승인', REJECTED: '거절' };
+  const SEV = { HIGH: { icon: '■', color: 'var(--critical)', ko: '높음' }, MEDIUM: { icon: '◆', color: 'var(--serious)', ko: '중간' }, LOW: { icon: '▲', color: 'var(--warn)', ko: '낮음' } };
+  const OUTCOME_KO = { MATCH: '일치', MISMATCH: '불일치', NOT_FOUND: '미발견', TIMEOUT: '시간 초과', ERROR: '오류' };
+  const DOC_KO = { KTP: '신분증 (KTP)', SELFIE_KTP: '셀피 + 신분증' };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtTime = iso => { if (!iso) return '–'; try { return new Date(iso).toLocaleString('ko-KR', { hour12: false }); } catch { return iso; } };
+  const ago = iso => { if (!iso) return ''; const h = (Date.now() - new Date(iso).getTime()) / 36e5; return h < 1 ? Math.round(h * 60) + '분' : h < 48 ? h.toFixed(1) + '시간' : Math.round(h / 24) + '일'; };
+  const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
+  let apps = [], current = null, blobs = new Map();
+
+  try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
+  try { const r = localStorage.getItem('reviewerName'); if (r) reviewerInput.value = r; } catch {}
+  reviewerInput.addEventListener('change', () => { try { localStorage.setItem('reviewerName', reviewerInput.value.trim()); } catch {} });
+
+  const headers = () => ({ 'X-Admin-Key': keyInput.value.trim(), 'Content-Type': 'application/json' });
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { ...opts, headers: headers() });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
+    return body;
+  }
+  function setStatus(msg, err) { status.textContent = msg; status.className = 'status' + (err ? ' err' : ''); }
+
+  function showTip(e, html) { tip.innerHTML = html; tip.style.opacity = 1; moveTip(e); }
+  function moveTip(e) { tip.style.left = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; }
+  function hideTip() { tip.style.opacity = 0; }
+  function bindTips(root) { root.querySelectorAll('[data-tip]').forEach(el => { el.addEventListener('mouseenter', e => showTip(e, el.dataset.tip)); el.addEventListener('mousemove', moveTip); el.addEventListener('mouseleave', hideTip); }); }
+
+  const gradeCell = (g, score) => { const m = GRADE[g]; return m ? `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g)} <span class="sub">${m.ko}${score != null ? ' · ' + score : ''}</span></span>` : '<span class="sub">미평가</span>'; };
+  const pill = s => `<span class="pill ${esc(s)}">${esc(STATUS_KO[s] || s)}</span>`;
+  const countryCell = c => `<span class="dot" style="background:${COUNTRY_COLOR[c] || 'var(--text-3)'}"></span>${esc(c)}`;
+
+  /* ---------- queue ---------- */
+  function queryString() {
+    const scope = $('#f-scope').value, p = new URLSearchParams();
+    if (scope === 'open') p.set('queue', 'true'); else if (scope !== 'all') p.set('status', scope);
+    if ($('#f-country').value) p.set('country', $('#f-country').value);
+    if ($('#f-grade').value) p.set('grade', $('#f-grade').value);
+    if ($('#f-q').value.trim()) p.set('q', $('#f-q').value.trim());
+    return p.toString();
+  }
+  async function loadQueue() {
+    if (!keyInput.value.trim()) { setStatus('관리자 키를 입력하세요.', true); return; }
+    try { sessionStorage.setItem('adminKey', keyInput.value.trim()); } catch {}
+    setStatus('불러오는 중…');
+    try {
+      apps = await api('/admin/applications?' + queryString());
+      renderQueue();
+      setStatus('업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour12: false }));
+    } catch (e) { setStatus('오류: ' + e.message, true); }
+  }
+  function renderQueue() {
+    if (!apps.length) { list.innerHTML = '<p class="empty">조건에 맞는 신청이 없습니다. <span class="sub">Nothing matches.</span></p>'; return; }
+    list.innerHTML = `<div class="scroll"><table><thead><tr><th>신청번호</th><th>상태</th><th>등급</th><th>대기</th></tr></thead><tbody>${apps.map(a => {
+      const r = a.risk, waitingSince = a.risk?.assessedAt || a.verifiedAt || a.updatedAt;
+      return `<tr class="row ${current && current.applicationNumber === a.applicationNumber ? 'selected' : ''}" data-n="${esc(a.applicationNumber)}">
+        <td><b>${esc(a.applicationNumber)}</b><br><span class="sub">${countryCell(a.country)} · ${esc(a.dealerCode || '–')} · ${esc(a.extracted?.name || a.customerName || '고객 미연결')}</span></td>
+        <td>${pill(a.status)}${a.review?.officerReviewRequired ? '<br><span class="chip warn">담당자 검토</span>' : ''}</td>
+        <td>${r ? gradeCell(r.grade, r.score) : '<span class="sub">–</span>'}${r && r.fraudWarnings ? `<br><span class="chip fraud">⚠ 위조 ${r.fraudWarnings}</span>` : ''}</td>
+        <td class="num"><span class="sub" title="${esc(fmtTime(waitingSince))}">${a.status === 'READY_FOR_REVIEW' ? ago(waitingSince) : ago(a.updatedAt)}</span></td></tr>`; }).join('')}</tbody></table></div>
+      <p class="sub" style="margin:8px 0 0">${apps.length}건 · 심사 대기 우선, 리스크 점수 높은 순 · 60초마다 갱신</p>`;
+    list.querySelectorAll('tr.row').forEach(tr => tr.addEventListener('click', () => open(tr.dataset.n)));
+  }
+
+  /* ---------- detail ---------- */
+  async function open(number, keepScroll) {
+    if (!keepScroll) history.replaceState(null, '', '/review?app=' + encodeURIComponent(number));
+    try {
+      const a = await api('/admin/applications/' + encodeURIComponent(number));
+      current = a;
+      renderDetail(a);
+      renderQueue();
+    } catch (e) { setStatus('오류: ' + e.message, true); }
+  }
+
+  function renderDetail(a) {
+    const r = a.risk, final = a.status === 'APPROVED' || a.status === 'REJECTED';
+    const docs = a.documents || [], live = docs.filter(d => !d.superseded), old = docs.filter(d => d.superseded);
+    let h = `<div class="card">
+      <div style="display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-start;justify-content:space-between">
+        <div>
+          <h2 style="font-size:20px">${esc(a.applicationNumber)} ${pill(a.status)}</h2>
+          <div class="sub">${countryCell(a.country)} ${esc(COUNTRY_KO[a.country] || '')} · 딜러 ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''} · 생성 ${fmtTime(a.createdAt)} · 최근 ${fmtTime(a.updatedAt)}</div>
+          <div style="margin-top:6px"><b>${esc(a.extracted?.name || a.customerName || '고객 미연결')}</b> ${a.customerPhone ? `<span class="sub">+${esc(a.customerPhone)}</span>` : '<span class="sub">(START 링크를 아직 열지 않음)</span>'}</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          ${r ? `<div class="gradebox" style="border-color:${GRADE[r.grade].color}"><span class="big" style="color:${GRADE[r.grade].color}">${esc(r.grade)}</span><div><div><b>${esc(r.gradeLabelKo)}</b> <span class="sub">${esc(r.gradeLabel)}</span></div><div class="sub">점수 ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ 위조·사기 경고 ${r.fraudWarnings}</span>` : '위조 신호 없음'}</div><div class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')} · ${fmtTime(r.assessedAt)}</div></div></div>` : '<span class="sub">리스크 미평가 (서류 미완료)</span>'}
+        </div>
+      </div>
+      <div style="margin-top:8px">${(r?.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(b.labelKo)}</span>`).join('')}${a.review?.officerReviewRequired ? '<span class="chip warn" data-tip="자동 분석이 일부 데이터를 확신하지 못했습니다. 이미지와 대조해 주세요.">담당자 검토 필요</span>' : ''}${a.linkOutstanding ? '<span class="chip">딜러 폼 링크 유효</span>' : ''}</div>
+      ${final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin-top:10px"><b>${esc(STATUS_KO[a.status])}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : ''}
+      ${a.status === 'DOCUMENTS_REQUESTED' || a.status === 'RESUBMISSION_REQUESTED' ? `<div class="notice warn" style="margin-top:10px">${a.status === 'DOCUMENTS_REQUESTED' ? '고객에게 서류를 다시 요청한 상태입니다. 새 사진이 접수되면 검사·조회가 다시 실행되고 심사 대기로 돌아옵니다.' : '딜러에게 폼 재제출을 요청한 상태입니다.'}${a.resubmissionReason ? '<br><span class="sub">' + esc(a.resubmissionReason) + '</span>' : ''}</div>` : ''}
+    </div>`;
+
+    // actions
+    h += `<div class="card" style="margin-top:16px"><h2>심사 결정 <small>Decisions · notifications go to the dealer and the customer on WhatsApp</small></h2>
+      ${final ? '<p class="empty">결정이 완료된 신청입니다. 메모만 추가할 수 있습니다.</p>' : ''}
+      <div class="actions">
+        <div class="action"><h3>승인 / 거절 <span class="sub">Approve / reject</span></h3>
+          <label>메모 (고객·딜러에게 전달됨) <span class="sub">note, sent with the notification</span></label><textarea id="dec-note" ${final ? 'disabled' : ''} placeholder="예: 서류와 신원·신용 조회 모두 정상"></textarea>
+          <div class="btns"><button class="approve" id="btn-approve" ${final ? 'disabled' : ''}>✓ 승인 Approve</button><button class="reject" id="btn-reject" ${final ? 'disabled' : ''}>✕ 거절 Reject</button></div></div>
+        <div class="action"><h3>고객 서류 재요청 <span class="sub">Ask the customer to resend</span></h3>
+          <label class="inline"><input type="checkbox" id="rq-ktp" ${final || !a.customerPhone ? 'disabled' : ''}> 신분증 (KTP)</label>
+          <input type="text" id="rq-ktp-reason" placeholder="이유 (고객에게 영어로 전달) e.g. the photo is blurry" style="width:100%" ${final || !a.customerPhone ? 'disabled' : ''}>
+          <label class="inline" style="margin-top:6px"><input type="checkbox" id="rq-selfie" ${final || !a.customerPhone ? 'disabled' : ''}> 셀피 + 신분증</label>
+          <input type="text" id="rq-selfie-reason" placeholder="e.g. your face is not clearly visible" style="width:100%" ${final || !a.customerPhone ? 'disabled' : ''}>
+          <label>추가 안내 (선택) <span class="sub">optional note</span></label><input type="text" id="rq-note" style="width:100%" ${final || !a.customerPhone ? 'disabled' : ''}>
+          <div class="btns"><button id="btn-request-docs" ${final || !a.customerPhone ? 'disabled' : ''}>📷 고객에게 재요청</button>${!a.customerPhone ? '<span class="sub">고객 번호가 아직 없습니다</span>' : ''}</div></div>
+        <div class="action"><h3>딜러 폼 재제출 · 메모 · 재평가 <span class="sub">Dealer form, note, re-assess</span></h3>
+          <label>딜러 폼 재제출 이유 <span class="sub">new one-time link goes to the dealer</span></label><input type="text" id="rs-reason" style="width:100%" ${final ? 'disabled' : ''} placeholder="e.g. income field missing">
+          <div class="btns"><button id="btn-resubmit" ${final ? 'disabled' : ''}>🔗 딜러 재제출 요청</button><button id="btn-reassess" ${!r ? 'disabled' : ''}>↻ 리스크 재평가</button></div>
+          <label>심사 메모 <span class="sub">internal note, timeline only</span></label><input type="text" id="note-text" style="width:100%">
+          <div class="btns"><button id="btn-note">✎ 메모 추가</button></div></div>
+      </div></div>`;
+
+    // documents
+    h += `<div class="card" style="margin-top:16px"><h2>서류 <small>Documents · ${live.length} current${old.length ? ', ' + old.length + ' superseded' : ''}</small></h2>`;
+    h += live.length ? `<div class="docs">${live.map(docCard).join('')}</div>` : '<p class="empty">아직 접수된 서류가 없습니다.</p>';
+    if (old.length) h += `<details style="margin-top:10px"><summary>이전 제출본 ${old.length}건 보기 · superseded uploads</summary><div class="docs" style="margin-top:10px">${old.map(docCard).join('')}</div></details>`;
+    h += `</div>`;
+
+    // extracted + providers
+    h += `<div class="grid2" style="margin-top:16px">
+      <div class="card"><h2>추출 데이터 <small>Extracted from the ID document</small></h2>${a.extracted ? `<dl class="kv"><dt>이름</dt><dd>${esc(a.extracted.name || '–')}</dd><dt>NIK</dt><dd>${esc(a.extracted.nik || '–')}</dd><dt>생년월일</dt><dd>${esc(a.extracted.dob || '–')}</dd><dt>주소</dt><dd>${esc(a.extracted.address || '–')}</dd></dl>` : '<p class="empty">아직 추출된 데이터가 없습니다 (서류 미접수 또는 판독 신뢰도 부족).</p>'}</div>
+      <div class="card"><h2>신원·신용 조회 <small>Provider results</small></h2>${a.idVerification || a.creditCheck ? `<dl class="kv">
+        <dt>신원 조회</dt><dd>${outcome(a.idVerification)}</dd>
+        <dt>신용 조회</dt><dd>${outcome(a.creditCheck)}${a.creditCheck?.score != null ? ` · 점수 <b>${a.creditCheck.score}</b>` : ''}</dd>
+        <dt>조회 시각</dt><dd>${fmtTime(a.verifiedAt)}</dd></dl>` : `<p class="empty">${a.review?.officerReviewRequired ? 'NIK를 확신 있게 읽지 못해 조회를 건너뛰었습니다. 담당자가 확인 후 재평가하세요.' : '아직 조회가 실행되지 않았습니다.'}</p>`}</div>
+    </div>`;
+
+    // risk flags
+    h += `<div class="card" style="margin-top:16px"><h2>Risk Flag · 근거 <small>Risk flags with evidence (⚠ = fraud / forgery signal)</small></h2>`;
+    if (!r) h += '<p class="empty">리스크 평가 전입니다.</p>';
+    else if (!r.flags.length) h += '<p class="notice ok">경고 없음 · No warnings</p>';
+    else h += r.flags.map(f => `<div class="flag"><span class="sev" style="color:${SEV[f.severity].color}" title="${esc(f.severity)}">${SEV[f.severity].icon}</span><div><div class="t">${f.fraud ? '<span class="bad">⚠</span> ' : ''}${esc(f.titleKo)} <span class="sub">${esc(f.title)} · ${esc(f.sourceKo)} · 심각도 ${esc(f.severityKo)}</span></div><div class="d">${esc(f.detail)}</div></div></div>`).join('');
+    h += `<details style="margin-top:8px"><summary>등급 산정 기준</summary><p class="sub" style="margin:6px 0 0">점수 = 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A 0-14 · B 15-39 · C 40-69 · D 70+. 심각도 '높음'의 위조 신호가 하나라도 있으면 최소 C. 등급은 코드의 규칙이 계산하며 모델이 직접 정하지 않습니다.</p></details></div>`;
+
+    // review summary
+    if (a.review) h += `<div class="card" style="margin-top:16px"><h2>자동 리뷰 요약 <small>Review agent summary · ${esc(a.review.decision || '')} · rounds ${a.review.rounds}${a.review.reviewedAt ? ' · ' + fmtTime(a.review.reviewedAt) : ''}</small></h2>${a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : '<p class="empty">요약이 아직 없습니다.</p>'}</div>`;
+
+    // timeline
+    h += `<div class="card" style="margin-top:16px"><h2>심사 이력 <small>Timeline</small></h2>${(a.events || []).length ? `<ul class="timeline">${a.events.map(e => `<li><time>${fmtTime(e.createdAt)}</time><div><b>${esc(e.labelKo)}</b> <span class="sub">${esc(e.label)}${e.actor ? ' · ' + esc(e.actor) : ''}</span>${e.detail ? '<br>' + esc(e.detail) : ''}</div></li>`).join('')}</ul>` : '<p class="empty">아직 이력이 없습니다.</p>'}</div>`;
+
+    detail.innerHTML = h;
+    bindTips(detail);
+    bindActions(a, final);
+    loadImages(a);
+  }
+
+  function outcome(o) {
+    if (!o) return '–';
+    const cls = o.status === 'MATCH' ? 'ok' : (o.status === 'MISMATCH' ? 'bad' : 'mid');
+    return `<span class="${cls}">${esc(OUTCOME_KO[o.status] || o.status)}</span> <span class="sub">${esc(o.label || '')}</span><br><span class="sub">${esc(o.detail || '')}</span>`;
+  }
+
+  function docCard(d) {
+    let an = null; try { an = d.analysis ? JSON.parse(d.analysis) : null; } catch {}
+    const check = d.checkPassed == null ? '<span class="mid">검사 중</span>' : d.checkPassed ? '<span class="ok">검사 통과</span>' : `<span class="bad">검사 실패</span> <span class="sub">${esc(d.checkReason || '')}</span>`;
+    let h = `<div class="doc ${d.superseded ? 'superseded' : ''}" data-id="${d.id}">
+      <div class="img" data-url="${esc(d.fileUrl)}" data-available="${d.fileAvailable}">${d.fileAvailable ? '이미지 불러오는 중…' : '파일이 디스크에 없습니다'}</div>
+      <div style="margin-top:8px"><b>${esc(DOC_KO[d.type] || d.typeLabel)}</b> ${d.superseded ? '<span class="chip">이전 제출본</span>' : ''} ${d.needsOfficerReview ? '<span class="chip warn">담당자 검토</span>' : ''}</div>
+      <div class="meta">${check}<br>${fmtTime(d.createdAt)}${d.caption ? ' · 캡션: ' + esc(d.caption) : ''}${d.detectedType ? '<br>감지: ' + esc(d.detectedType) : ''}</div>`;
+    if (an) {
+      const issues = (an.qualityIssues || []).map(q => `<span class="chip ${q.severity === 'HIGH' ? 'fraud' : q.severity === 'MEDIUM' ? 'warn' : ''}" data-tip="${esc(q.detail)}">${esc(q.type)} · ${esc(q.severity)}</span>`).join('');
+      const fields = (an.fields || []).filter(f => f.value != null || f.status !== 'NOT_VISIBLE');
+      h += `<details style="margin-top:6px"><summary>분석 상세 · ${esc(an.documentType)} ${pct(an.documentTypeConfidence)}${an.needsOfficerReview ? ' · 담당자 검토' : ''}</summary>
+        <div style="margin-top:6px">${issues || '<span class="sub">품질 문제 없음</span>'}</div>
+        ${fields.length ? `<table style="margin-top:6px"><thead><tr><th>필드</th><th>값</th><th class="num">신뢰도</th></tr></thead><tbody>${fields.map(f => `<tr><td>${esc(f.name.replace(/_/g, ' '))}</td><td>${esc(f.value ?? '–')}${f.status === 'NEEDS_OFFICER_REVIEW' ? ' <span class="chip warn">검토</span>' : ''}${f.note ? `<br><span class="sub">${esc(f.note)}</span>` : ''}</td><td class="num">${pct(f.confidence)}</td></tr>`).join('')}</tbody></table>` : ''}
+        ${an.nik ? `<div style="margin-top:6px"><b>NIK 검증: </b>${an.nik.issues && an.nik.issues.length ? `<span class="bad">실패</span><ul style="margin:4px 0 0 16px;padding:0">${an.nik.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '<span class="ok">통과</span>'} <span class="sub">${esc(an.nik.provinceName || '')} ${an.nik.dobFromNik ? '· 생년월일 ' + esc(an.nik.dobFromNik) : ''} ${an.nik.genderFromNik ? '· ' + esc(an.nik.genderFromNik) : ''}</span></div>` : ''}
+        ${(an.reviewReasons || []).length ? `<div style="margin-top:6px"><b>검토 사유:</b><ul style="margin:4px 0 0 16px;padding:0">${an.reviewReasons.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+        ${an.modelNotes ? `<div class="sub" style="margin-top:6px">${esc(an.modelNotes)}</div>` : ''}
+        <div class="sub" style="margin-top:4px">model: ${esc(an.model || '')}</div></details>`;
+    }
+    return h + '</div>';
+  }
+
+  async function loadImages(a) {
+    for (const el of detail.querySelectorAll('.doc .img')) {
+      if (el.dataset.available !== 'true') continue;
+      const url = el.dataset.url;
+      try {
+        let blob = blobs.get(url);
+        if (!blob) {
+          const res = await fetch(url, { headers: { 'X-Admin-Key': keyInput.value.trim() } });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          blob = URL.createObjectURL(await res.blob());
+          blobs.set(url, blob);
+        }
+        if (!detail.contains(el)) continue;
+        el.innerHTML = `<img src="${blob}" alt="document">`;
+        el.addEventListener('click', () => { $('#lightbox img').src = blob; lightbox.style.display = 'flex'; });
+      } catch (e) { el.textContent = '이미지를 불러오지 못했습니다 (' + e.message + ')'; }
+    }
+  }
+  lightbox.addEventListener('click', () => { lightbox.style.display = 'none'; });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') lightbox.style.display = 'none'; });
+
+  function bindActions(a, final) {
+    const n = encodeURIComponent(a.applicationNumber), reviewer = () => reviewerInput.value.trim() || null;
+    const after = (msg, res) => {
+      const parts = [msg];
+      if (res && typeof res.dealerNotified === 'boolean') parts.push('딜러 알림 ' + (res.dealerNotified ? '✓' : '✗'));
+      if (res && res.customerNotified != null) parts.push('고객 알림 ' + (res.customerNotified ? '✓' : '✗'));
+      setStatus(parts.join(' · '));
+      open(a.applicationNumber, true); loadQueue();
+    };
+    const run = async (btn, fn) => { btn.disabled = true; setStatus('처리 중…'); try { await fn(); } catch (e) { setStatus('오류: ' + e.message, true); btn.disabled = false; } };
+    if (!final) {
+      $('#btn-approve').addEventListener('click', e => { if (!confirm(a.applicationNumber + ' 을(를) 승인할까요? 딜러와 고객에게 WhatsApp 알림이 전송됩니다.')) return; run(e.target, async () => after('승인 완료', await api('/admin/applications/' + n + '/decision', { method: 'POST', body: JSON.stringify({ decision: 'APPROVED', note: $('#dec-note').value, reviewer: reviewer() }) }))); });
+      $('#btn-reject').addEventListener('click', e => { if (!confirm(a.applicationNumber + ' 을(를) 거절할까요? 딜러와 고객에게 WhatsApp 알림이 전송됩니다.')) return; run(e.target, async () => after('거절 완료', await api('/admin/applications/' + n + '/decision', { method: 'POST', body: JSON.stringify({ decision: 'REJECTED', note: $('#dec-note').value, reviewer: reviewer() }) }))); });
+      $('#btn-resubmit').addEventListener('click', e => { const reason = $('#rs-reason').value.trim(); if (!reason) { setStatus('재제출 이유를 입력하세요.', true); return; } run(e.target, async () => after('딜러에게 재제출 요청 전송', await api('/admin/applications/' + n + '/request-resubmission', { method: 'POST', body: JSON.stringify({ reason, reviewer: reviewer() }) }))); });
+      if (a.customerPhone) $('#btn-request-docs').addEventListener('click', e => {
+        const items = [];
+        if ($('#rq-ktp').checked) items.push({ type: 'KTP', reason: $('#rq-ktp-reason').value.trim() || 'please send a clearer photo of your KTP' });
+        if ($('#rq-selfie').checked) items.push({ type: 'SELFIE_KTP', reason: $('#rq-selfie-reason').value.trim() || 'please send a clearer selfie holding your KTP' });
+        if (!items.length) { setStatus('재요청할 서류를 선택하세요.', true); return; }
+        run(e.target, async () => after('고객에게 서류 재요청 전송', await api('/admin/applications/' + n + '/request-documents', { method: 'POST', body: JSON.stringify({ items, note: $('#rq-note').value.trim() || null, reviewer: reviewer() }) })));
+      });
+    }
+    $('#btn-reassess').addEventListener('click', e => run(e.target, async () => { await api('/admin/applications/' + n + '/assess-risk' + (reviewer() ? '?reviewer=' + encodeURIComponent(reviewer()) : ''), { method: 'POST' }); after('리스크 재평가 완료'); }));
+    $('#btn-note').addEventListener('click', e => { const note = $('#note-text').value.trim(); if (!note) { setStatus('메모를 입력하세요.', true); return; } run(e.target, async () => { await api('/admin/applications/' + n + '/note', { method: 'POST', body: JSON.stringify({ note, reviewer: reviewer() }) }); after('메모 추가 완료'); }); });
+  }
+
+  /* ---------- wiring ---------- */
+  $('#load').addEventListener('click', loadQueue);
+  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadQueue(); });
+  ['#f-scope', '#f-country', '#f-grade'].forEach(s => $(s).addEventListener('change', loadQueue));
+  let t; $('#f-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadQueue, 300); });
+  const wanted = new URLSearchParams(location.search).get('app');
+  if (keyInput.value) { loadQueue().then(() => { if (wanted) open(wanted, true); }); }
+  setInterval(() => { if (keyInput.value.trim() && !document.activeElement.closest('#detail')) loadQueue(); }, 60000);
+})();
+</script>
+</body>
+</html>

@@ -6,24 +6,39 @@ import com.nextasean.wawebhook.application.ApplicationStatus
 import com.nextasean.wawebhook.application.DealerApplication
 import com.nextasean.wawebhook.application.Decision
 import com.nextasean.wawebhook.conversation.DealerNotifier
+import com.nextasean.wawebhook.customer.CustomerConversationService
+import com.nextasean.wawebhook.customer.CustomerConversationService.OfficerRequestResult
+import com.nextasean.wawebhook.customer.CustomerNotifier
 import com.nextasean.wawebhook.dealer.Dealer
 import com.nextasean.wawebhook.dealer.DealerRepository
+import com.nextasean.wawebhook.documents.DocumentRecord
 import com.nextasean.wawebhook.documents.DocumentRepository
+import com.nextasean.wawebhook.documents.DocumentType
+import com.nextasean.wawebhook.review.DocumentRequest
+import com.nextasean.wawebhook.review.ReviewAuditService
+import com.nextasean.wawebhook.review.ReviewEvent
+import com.nextasean.wawebhook.review.ReviewEventKind
 import com.nextasean.wawebhook.risk.RiskAssessment
 import com.nextasean.wawebhook.risk.RiskAssessmentService
+import com.nextasean.wawebhook.risk.RiskGrade
+import org.springframework.http.CacheControl
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.nio.file.Files
+import java.nio.file.Path
 import java.time.Instant
 
 /**
- * Back-office API (protected by [AdminKeyFilter]) that drives the application lifecycle
- * and triggers the corresponding WhatsApp notifications to the dealer.
+ * Back-office API (protected by [AdminKeyFilter]) that drives the application lifecycle and triggers the corresponding
+ * WhatsApp notifications to the dealer and (Step 4) the customer. The review page (`/review`) is built on it.
  */
 @RestController
 @RequestMapping("/admin")
@@ -32,24 +47,38 @@ class AdminApplicationController(
     private val dealers: DealerRepository,
     private val service: ApplicationService,
     private val notifier: DealerNotifier,
+    private val customerNotifier: CustomerNotifier,
+    private val customerFlow: CustomerConversationService,
     private val documents: DocumentRepository,
     private val risk: RiskAssessmentService,
+    private val audit: ReviewAuditService,
 ) {
 
-    data class ResubmissionRequest(val reason: String)
+    data class ResubmissionRequest(val reason: String, val reviewer: String? = null)
 
-    data class DecisionRequest(val decision: Decision, val note: String? = null)
+    data class DecisionRequest(val decision: Decision, val note: String? = null, val reviewer: String? = null)
+
+    data class DocumentRequestItem(val type: DocumentType, val reason: String)
+
+    /** Officer asks the customer for documents again: which ones, why (customer-facing), and an optional note. */
+    data class DocumentsRequest(val items: List<DocumentRequestItem>, val note: String? = null, val reviewer: String? = null)
+
+    data class NoteRequest(val note: String, val reviewer: String? = null)
 
     data class DealerView(val code: String, val name: String, val phone: String, val active: Boolean, val country: String, val tier: String)
 
     data class ApplicationView(
         val applicationNumber: String,
         val status: ApplicationStatus,
+        val statusLabel: String,
         val dealerCode: String?,
         val dealerName: String?,
         val dealerPhone: String?,
+        val dealerTier: String?,
         val resubmissionReason: String?,
         val decisionNote: String?,
+        val decidedBy: String?,
+        val decidedAt: Instant?,
         val linkOutstanding: Boolean,
         val customerPhone: String?,
         val customerName: String?,
@@ -61,7 +90,10 @@ class AdminApplicationController(
         val country: String,
         /** Risk flags, AI risk grade and badges (Step 5); null until the documents have been checked. */
         val risk: RiskView?,
+        /** Accepted, non-superseded documents on the list view; the full history on the detail view. */
+        val documentCount: Int,
         val documents: List<DocumentView>? = null,
+        val events: List<EventView>? = null,
         val createdAt: Instant,
         val updatedAt: Instant,
     )
@@ -69,16 +101,29 @@ class AdminApplicationController(
     data class ReviewView(val decision: String?, val officerReviewRequired: Boolean?, val rounds: Int, val reviewedAt: Instant?, val summary: String?)
 
     data class DocumentView(
+        val id: Long,
         val type: String,
+        val typeLabel: String,
         val detectedType: String?,
         val checkPassed: Boolean?,
         val checkReason: String?,
         val needsOfficerReview: Boolean?,
         val superseded: Boolean,
+        val mimeType: String?,
+        val caption: String?,
+        val fileAvailable: Boolean,
+        /** Relative URL of the image, served with the admin key (`X-Admin-Key`). */
+        val fileUrl: String,
         val createdAt: Instant,
         /** Full analysis as stored (fields with confidence and status, quality issues, NIK validation). */
         val analysis: String?,
     )
+
+    data class EventView(val kind: String, val label: String, val labelKo: String, val actor: String?, val detail: String?, val createdAt: Instant) {
+        companion object {
+            fun of(e: ReviewEvent) = EventView(e.kind.name, e.kind.label, e.kind.labelKo, e.actor, e.detail, e.createdAt)
+        }
+    }
 
     data class RiskView(
         val grade: String,
@@ -98,33 +143,73 @@ class AdminApplicationController(
                 grade = a.grade.name, gradeLabel = a.grade.label, gradeLabelKo = a.grade.labelKo, score = a.score, highRisk = a.grade.highRisk,
                 method = a.method.name, methodLabel = a.method.label, fraudWarnings = a.fraudFlags.size,
                 flags = a.flags.map {
-                    mapOf("code" to it.code, "severity" to it.severity.name, "source" to it.source.name, "fraud" to it.fraudSignal,
-                        "title" to it.title, "titleKo" to it.titleKo, "detail" to it.detail)
+                    mapOf("code" to it.code, "severity" to it.severity.name, "severityKo" to it.severity.labelKo, "source" to it.source.name,
+                        "sourceKo" to it.source.labelKo, "fraud" to it.fraudSignal, "title" to it.title, "titleKo" to it.titleKo, "detail" to it.detail)
                 },
-                badges = a.badges.map { mapOf("code" to it.name, "label" to it.label, "labelKo" to it.labelKo) },
+                badges = a.badges.map { mapOf("code" to it.name, "label" to it.label, "labelKo" to it.labelKo, "description" to it.description) },
                 assessedAt = a.assessedAt,
             )
         }
     }
 
-    data class ActionResult(val application: ApplicationView, val dealerNotified: Boolean)
+    data class ActionResult(val application: ApplicationView, val dealerNotified: Boolean, val customerNotified: Boolean? = null)
 
     @GetMapping("/dealers")
     fun dealers(): List<DealerView> = dealers.findAll().map { DealerView(it.dealerCode, it.name, it.phone, it.active, it.country, it.tier.name) }
 
+    /**
+     * All applications, newest first. Optional filters: `status` (comma-separated), `country`, `grade` (A-D, comma-separated),
+     * `q` (application number, customer name or dealer code, case-insensitive) and `queue=true` (open applications only,
+     * ready-for-review first, then by risk score and age).
+     */
     @GetMapping("/applications")
-    fun applications(): List<ApplicationView> {
+    fun applications(
+        @RequestParam(required = false) status: String?,
+        @RequestParam(required = false) country: String?,
+        @RequestParam(required = false) grade: String?,
+        @RequestParam(required = false) q: String?,
+        @RequestParam(required = false, defaultValue = "false") queue: Boolean,
+    ): List<ApplicationView> {
         val byId = dealers.findAll().associateBy { it.id }
-        return applications.findAllByOrderByCreatedAtDesc().map { it.toView(byId[it.dealerId]) }
+        val statuses = status?.split(',')?.mapNotNull { s -> ApplicationStatus.entries.firstOrNull { it.name.equals(s.trim(), ignoreCase = true) } }?.toSet().orEmpty()
+        val grades = grade?.split(',')?.mapNotNull { RiskGrade.parse(it.trim().uppercase()) }?.toSet().orEmpty()
+        val needle = q?.trim()?.lowercase()?.ifBlank { null }
+        val docCounts = documents.findAll().filter { !it.superseded && it.checkPassed == true }.groupingBy { it.applicationId }.eachCount()
+        var rows = applications.findAllByOrderByCreatedAtDesc().asSequence()
+            .filter { statuses.isEmpty() || it.status in statuses }
+            .filter { country.isNullOrBlank() || it.country.equals(country.trim(), ignoreCase = true) }
+            .filter { grades.isEmpty() || RiskGrade.parse(it.riskGrade) in grades }
+            .filter { app ->
+                needle == null || app.applicationNumber.lowercase().contains(needle) ||
+                    (app.extractedName ?: app.customerName)?.lowercase()?.contains(needle) == true ||
+                    byId[app.dealerId]?.dealerCode?.lowercase()?.contains(needle) == true ||
+                    byId[app.dealerId]?.name?.lowercase()?.contains(needle) == true
+            }
+            .toList()
+        if (queue) {
+            rows = rows.filter { !it.status.isFinal }.sortedWith(
+                compareBy<DealerApplication> { queueRank(it.status) }.thenByDescending { it.riskScore ?: -1 }.thenBy { it.createdAt },
+            )
+        }
+        return rows.map { it.toView(byId[it.dealerId], docCounts[it.id] ?: 0) }
     }
 
     @GetMapping("/applications/{number}")
     fun application(@PathVariable number: String): ResponseEntity<Any> {
         val app = service.findByNumber(number) ?: return notFound(number)
-        val docs = documents.findByApplicationIdOrderByCreatedAtAsc(app.id!!).map {
-            DocumentView(it.type.name, it.detectedType, it.checkPassed, it.checkReason, it.needsOfficerReview, it.superseded, it.createdAt, it.analysisJson)
-        }
-        return ResponseEntity.ok(app.toView(dealers.findById(app.dealerId).orElse(null)).copy(documents = docs))
+        return ResponseEntity.ok(detail(app))
+    }
+
+    /** The stored image of one document, for the review page. Only reachable with the admin key. */
+    @GetMapping("/applications/{number}/documents/{documentId}/file")
+    fun documentFile(@PathVariable number: String, @PathVariable documentId: Long): ResponseEntity<Any> {
+        val app = service.findByNumber(number) ?: return notFound(number)
+        val doc = documents.findById(documentId).orElse(null)?.takeIf { it.applicationId == app.id }
+            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "document $documentId not found on ${app.applicationNumber}"))
+        val path = Path.of(doc.filePath)
+        if (!Files.isRegularFile(path)) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "file for document $documentId is no longer on disk"))
+        val mediaType = doc.mimeType?.substringBefore(';')?.trim()?.let { runCatching { MediaType.parseMediaType(it) }.getOrNull() } ?: MediaType.APPLICATION_OCTET_STREAM
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(mediaType).body(Files.readAllBytes(path))
     }
 
     /** Flags the application, issues a fresh one-time link and sends the resubmission request to the dealer. */
@@ -133,30 +218,74 @@ class AdminApplicationController(
         val app = service.findByNumber(number) ?: return notFound(number)
         if (body.reason.isBlank()) return ResponseEntity.badRequest().body(mapOf("error" to "reason is required"))
         val link = service.requestResubmission(app, body.reason) ?: return conflict(app)
+        audit.record(link.application, ReviewEventKind.RESUBMISSION_REQUESTED, body.reviewer, body.reason)
         val notified = notifier.resubmissionRequested(link)
-        return ResponseEntity.ok(ActionResult(link.application.toView(dealers.findById(app.dealerId).orElse(null)), notified))
+        return ResponseEntity.ok(ActionResult(detail(link.application), notified))
     }
 
-    /** Records APPROVED / REJECTED and sends the decision notification to the dealer. */
+    /** Step 4: sends the customer back for one or more documents (their own WhatsApp), and tells the dealer. */
+    @PostMapping("/applications/{number}/request-documents")
+    fun requestDocuments(@PathVariable number: String, @RequestBody body: DocumentsRequest): ResponseEntity<Any> {
+        val app = service.findByNumber(number) ?: return notFound(number)
+        val items = body.items.filter { it.reason.isNotBlank() }.map { DocumentRequest(it.type, it.reason.trim().take(200)) }.distinctBy { it.type }
+        if (items.isEmpty()) return ResponseEntity.badRequest().body(mapOf("error" to "items with a type (KTP, SELFIE_KTP) and a reason are required"))
+        return when (val result = customerFlow.requestDocuments(app, items, body.note?.trim()?.take(300), body.reviewer)) {
+            is OfficerRequestResult.NotReviewable -> conflict(result.application)
+            is OfficerRequestResult.NoCustomerPhone -> ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(mapOf("error" to "application ${app.applicationNumber} has no customer phone yet; ask the dealer to forward the START link"))
+            is OfficerRequestResult.Sent -> {
+                val dealerNotified = notifier.documentsRequestedFromCustomer(result.application, items.map { "${it.type.label}: ${it.reason}" })
+                ResponseEntity.ok(ActionResult(detail(result.application), dealerNotified, result.customerNotified))
+            }
+        }
+    }
+
+    /** Records APPROVED / REJECTED and sends the decision notification to the dealer and the customer. */
     @PostMapping("/applications/{number}/decision")
     fun decide(@PathVariable number: String, @RequestBody body: DecisionRequest): ResponseEntity<Any> {
         val app = service.findByNumber(number) ?: return notFound(number)
-        val decided = service.decide(app, body.decision, body.note) ?: return conflict(app)
-        val notified = notifier.decision(decided)
-        return ResponseEntity.ok(ActionResult(decided.toView(dealers.findById(app.dealerId).orElse(null)), notified))
+        val decided = service.decide(app, body.decision, body.note, body.reviewer) ?: return conflict(app)
+        audit.record(decided, if (body.decision == Decision.APPROVED) ReviewEventKind.APPROVED else ReviewEventKind.REJECTED, body.reviewer, decided.decisionNote)
+        val dealerNotified = notifier.decision(decided)
+        val customerNotified = customerNotifier.decision(decided)
+        return ResponseEntity.ok(ActionResult(detail(decided), dealerNotified, customerNotified))
+    }
+
+    /** Adds an officer note to the timeline without changing the application. */
+    @PostMapping("/applications/{number}/note")
+    fun note(@PathVariable number: String, @RequestBody body: NoteRequest): ResponseEntity<Any> {
+        val app = service.findByNumber(number) ?: return notFound(number)
+        if (body.note.isBlank()) return ResponseEntity.badRequest().body(mapOf("error" to "note is required"))
+        audit.record(app, ReviewEventKind.NOTE_ADDED, body.reviewer, body.note)
+        return ResponseEntity.ok(detail(app))
     }
 
     /** Re-runs the risk rules on one application (e.g. after the officer corrected data). */
     @PostMapping("/applications/{number}/assess-risk")
-    fun assessRisk(@PathVariable number: String): ResponseEntity<Any> {
+    fun assessRisk(@PathVariable number: String, @RequestParam(required = false) reviewer: String?): ResponseEntity<Any> {
         val app = service.findByNumber(number) ?: return notFound(number)
-        val (saved, _) = risk.assessAndStore(app)
-        return ResponseEntity.ok(saved.toView(dealers.findById(app.dealerId).orElse(null)))
+        val (saved, assessment) = risk.assessAndStore(app)
+        audit.record(saved, ReviewEventKind.RISK_REASSESSED, reviewer, assessment.headline)
+        return ResponseEntity.ok(detail(saved))
     }
 
     /** Re-runs the risk rules on every assessed application, after a rule change. */
     @PostMapping("/risk/reassess-all")
     fun reassessAll(): Map<String, Int> = mapOf("reassessed" to risk.reassessAll())
+
+    private fun detail(app: DealerApplication): ApplicationView {
+        val docs = documents.findByApplicationIdOrderByCreatedAtAsc(app.id!!)
+        return app.toView(dealers.findById(app.dealerId).orElse(null), docs.count { !it.superseded && it.checkPassed == true })
+            .copy(documents = docs.map { it.toView(app) }, events = audit.timeline(app).map(EventView::of))
+    }
+
+    private fun queueRank(status: ApplicationStatus) = when (status) {
+        ApplicationStatus.READY_FOR_REVIEW -> 0
+        ApplicationStatus.SUBMITTED -> 1
+        ApplicationStatus.DOCUMENTS_REQUESTED, ApplicationStatus.RESUBMISSION_REQUESTED -> 2
+        ApplicationStatus.DRAFT -> 3
+        ApplicationStatus.APPROVED, ApplicationStatus.REJECTED -> 4
+    }
 
     private fun notFound(number: String): ResponseEntity<Any> =
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "application $number not found"))
@@ -165,24 +294,46 @@ class AdminApplicationController(
         ResponseEntity.status(HttpStatus.CONFLICT)
             .body(mapOf("error" to "application ${app.applicationNumber} is already ${app.status} and cannot be changed"))
 
-    private fun DealerApplication.toView(dealer: Dealer?) = ApplicationView(
+    private fun DocumentRecord.toView(app: DealerApplication) = DocumentView(
+        id = id!!,
+        type = type.name,
+        typeLabel = type.label,
+        detectedType = detectedType,
+        checkPassed = checkPassed,
+        checkReason = checkReason,
+        needsOfficerReview = needsOfficerReview,
+        superseded = superseded,
+        mimeType = mimeType,
+        caption = caption,
+        fileAvailable = runCatching { Files.isRegularFile(Path.of(filePath)) }.getOrDefault(false),
+        fileUrl = "/admin/applications/${app.applicationNumber}/documents/$id/file",
+        createdAt = createdAt,
+        analysis = analysisJson,
+    )
+
+    private fun DealerApplication.toView(dealer: Dealer?, documentCount: Int) = ApplicationView(
         applicationNumber = applicationNumber,
         status = status,
+        statusLabel = status.label,
         dealerCode = dealer?.dealerCode,
         dealerName = dealer?.name,
         dealerPhone = dealer?.phone,
+        dealerTier = dealer?.tier?.name,
         resubmissionReason = resubmissionReason,
         decisionNote = decisionNote,
+        decidedBy = decidedBy,
+        decidedAt = decidedAt,
         linkOutstanding = linkTokenHash != null,
         customerPhone = customerPhone,
         customerName = customerName,
         extracted = extractedNik?.let { mapOf("name" to extractedName, "nik" to it, "dob" to extractedDob, "address" to extractedAddress) },
-        idVerification = idVerificationStatus?.let { mapOf("status" to it, "detail" to idVerificationDetail) },
-        creditCheck = creditCheckStatus?.let { mapOf("status" to it, "detail" to creditCheckDetail, "score" to creditScore) },
+        idVerification = idVerificationStatus?.let { mapOf("status" to it, "label" to it.label, "detail" to idVerificationDetail) },
+        creditCheck = creditCheckStatus?.let { mapOf("status" to it, "label" to it.label, "detail" to creditCheckDetail, "score" to creditScore) },
         verifiedAt = verifiedAt,
         review = reviewDecision?.let { ReviewView(it, officerReviewRequired, reviewRounds, reviewedAt, reviewSummary) },
         country = country,
         risk = risk.stored(this)?.let(RiskView::of),
+        documentCount = documentCount,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

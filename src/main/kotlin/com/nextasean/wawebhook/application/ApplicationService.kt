@@ -120,18 +120,21 @@ class ApplicationService(
     }
 
     @Transactional
-    fun decide(application: DealerApplication, decision: Decision, note: String?): DealerApplication? {
+    fun decide(application: DealerApplication, decision: Decision, note: String?, reviewer: String? = null): DealerApplication? {
         if (application.status.isFinal) return null
+        val now = Instant.now()
         val saved = applications.save(
             application.copy(
                 status = if (decision == Decision.APPROVED) ApplicationStatus.APPROVED else ApplicationStatus.REJECTED,
-                decisionNote = note?.trim()?.take(500),
+                decisionNote = note?.trim()?.take(500)?.ifBlank { null },
+                decidedBy = reviewer?.trim()?.take(80)?.ifBlank { null },
+                decidedAt = now,
                 linkTokenHash = null,
                 linkExpiresAt = null,
-                updatedAt = Instant.now(),
+                updatedAt = now,
             ),
         )
-        log.info("Decision recorded | number={} | decision={}", saved.applicationNumber, decision)
+        log.info("Decision recorded | number={} | decision={} | by={}", saved.applicationNumber, decision, saved.decidedBy ?: "n/a")
         return saved
     }
 

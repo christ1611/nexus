@@ -33,6 +33,9 @@ class DealerNotifier(
     fun documentsForOfficerReview(app: DealerApplication, risk: RiskAssessment? = null): Boolean =
         notify(app, messages.documentsForOfficerReview(app, risk))
 
+    fun documentsRequestedFromCustomer(app: DealerApplication, items: List<String>): Boolean =
+        notify(app, messages.documentsRequestedFromCustomer(app, items))
+
     private fun notify(app: DealerApplication, message: OutboundMessage): Boolean {
         val dealer = dealers.findById(app.dealerId).orElse(null)
         if (dealer == null) {

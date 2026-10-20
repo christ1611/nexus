@@ -73,12 +73,23 @@
   .empty { color: var(--text-3); font-size: 13px; padding: 12px 0; }
   details summary { cursor: pointer; color: var(--text-2); font-size: 12px; }
   .scroll { overflow-x: auto; }
+  nav a { color: var(--text-2); text-decoration: none; margin-right: 12px; font-size: 13px; }
+  nav a.active { color: var(--text); font-weight: 600; border-bottom: 2px solid var(--seq); }
+  a.app { color: var(--seq); text-decoration: none; font-weight: 600; }
+  a.app:hover { text-decoration: underline; }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; font-weight: 600; background: var(--surface-2); color: var(--text-2); }
+  .pill.READY_FOR_REVIEW { background: var(--seq-light); color: var(--text); }
+  .pill.DOCUMENTS_REQUESTED, .pill.RESUBMISSION_REQUESTED { background: var(--warn); color: #000; }
+  .pill.APPROVED { background: var(--good); color: #fff; } .pill.REJECTED { background: var(--critical); color: #fff; }
   @media (max-width: 600px) { main, header { padding: 12px 16px; } .tile .v { font-size: 22px; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>NEXT ASEAN 온보딩 대시보드 <small>WhatsApp onboarding dashboard · Indonesia / Myanmar / Cambodia</small></h1>
+  <div>
+    <h1>NEXT ASEAN 온보딩 대시보드 <small>WhatsApp onboarding dashboard · Indonesia / Myanmar / Cambodia</small></h1>
+    <nav style="margin-top:4px"><a href="/dashboard" class="active">대시보드 Dashboard</a><a href="/review">심사 Review</a></nav>
+  </div>
   <div class="key">
     <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">
     <button class="primary" id="load">불러오기</button>
@@ -102,7 +113,10 @@
     C: { color: 'var(--serious)', icon: '◆', ko: '고위험', en: 'High' },
     D: { color: 'var(--critical)', icon: '■', ko: '위험 고객', en: 'Critical' },
   };
-  const STATUS_KO = { DRAFT: '작성 중', SUBMITTED: '제출됨', RESUBMISSION_REQUESTED: '재제출 요청', READY_FOR_REVIEW: '심사 대기', APPROVED: '승인', REJECTED: '거절' };
+  const STATUS_KO = { DRAFT: '작성 중', SUBMITTED: '폼 제출됨', RESUBMISSION_REQUESTED: '폼 재제출 요청', READY_FOR_REVIEW: '심사 대기', DOCUMENTS_REQUESTED: '고객 서류 재요청', APPROVED: '승인', REJECTED: '거절' };
+  const appLink = n => `<a class="app" href="/review?app=${encodeURIComponent(n)}" title="심사 화면에서 열기 · open in review">${esc(n)}</a>`;
+  const pill = s => `<span class="pill ${esc(s)}">${esc(STATUS_KO[s] || s)}</span>`;
+  const hrs = h => h == null ? '–' : h < 1 ? Math.round(h * 60) + '분' : h < 48 ? h.toFixed(1) + 'h' : (h / 24).toFixed(1) + 'd';
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
   const num = v => v == null ? '–' : (Number.isInteger(v) ? v : v.toFixed(0));
@@ -166,6 +180,31 @@
     return s;
   }
 
+  /* Weekly columns stacked by country (categorical), with the high-risk count as a dark marker above each week. */
+  function trendChart(weeks) {
+    const W = 520, H = 170, left = 36, right = 8, top = 22, bottom = 26, n = weeks.length;
+    const max = Math.max(1, ...weeks.map(w => w.created));
+    const plotW = W - left - right, plotH = H - top - bottom, colW = plotW / n, barW = Math.min(34, colW * 0.6);
+    const y = v => top + plotH - plotH * v / max;
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Applications per week by country">`;
+    [0, 0.5, 1].forEach(f => { const yy = y(max * f); s += `<line class="grid" x1="${left}" x2="${W - right}" y1="${yy}" y2="${yy}"/><text x="${left - 6}" y="${yy + 4}" text-anchor="end">${Math.round(max * f)}</text>`; });
+    weeks.forEach((w, i) => {
+      const cx = left + colW * i + colW / 2, x = cx - barW / 2;
+      let acc = 0;
+      ['ID', 'MM', 'KH'].forEach(c => {
+        const v = w.createdByCountry[c] || 0; if (!v) return;
+        const y1 = y(acc + v), h = y(acc) - y1;
+        s += `<rect class="bar" x="${x}" y="${y1}" width="${barW}" height="${Math.max(h - 1, 1)}" rx="2" fill="${COUNTRY_COLOR[c]}" data-tip="${esc(w.label + ' 주 · ' + c + ': ' + v + '건 신청')}"/>`;
+        acc += v;
+      });
+      if (w.created) s += `<text x="${cx}" y="${y(acc) - 4}" text-anchor="middle">${w.created}</text>`;
+      if (w.highRisk) s += `<text x="${cx}" y="${top - 8}" text-anchor="middle" fill="var(--critical)" style="fill:var(--critical);font-weight:600" data-tip="${esc(w.label + ' 주 · 고위험 ' + w.highRisk + '건, 위조 경고 ' + w.fraudWarnings + '건')}">⚠${w.highRisk}</text>`;
+      s += `<text x="${cx}" y="${H - 8}" text-anchor="middle" class="lbl">${esc(w.label)}</text>`;
+    });
+    s += `</svg><div class="legend">${['ID', 'MM', 'KH'].map(c => `<span><span class="dot" style="background:${COUNTRY_COLOR[c]}"></span>${c}</span>`).join('')}<span><span style="color:var(--critical);font-weight:600">⚠n</span> 그 주에 서류가 완료된 고위험(C·D) 건수 · high-risk completed that week</span></div>`;
+    return s;
+  }
+
   function gradeCell(g) { const m = GRADE[g] || { color: 'var(--text-3)', icon: '○', ko: '미평가', en: 'n/a' }; return `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g || '–')} <span class="sub" style="display:inline">${m.ko}</span></span>`; }
 
   function render(d) {
@@ -174,13 +213,25 @@
       ['총 신청', 'Applications', t.applications], ['진행 중', 'In progress', t.inProgress], ['심사 대기', 'Ready for review', t.readyForReview],
       ['승인', 'Approved', t.approved], ['거절', 'Rejected', t.rejected],
       ['고위험 고객 (C·D)', 'High-risk customers', t.highRisk, true], ['위조·사기 경고', 'Fraud / forgery warnings', t.fraudWarnings, true],
-      ['담당자 검토 필요', 'Officer review required', t.officerReviewRequired],
+      ['담당자 검토 필요', 'Officer review required', t.officerReviewRequired], ['고객 서류 재요청 중', 'Documents requested', t.documentsRequested],
+      ['최장 대기', 'Oldest waiting', hrs(t.oldestWaitingHours)], ['평균 결정 시간', 'Avg time to decision', hrs(t.avgDecisionHours)],
     ];
     let h = `<section class="card"><div class="tiles">${tiles.map(([ko, en, v, alert]) =>
       `<div class="tile ${alert && v > 0 ? 'alert' : ''}"><div class="k">${ko} <small>${en}</small></div><div class="v">${v}</div></div>`).join('')}</div></section>`;
 
+    h += `<section class="card"><h2>심사 대기 큐 <small>Review queue · highest risk first · <a class="app" href="/review">심사 화면 열기 →</a></small></h2>`;
+    if (!d.reviewQueue.length) h += `<p class="empty">심사 대기 중인 신청이 없습니다. <span class="sub">Nothing waiting for an officer.</span></p>`;
+    else h += `<div class="scroll"><table><thead><tr><th>신청번호<br><span class="sub">Application</span></th><th>국가</th><th>딜러</th><th>고객</th><th>AI 리스크 등급</th><th class="num">위조 경고</th><th>담당자 검토</th><th class="num">대기 시간<br><span class="sub">Waiting</span></th></tr></thead><tbody>${
+      d.reviewQueue.map(q => `<tr><td>${appLink(q.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[q.country] || 'var(--text-3)'}"></span>${esc(q.country)}</td><td>${esc(q.dealerCode || '–')}</td><td>${esc(q.customerName || '–')}</td><td>${gradeCell(q.grade)}${q.score != null ? ` <span class="sub">${q.score}</span>` : ''}</td><td class="num">${q.fraudWarnings ? `<span style="color:var(--critical);font-weight:600">⚠ ${q.fraudWarnings}</span>` : '–'}</td><td>${q.officerReviewRequired ? '<span class="chip">필요</span>' : '–'}</td><td class="num" title="${esc(fmtTime(q.waitingSince))}">${hrs(q.waitingHours)}</td></tr>`).join('')
+    }</tbody></table></div>`;
+    h += `</section>`;
+
     h += `<div class="row">
+      <section class="card"><h2>주간 추이 <small>Weekly trend · applications created per ISO week (last 8 weeks)</small></h2>${trendChart(d.trend)}</section>
       <section class="card"><h2>국가별 신청 현황 <small>Applications by country and status</small></h2>${countryStacked(d.byCountry)}</section>
+    </div>`;
+
+    h += `<div class="row">
       <section class="card"><h2>고객 리스크 등급 분포 <small>AI risk grade distribution (${esc(d.totals.assessed)} assessed)</small></h2>
         ${hbars(d.riskGrades.map(g => ({ label: `${g.grade} ${g.labelKo}`, value: g.count, color: GRADE[g.grade].color, tip: `${g.grade} · ${g.labelKo} (${g.label}): ${g.count}` })), { left: 90, aria: 'Risk grade distribution' })}
         <div class="legend">${d.riskGrades.map(g => `<span><span class="ic grade" style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${GRADE[g.grade].color}"></span> ${g.grade} = ${g.labelKo} · ${g.label}</span>`).join('')}</div>
@@ -195,7 +246,7 @@
     h += `<section class="card"><h2>Risk Flag · 위조/사기 감지 경고 <small>Fraud / forgery warnings and high-risk customers (grade C or D)</small></h2>`;
     if (!d.highRiskApplications.length) h += `<p class="empty">현재 고위험(C·D) 고객이 없습니다. <span class="sub">No high-risk customers right now.</span></p>`;
     else h += `<div class="scroll"><table><thead><tr><th>신청번호<br><span class="sub">Application</span></th><th>국가</th><th>딜러</th><th>고객<br><span class="sub">Customer</span></th><th>상태</th><th>AI 리스크 등급<br><span class="sub">Grade · score</span></th><th>Risk Flags</th><th>배지<br><span class="sub">Badges</span></th><th>평가 방식<br><span class="sub">Method</span></th></tr></thead><tbody>${
-      d.highRiskApplications.map(r => `<tr><td><b>${esc(r.applicationNumber)}</b><br><span class="sub">${fmtTime(r.assessedAt)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${esc(STATUS_KO[r.status] || r.status)}</td><td>${gradeCell(r.grade)} <span class="sub">score ${r.score}${r.fraudWarnings ? ` · ⚠ 위조 경고 ${r.fraudWarnings}` : ''}</span></td><td>${r.flags.map(f => `<span class="chip ${f.fraud ? 'fraud' : ''}" data-tip="${esc(f.title + ' — ' + f.detail)}">${f.fraud ? '⚠ ' : ''}${esc(f.titleKo)} · ${esc(f.severity)}</span>`).join('')}</td><td>${r.badgesKo.map(b => `<span class="chip badge">✓ ${esc(b)}</span>`).join('') || '–'}</td><td><span class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')}</span></td></tr>`).join('')
+      d.highRiskApplications.map(r => `<tr><td>${appLink(r.applicationNumber)}<br><span class="sub">${fmtTime(r.assessedAt)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)} <span class="sub">score ${r.score}${r.fraudWarnings ? ` · ⚠ 위조 경고 ${r.fraudWarnings}` : ''}</span></td><td>${r.flags.map(f => `<span class="chip ${f.fraud ? 'fraud' : ''}" data-tip="${esc(f.title + ' — ' + f.detail)}">${f.fraud ? '⚠ ' : ''}${esc(f.titleKo)} · ${esc(f.severity)}</span>`).join('')}</td><td>${r.badgesKo.map(b => `<span class="chip badge">✓ ${esc(b)}</span>`).join('') || '–'}</td><td><span class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')}</span></td></tr>`).join('')
     }</tbody></table></div>`;
     h += `</section>`;
 
@@ -209,7 +260,7 @@
       <section class="card"><h2>딜러별 현황 <small>Per dealer</small></h2><div class="scroll"><table><thead><tr><th>코드</th><th>딜러</th><th>국가</th><th>등급<br><span class="sub">Tier</span></th><th class="num">신청</th><th class="num">승인</th><th class="num">고위험</th></tr></thead><tbody>${d.dealers.map(x => `<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${x.tier === 'EXCELLENT' ? '★ 우수 딜러' : '일반'}</td><td class="num">${x.applications}</td><td class="num">${x.approved}</td><td class="num">${x.highRisk}</td></tr>`).join('')}</tbody></table></div></section>
     </div>`;
 
-    h += `<section class="card"><h2>최근 신청 <small>Recent applications</small></h2><div class="scroll"><table><thead><tr><th>신청번호</th><th>국가</th><th>딜러</th><th>상태</th><th>등급</th><th>생성</th></tr></thead><tbody>${d.recent.map(r => `<tr><td>${esc(r.applicationNumber)}</td><td>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(STATUS_KO[r.status] || r.status)}</td><td>${gradeCell(r.grade)}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">아직 신청이 없습니다.</td></tr>'}</tbody></table></div>
+    h += `<section class="card"><h2>최근 신청 <small>Recent applications</small></h2><div class="scroll"><table><thead><tr><th>신청번호</th><th>국가</th><th>딜러</th><th>상태</th><th>등급</th><th>생성</th></tr></thead><tbody>${d.recent.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">아직 신청이 없습니다.</td></tr>'}</tbody></table></div>
       <details style="margin-top:10px"><summary>등급 산정 기준 · How the grade is computed</summary><p class="sub" style="display:block;margin:8px 0 0">점수 = Risk Flag 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A: 0-14, B: 15-39, C: 40-69, D: 70+. 심각도 '높음'의 위조·사기 신호가 하나라도 있으면 최소 C. 근거: Claude 비전 분석(화면 재촬영·변조·서류 종류·NIK 구조·셀피 불일치), 신원 조회, 신용 조회, 고객 행동(재요청·실패 업로드·연령). 스텁 모드에서는 조회 결과와 행동 규칙만 적용됩니다.<br>Score = sum of flag severities (LOW 10, MEDIUM 20, HIGH 35, capped at 100). A 0-14, B 15-39, C 40-69, D 70+. Any HIGH fraud signal floors the grade at C.</p></details>
     </section>`;
     h += `<p class="status">생성 시각 ${fmtTime(d.generatedAt)} · generated ${fmtTime(d.generatedAt)}</p>`;
