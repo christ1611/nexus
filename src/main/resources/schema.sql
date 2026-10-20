@@ -107,3 +107,19 @@ CREATE TABLE IF NOT EXISTS review_events (
     created_at     TIMESTAMP    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_review_events_application ON review_events (application_id);
+
+-- Step 4b: agent trace (what the pipeline and the review agent did, shown live on the review page)
+CREATE TABLE IF NOT EXISTS agent_steps (
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    application_id BIGINT       NOT NULL REFERENCES applications (id),
+    kind           VARCHAR(40)  NOT NULL,
+    status         VARCHAR(20)  NOT NULL,
+    actor          VARCHAR(80)  NOT NULL,
+    title          VARCHAR(200) NOT NULL,
+    detail         VARCHAR(1000),
+    data_json      VARCHAR(8000),
+    duration_ms    BIGINT,
+    round          INT          DEFAULT 0 NOT NULL,
+    created_at     TIMESTAMP    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_steps_application ON agent_steps (application_id);

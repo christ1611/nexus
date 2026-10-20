@@ -21,6 +21,10 @@ import com.nextasean.wawebhook.review.ReviewEventKind
 import com.nextasean.wawebhook.risk.RiskAssessment
 import com.nextasean.wawebhook.risk.RiskAssessmentService
 import com.nextasean.wawebhook.risk.RiskGrade
+import com.nextasean.wawebhook.trace.AgentStep
+import com.nextasean.wawebhook.trace.AgentTraceService
+import com.nextasean.wawebhook.trace.TraceKind
+import com.nextasean.wawebhook.trace.TraceStatus
 import org.springframework.http.CacheControl
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -52,6 +56,7 @@ class AdminApplicationController(
     private val documents: DocumentRepository,
     private val risk: RiskAssessmentService,
     private val audit: ReviewAuditService,
+    private val trace: AgentTraceService,
 ) {
 
     data class ResubmissionRequest(val reason: String, val reviewer: String? = null)
@@ -94,6 +99,8 @@ class AdminApplicationController(
         val documentCount: Int,
         val documents: List<DocumentView>? = null,
         val events: List<EventView>? = null,
+        /** Step 4b: what the pipeline and the review agent did, in order (the "AI agent timeline"). */
+        val agentTrace: List<StepView>? = null,
         val createdAt: Instant,
         val updatedAt: Instant,
     )
@@ -124,6 +131,33 @@ class AdminApplicationController(
             fun of(e: ReviewEvent) = EventView(e.kind.name, e.kind.label, e.kind.labelKo, e.actor, e.detail, e.createdAt)
         }
     }
+
+    data class StepView(
+        val id: Long,
+        val kind: String,
+        val phase: String,
+        val phaseKo: String,
+        val label: String,
+        val labelKo: String,
+        val status: String,
+        val actor: String,
+        val title: String,
+        val detail: String?,
+        val data: String?,
+        val durationMs: Long?,
+        val round: Int,
+        val createdAt: Instant,
+    ) {
+        companion object {
+            fun of(s: AgentStep) = StepView(
+                s.id!!, s.kind.name, s.kind.phase.name, s.kind.phase.labelKo, s.kind.label, s.kind.labelKo, s.status.name, s.actor, s.title, s.detail,
+                s.dataJson, s.durationMs, s.round, s.createdAt,
+            )
+        }
+    }
+
+    /** Lightweight payload for live polling while the customer is still sending documents. */
+    data class TraceView(val applicationNumber: String, val status: ApplicationStatus, val updatedAt: Instant, val live: Boolean, val steps: List<StepView>)
 
     data class RiskView(
         val grade: String,
@@ -200,6 +234,13 @@ class AdminApplicationController(
         return ResponseEntity.ok(detail(app))
     }
 
+    /** Step 4b: the agent timeline alone, polled by the review page every few seconds while the application is active. */
+    @GetMapping("/applications/{number}/agent-trace")
+    fun agentTrace(@PathVariable number: String): ResponseEntity<Any> {
+        val app = service.findByNumber(number) ?: return notFound(number)
+        return ResponseEntity.ok(TraceView(app.applicationNumber, app.status, app.updatedAt, live = !app.status.isFinal, steps = trace.steps(app.id).map(StepView::of)))
+    }
+
     /** The stored image of one document, for the review page. Only reachable with the admin key. */
     @GetMapping("/applications/{number}/documents/{documentId}/file")
     fun documentFile(@PathVariable number: String, @PathVariable documentId: Long): ResponseEntity<Any> {
@@ -246,6 +287,10 @@ class AdminApplicationController(
         val app = service.findByNumber(number) ?: return notFound(number)
         val decided = service.decide(app, body.decision, body.note, body.reviewer) ?: return conflict(app)
         audit.record(decided, if (body.decision == Decision.APPROVED) ReviewEventKind.APPROVED else ReviewEventKind.REJECTED, body.reviewer, decided.decisionNote)
+        trace.record(
+            decided.id, TraceKind.OFFICER_DECISION, if (body.decision == Decision.APPROVED) TraceStatus.OK else TraceStatus.FAIL, AgentTraceService.officer(body.reviewer),
+            "Officer ${if (body.decision == Decision.APPROVED) "approved" else "rejected"} the application", decided.decisionNote, round = decided.reviewRounds,
+        )
         val dealerNotified = notifier.decision(decided)
         val customerNotified = customerNotifier.decision(decided)
         return ResponseEntity.ok(ActionResult(detail(decided), dealerNotified, customerNotified))
@@ -276,7 +321,7 @@ class AdminApplicationController(
     private fun detail(app: DealerApplication): ApplicationView {
         val docs = documents.findByApplicationIdOrderByCreatedAtAsc(app.id!!)
         return app.toView(dealers.findById(app.dealerId).orElse(null), docs.count { !it.superseded && it.checkPassed == true })
-            .copy(documents = docs.map { it.toView(app) }, events = audit.timeline(app).map(EventView::of))
+            .copy(documents = docs.map { it.toView(app) }, events = audit.timeline(app).map(EventView::of), agentTrace = trace.steps(app.id).map(StepView::of))
     }
 
     private fun queueRank(status: ApplicationStatus) = when (status) {

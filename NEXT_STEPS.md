@@ -36,10 +36,18 @@ _Last updated: 20 Oct 2026_
   resubmission, re-assess risk, notes. `reviewer` is accepted on every POST. Dashboard additions: review queue with waiting times,
   8-week trend chart, documents-requested / oldest-waiting / avg-decision tiles, links to `/review?app=`.
 
+- **Step 4b - AI agent timeline** (20 Oct 2026): `trace/AgentTrace.kt` (`AGENT_STEPS`, `AgentTraceService`, `TraceKind`). Recorded from
+  `CustomerConversationService` (document received, vision analysis / stub quality check, NIK validation, field extraction, agent
+  decision, customer messaged, provider lookups, risk assessment, ready for review, officer request), `ClaudeReviewAgent` (every turn
+  with stop reason + tokens, tool calls with input, retries, fallback, guardrails) and the decision endpoint. `DocumentAnalysis.usage`
+  carries tokens / latency / stop reason of the vision call. Review page: flow strip + stepper, live polling of
+  `GET /admin/applications/{n}/agent-trace` every 4 s while the application is active. Dashboard: "AI 에이전트 활동" card (`stats.agent`).
+
 Code map: `src/main/kotlin/com/nextasean/wawebhook/` -> `webhook/` (inbound), `conversation/` (dealer flow +
 router), `customer/` (customer flow + customer notifier), `documents/` (+ `analysis/`), `review/` (agent step + audit events),
-`risk/` (flags, grade, badges), `verification/`, `application/`, `admin/` (admin API + dashboard stats), `web/` (one-time link page,
-dashboard + review pages), `whatsapp/` (Graph API client). Schema in `src/main/resources/schema.sql`, demo data in `demo-data.yml`.
+`trace/` (agent timeline), `risk/` (flags, grade, badges), `verification/`, `application/`, `admin/` (admin API + dashboard stats),
+`web/` (one-time link page, dashboard + review pages), `whatsapp/` (Graph API client). Schema in `src/main/resources/schema.sql`,
+demo data in `demo-data.yml`.
 
 ## To do first next session (10 minutes)
 
@@ -70,6 +78,9 @@ dashboard + review pages), `whatsapp/` (Graph API client). Schema in `src/main/r
 - Session timeouts: expire customer sessions idle for N hours and tell the customer how to resume.
 
 ### B. Step 4 follow-ups (the back office itself is done)
+- Agent timeline: with a real `ANTHROPIC_API_KEY`, check the turn / tool-call steps on live Claude responses (only the stub path and
+  the scripted agent are covered by tests); consider streaming the model's text into the panel instead of showing it after the turn.
+- Agent timeline: a per-application "cost" line (sum of tokens) and the timeline as a downloadable audit export.
 - Per-reviewer login and roles instead of the shared key plus a typed name; show who is working on what.
 - Decision notifications to customers outside the 24 h window need a pre-approved template (see E); `customerNotified: false`
   in the response is the symptom.

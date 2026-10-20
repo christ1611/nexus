@@ -120,16 +120,20 @@ class ClaudeDocumentAnalysisService(
         )
 
         val stop = response.stopReason().getOrNull()
+        val modelUsage = ModelUsage(
+            inputTokens = usage.inputTokens(), cacheReadTokens = usage.cacheReadInputTokens().getOrNull(), outputTokens = usage.outputTokens(),
+            durationMs = System.currentTimeMillis() - started, stopReason = stop?.asString(),
+        )
         if (stop == StopReason.REFUSAL) {
             val details = response.stopDetails().getOrNull()
             val why = listOfNotNull(details?.category()?.getOrNull()?.asString(), details?.explanation()?.getOrNull()).joinToString(": ")
-            return mapper.notAnalysed(request.type, "The model declined to analyse this image${if (why.isNotBlank()) " ($why)" else ""}", props.model)
+            return mapper.notAnalysed(request.type, "The model declined to analyse this image${if (why.isNotBlank()) " ($why)" else ""}", props.model).copy(usage = modelUsage)
         }
         if (stop == StopReason.MAX_TOKENS) {
-            return mapper.notAnalysed(request.type, "The model response was cut off before it finished", props.model)
+            return mapper.notAnalysed(request.type, "The model response was cut off before it finished", props.model).copy(usage = modelUsage)
         }
         val json = response.content().mapNotNull { it.text().getOrNull()?.text() }.joinToString("")
-        val analysis = mapper.map(request.type, json, response.model().asString(), request.knownDob)
+        val analysis = mapper.map(request.type, json, response.model().asString(), request.knownDob).copy(usage = modelUsage)
         log.info(
             "Analysis result | application={} | type={} | detected={} | usable={} | officerReview={} | reasons={}",
             request.applicationNumber, request.type, analysis.documentType, analysis.usable, analysis.needsOfficerReview, analysis.reviewReasons,

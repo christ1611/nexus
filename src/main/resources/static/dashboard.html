@@ -226,6 +226,16 @@
     }</tbody></table></div>`;
     h += `</section>`;
 
+    const ag = d.agent;
+    h += `<section class="card"><h2>AI 에이전트 활동 <small>Agent activity · what the pipeline and the review agent did across all applications (${ag.steps} steps)</small></h2><div class="tiles">${[
+      ['Claude 비전 분석', 'Vision analyses' + (ag.avgVisionMs != null ? ' · avg ' + (ag.avgVisionMs / 1000).toFixed(1) + 's' : ''), ag.visionAnalyses],
+      ['에이전트 턴', 'Agent turns (model calls)', ag.agentTurns], ['도구 호출', 'Tool calls', ag.toolCalls],
+      ['에이전트 서류 재요청', 'Docs requested by agent', ag.documentsRequestedByAgent], ['요약 작성', 'Summaries written', ag.summariesWritten],
+      ['코드 가드레일 개입', 'Guardrail overrides', ag.guardrails], ['규칙 폴백', 'Rule-based fallbacks', ag.fallbacks],
+      ['고객 재촬영 안내', 'Customer retake prompts', ag.customerRetakes], ['신원·신용 조회', 'Provider lookups', ag.providerLookups],
+    ].map(([ko, en, v]) => `<div class="tile"><div class="k">${ko} <small>${esc(en)}</small></div><div class="v">${v}</div></div>`).join('')}</div>
+    <p class="sub" style="margin:8px 0 0">각 신청의 단계별 판단 과정은 심사 화면의 <a class="app" href="/review">AI Agent 판단 타임라인</a>에서 실시간으로 볼 수 있습니다. 스텁 모드에서는 비전 분석·에이전트 턴이 0으로 남고 규칙·조회 단계만 기록됩니다.</p></section>`;
+
     h += `<div class="row">
       <section class="card"><h2>주간 추이 <small>Weekly trend · applications created per ISO week (last 8 weeks)</small></h2>${trendChart(d.trend)}</section>
       <section class="card"><h2>국가별 신청 현황 <small>Applications by country and status</small></h2>${countryStacked(d.byCountry)}</section>

@@ -18,6 +18,7 @@ import com.nextasean.wawebhook.webhook.interactivePayload
 import com.nextasean.wawebhook.webhook.textMessagePayload
 import com.nextasean.wawebhook.whatsapp.OutboundMessage
 import org.hamcrest.Matchers.containsString
+import org.hamcrest.Matchers.greaterThanOrEqualTo
 import org.hamcrest.Matchers.hasItem
 import org.hamcrest.Matchers.hasSize
 import org.hamcrest.Matchers.not
@@ -104,6 +105,17 @@ class ReviewBackOfficeTest @Autowired constructor(
             jsonPath("$.risk.grade") { value("A") }
             jsonPath("$.events[*].kind") { value(hasItem(ReviewEventKind.DOCUMENTS_COMPLETE.name)) }
             jsonPath("$.events[*].kind") { value(hasItem(ReviewEventKind.RISK_ASSESSED.name)) }
+            jsonPath("$.agentTrace[0].kind") { value("DOCUMENT_RECEIVED") }
+            jsonPath("$.agentTrace[0].actor") { value("customer") }
+            jsonPath("$.agentTrace[1].kind") { value("QUALITY_CHECK") }
+            jsonPath("$.agentTrace[1].labelKo") { value("품질 확인") }
+            jsonPath("$.agentTrace[-1].kind") { value("SUBMITTED") }
+        }
+        // The timeline can be polled on its own; it says whether the application is still live.
+        mockMvc.get("/admin/applications/$number/agent-trace") { header("X-Admin-Key", KEY) }.andExpect {
+            status { isOk() }
+            jsonPath("$.live") { value(true) }
+            jsonPath("$.steps[*].kind") { value(hasItem("RISK_ASSESSMENT")) }
         }
         // The stored image is served behind the admin key, with its MIME type.
         mockMvc.get("/admin/applications/$number/documents/${ktp.id}/file") { header("X-Admin-Key", KEY) }.andExpect {
@@ -198,7 +210,17 @@ class ReviewBackOfficeTest @Autowired constructor(
         }.andExpect { status { isConflict() } }
         mockMvc.get("/admin/applications?queue=true") { header("X-Admin-Key", KEY) }.andExpect { jsonPath("$[*].applicationNumber") { value(not(hasItem(number))) } }
         mockMvc.get("/admin/applications?status=approved&grade=B&q=${number.takeLast(4)}") { header("X-Admin-Key", KEY) }.andExpect { jsonPath("$[*].applicationNumber") { value(hasItem(number)) } }
-        mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", KEY) }.andExpect { jsonPath("$.totals.avgDecisionHours") { isNumber() } }
+        mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", KEY) }.andExpect {
+            jsonPath("$.totals.avgDecisionHours") { isNumber() }
+            jsonPath("$.agent.providerLookups") { value(greaterThanOrEqualTo(4)) }
+            jsonPath("$.agent.customerRetakes") { value(greaterThanOrEqualTo(0)) }
+        }
+        mockMvc.get("/admin/applications/$number/agent-trace") { header("X-Admin-Key", KEY) }.andExpect {
+            jsonPath("$.live") { value(false) }
+            jsonPath("$.steps[*].kind") { value(hasItem("OFFICER_REQUEST")) }
+            jsonPath("$.steps[-1].kind") { value("OFFICER_DECISION") }
+            jsonPath("$.steps[-1].actor") { value("officer:Officer Kim") }
+        }
     }
 
     @Test

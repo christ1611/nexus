@@ -137,8 +137,11 @@ call takes 1 to 3 seconds, so the pause after "Checking your data..." is deliber
 paste `ADMIN_API_KEY`, type your name as reviewer and press **불러오기**.
 
 1. The queue lists the application you just created at the top (심사 대기, grade and fraud warnings visible). Click it.
-2. Walk down the detail: the KTP and selfie images (click to enlarge), extracted data, Dukcapil / PEFINDO results, the Risk Flags
-   with their evidence, and the timeline (서류 접수 완료, 리스크 평가).
+2. Walk down the detail: the **AI Agent 판단 타임라인** right under the header (open it *before* the customer sends the photos and
+   the steps appear live every few seconds: 서류 수신 → 품질 확인 → 필드 추출 → 서류 수신 → 품질 확인 → 신원 조회 → 신용 조회 →
+   리스크 평가 → 심사 대기 전환; with `DOCUMENT_CHECK=claude` you also see Claude 비전 분석 with tokens, NIK 구조 검증, the review
+   agent's turns with `stop=tool_use`, the tool call and the 에이전트 결정), then the KTP and selfie images (click to enlarge), extracted
+   data, Dukcapil / PEFINDO results, the Risk Flags with their evidence, and the officer timeline (서류 접수 완료, 리스크 평가).
 3. Tick **신분증 (KTP)** in "고객 서류 재요청", type a reason such as `the photo is blurry`, press **📷 고객에게 재요청**.
    The customer phone receives "our review team ... needs the following again: KTP ..." and "Step 1 of 2"; the dealer gets a heads-up;
    the status becomes 고객 서류 재요청.

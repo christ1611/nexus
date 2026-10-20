@@ -55,6 +55,15 @@ data class ExtractedField(
     val usable: Boolean get() = status == FieldStatus.EXTRACTED && !value.isNullOrBlank()
 }
 
+/** Token usage and timing of the model call that produced an analysis (null for results built without a call). */
+data class ModelUsage(
+    val inputTokens: Long? = null,
+    val cacheReadTokens: Long? = null,
+    val outputTokens: Long? = null,
+    val durationMs: Long? = null,
+    val stopReason: String? = null,
+)
+
 /** Result of analysing one image. Serialised as JSON onto the DOCUMENTS row and fed to the review agent. */
 data class DocumentAnalysis(
     val requestedType: DocumentType,
@@ -73,6 +82,8 @@ data class DocumentAnalysis(
     val model: String,
     /** Exactly what the model returned, for audit. */
     val rawJson: String,
+    /** Tokens, latency and stop reason of the call (Step 4b agent trace). */
+    val usage: ModelUsage? = null,
 ) {
     fun field(name: String): ExtractedField? = fields.firstOrNull { it.name == name }
 

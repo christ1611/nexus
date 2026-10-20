@@ -12,6 +12,9 @@ import com.nextasean.wawebhook.risk.CustomerBadge
 import com.nextasean.wawebhook.risk.RiskAssessment
 import com.nextasean.wawebhook.risk.RiskAssessmentService
 import com.nextasean.wawebhook.risk.RiskGrade
+import com.nextasean.wawebhook.trace.AgentTraceService
+import com.nextasean.wawebhook.trace.TraceKind
+import com.nextasean.wawebhook.trace.TraceStatus
 import com.nextasean.wawebhook.verification.ProviderOutcome
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
@@ -35,6 +38,7 @@ class DashboardController(
     private val dealers: DealerRepository,
     private val sessions: CustomerSessionRepository,
     private val risk: RiskAssessmentService,
+    private val trace: AgentTraceService,
     props: AppProperties,
 ) {
     private val zone: ZoneId = props.zoneId
@@ -118,6 +122,22 @@ class DashboardController(
         val waitingHours: Double,
     )
 
+    /** Step 4b: how much of the work the automated pipeline and the review agent did. */
+    data class AgentActivity(
+        val steps: Int,
+        val visionAnalyses: Int,
+        val avgVisionMs: Double?,
+        val agentTurns: Int,
+        val toolCalls: Int,
+        val documentsRequestedByAgent: Int,
+        val summariesWritten: Int,
+        val guardrails: Int,
+        val fallbacks: Int,
+        val customerRetakes: Int,
+        val providerLookups: Int,
+        val byKind: Map<String, Int>,
+    )
+
     /** One ISO week: applications created, completed (documents + checks done), decided, and high-risk share, per country. */
     data class TrendWeek(
         val weekStart: String,
@@ -146,6 +166,7 @@ class DashboardController(
         val recent: List<RecentRow>,
         val reviewQueue: List<QueueRow>,
         val trend: List<TrendWeek>,
+        val agent: AgentActivity,
     )
 
     @GetMapping("/stats")
@@ -235,7 +256,27 @@ class DashboardController(
                 )
             }
 
-        return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, recent, queue, trend(apps, assessments, now))
+        return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, recent, queue, trend(apps, assessments, now), agentActivity())
+    }
+
+    private fun agentActivity(): AgentActivity {
+        val steps = trace.all()
+        val vision = steps.filter { it.kind == TraceKind.VISION_ANALYSIS && it.durationMs != null }
+        val decisions = steps.filter { it.kind == TraceKind.AGENT_DECISION }
+        return AgentActivity(
+            steps = steps.size,
+            visionAnalyses = steps.count { it.kind == TraceKind.VISION_ANALYSIS },
+            avgVisionMs = vision.takeIf { it.isNotEmpty() }?.map { it.durationMs!!.toDouble() }?.average(),
+            agentTurns = steps.count { it.kind == TraceKind.AGENT_TURN },
+            toolCalls = steps.count { it.kind == TraceKind.AGENT_TOOL_CALL },
+            documentsRequestedByAgent = decisions.count { it.status == TraceStatus.DECISION },
+            summariesWritten = decisions.count { it.status != TraceStatus.DECISION },
+            guardrails = steps.count { it.kind == TraceKind.AGENT_GUARDRAIL },
+            fallbacks = steps.count { it.kind == TraceKind.AGENT_FALLBACK },
+            customerRetakes = steps.count { it.kind == TraceKind.CUSTOMER_MESSAGED },
+            providerLookups = steps.count { it.kind == TraceKind.ID_VERIFICATION || it.kind == TraceKind.CREDIT_CHECK },
+            byKind = TraceKind.entries.associate { k -> k.name to steps.count { it.kind == k } },
+        )
     }
 
     /** Since when an application has been waiting for an officer: documents completed, else last update. */

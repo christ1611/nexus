@@ -5,6 +5,7 @@ import com.nextasean.wawebhook.application.ApplicationStatus
 import com.nextasean.wawebhook.application.DealerApplication
 import com.nextasean.wawebhook.conversation.DealerNotifier
 import com.nextasean.wawebhook.conversation.Input
+import com.nextasean.wawebhook.documents.DocumentCheckResult
 import com.nextasean.wawebhook.documents.DocumentCheckService
 import com.nextasean.wawebhook.documents.DocumentRecord
 import com.nextasean.wawebhook.documents.DocumentRepository
@@ -12,13 +13,20 @@ import com.nextasean.wawebhook.documents.DocumentStorage
 import com.nextasean.wawebhook.documents.DocumentType
 import com.nextasean.wawebhook.documents.MediaDownloader
 import com.nextasean.wawebhook.documents.analysis.DocumentAnalysisCodec
+import com.nextasean.wawebhook.documents.analysis.FieldStatus
+import com.nextasean.wawebhook.documents.analysis.Severity
 import com.nextasean.wawebhook.review.DocumentRequest
 import com.nextasean.wawebhook.review.ReviewAgent
 import com.nextasean.wawebhook.review.ReviewAuditService
 import com.nextasean.wawebhook.review.ReviewContextBuilder
 import com.nextasean.wawebhook.review.ReviewDecision
 import com.nextasean.wawebhook.review.ReviewEventKind
+import com.nextasean.wawebhook.review.TracingReviewAgent
+import com.nextasean.wawebhook.verification.ProviderOutcome
 import com.nextasean.wawebhook.risk.RiskAssessmentService
+import com.nextasean.wawebhook.trace.AgentTraceService
+import com.nextasean.wawebhook.trace.TraceKind
+import com.nextasean.wawebhook.trace.TraceStatus
 import com.nextasean.wawebhook.verification.VerificationService
 import com.nextasean.wawebhook.webhook.Message
 import com.nextasean.wawebhook.whatsapp.OutboundMessage
@@ -49,6 +57,7 @@ class CustomerConversationService(
     private val analysisCodec: DocumentAnalysisCodec,
     private val risk: RiskAssessmentService,
     private val audit: ReviewAuditService,
+    private val trace: AgentTraceService,
     private val reviewAgent: ReviewAgent?,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -107,6 +116,7 @@ class CustomerConversationService(
         )
         log.info("Officer requested documents | number={} | by={} | round={} | items={}", saved.applicationNumber, actor ?: "n/a", saved.reviewRounds, items)
         audit.record(saved, ReviewEventKind.DOCUMENTS_REQUESTED, actor, reason + (note?.takeIf { it.isNotBlank() }?.let { " | note: $it" } ?: ""))
+        trace.record(saved.id, TraceKind.OFFICER_REQUEST, TraceStatus.DECISION, AgentTraceService.officer(actor), "Officer sent the customer back for ${items.joinToString(" + ") { it.type.label }}", reason, round = saved.reviewRounds)
         val notified = send(phone, CustomerMessages.documentsRequestedByOfficer(saved, items, next, note))
         if (!consented) send(phone, CustomerMessages.greetingAndConsent(saved, previous?.customerName ?: saved.customerName))
         return OfficerRequestResult.Sent(saved, notified)
@@ -217,6 +227,11 @@ class CustomerConversationService(
             return
         }
         val file = storage.save(app.applicationNumber, type, media)
+        trace.record(
+            app.id, TraceKind.DOCUMENT_RECEIVED, TraceStatus.INFO, AgentTraceService.CUSTOMER, "${type.label} photo received",
+            "${media.bytes.size / 1024} KB, ${media.mimeType ?: "unknown type"}${image.caption?.takeIf { it.isNotBlank() }?.let { ", caption \"$it\"" } ?: ""}",
+            mapOf("mediaId" to mediaId, "mimeType" to media.mimeType, "bytes" to media.bytes.size), round = app.reviewRounds,
+        )
         var record = documents.save(
             DocumentRecord(
                 applicationId = app.id!!,
@@ -229,7 +244,9 @@ class CustomerConversationService(
         )
         send(session.phone, CustomerMessages.received(type))
 
+        val checkStarted = System.currentTimeMillis()
         val result = documentCheck.check(type, file, media.mimeType, image.caption)
+        traceCheck(app, type, result, System.currentTimeMillis() - checkStarted)
         record = documents.save(
             record.copy(
                 checkPassed = result.passed,
@@ -242,6 +259,7 @@ class CustomerConversationService(
         if (!result.passed) {
             log.info("Document check failed | application={} | type={} | reason={}", app.applicationNumber, type, result.reason)
             send(session.phone, CustomerMessages.checkFailed(type, result.reason ?: "quality check failed"))
+            trace.record(app.id, TraceKind.CUSTOMER_MESSAGED, TraceStatus.DECISION, AgentTraceService.SYSTEM, "Asked the customer to retake the ${type.label}", result.reason, round = app.reviewRounds)
             return
         }
 
@@ -272,23 +290,37 @@ class CustomerConversationService(
             )
             sessions.save(session.copy(state = CustomerSessionState.COMPLETED, updatedAt = Instant.now()))
             log.info("Application handed to officer without provider checks | number={}", saved.applicationNumber)
+            trace.record(saved.id, TraceKind.HANDOFF, TraceStatus.WARN, AgentTraceService.RULES, "No confidently read ID number: provider lookups skipped, officer must verify", round = saved.reviewRounds)
             val (assessed, assessment) = risk.assessAndStore(saved)
+            traceRisk(assessed, assessment)
             audit.record(assessed, ReviewEventKind.DOCUMENTS_COMPLETE, ReviewAuditService.SYSTEM, "Handed to officer without provider checks (ID number not read confidently)")
             audit.record(assessed, ReviewEventKind.RISK_ASSESSED, ReviewAuditService.SYSTEM, assessment.headline)
             send(session.phone, CustomerMessages.submitted(assessed))
             notifier.documentsForOfficerReview(assessed, assessment)
             return
         }
+        val verifyStarted = System.currentTimeMillis()
         val outcome = try {
             verification.verifyAndSubmit(reviewed)
         } catch (e: Exception) {
             log.error("Verification failed | application={}", app.applicationNumber, e)
+            trace.record(app.id, TraceKind.ID_VERIFICATION, TraceStatus.FAIL, AgentTraceService.SYSTEM, "Verification call failed", e.message, durationMs = System.currentTimeMillis() - verifyStarted, round = app.reviewRounds)
             sessions.save(session.copy(state = CustomerSessionState.AWAITING_SELFIE, updatedAt = Instant.now()))
             send(session.phone, CustomerMessages.requestDocument(DocumentType.SELFIE_KTP, "Sorry, something went wrong while checking your data."))
             return
         }
         sessions.save(session.copy(state = CustomerSessionState.COMPLETED, updatedAt = Instant.now()))
+        trace.record(
+            app.id, TraceKind.ID_VERIFICATION, if (outcome.id.outcome == ProviderOutcome.MATCH) TraceStatus.OK else TraceStatus.WARN, AgentTraceService.provider(outcome.id.provider),
+            "${outcome.id.provider}: ${outcome.id.outcome.label}", outcome.id.detail, mapOf("outcome" to outcome.id.outcome.name), durationMs = outcome.id.latencyMs, round = app.reviewRounds,
+        )
+        trace.record(
+            app.id, TraceKind.CREDIT_CHECK, if (outcome.credit.outcome == ProviderOutcome.MATCH) TraceStatus.OK else TraceStatus.WARN, AgentTraceService.provider(outcome.credit.provider),
+            "${outcome.credit.provider}: ${outcome.credit.outcome.label}${outcome.credit.score?.let { ", score $it" } ?: ""}", outcome.credit.detail,
+            mapOf("outcome" to outcome.credit.outcome.name, "score" to outcome.credit.score), durationMs = outcome.credit.latencyMs, round = app.reviewRounds,
+        )
         val (assessed, assessment) = risk.assessAndStore(outcome.application)
+        traceRisk(assessed, assessment)
         audit.record(
             assessed, ReviewEventKind.DOCUMENTS_COMPLETE, ReviewAuditService.SYSTEM,
             "ID verification: ${outcome.id.outcome.label}; credit bureau: ${outcome.credit.outcome.label}${outcome.credit.score?.let { ", score $it" } ?: ""}" +
@@ -322,13 +354,25 @@ class CustomerConversationService(
                 val next = decision.items.minBy { it.type.step }.type
                 sessions.save(session.copy(state = stateFor(next), updatedAt = now))
                 log.info("Review agent requested documents | number={} | round={} | items={}", app.applicationNumber, app.reviewRounds + 1, decision.items)
+                trace.record(
+                    app.id, TraceKind.AGENT_DECISION, TraceStatus.DECISION, agentActor(), "Decision: request ${decision.items.joinToString(" + ") { it.type.label }} again (round ${app.reviewRounds + 1} of ${context.maxRounds})",
+                    decision.items.joinToString("; ") { "${it.type.label}: ${it.reason}" } + (decision.note?.let { " | note: $it" } ?: ""),
+                    mapOf("tool" to "request_documents", "documents" to decision.items.map { mapOf("type" to it.type.name, "reason" to it.reason) }, "note" to decision.note), round = app.reviewRounds,
+                )
                 send(session.phone, CustomerMessages.documentsRequested(decision.items, next, decision.note))
+                trace.record(app.id, TraceKind.CUSTOMER_MESSAGED, TraceStatus.INFO, AgentTraceService.SYSTEM, "Customer asked on WhatsApp to resend: ${decision.items.joinToString(", ") { it.type.label }}", round = app.reviewRounds)
                 null
             }
             is ReviewDecision.SummaryWritten -> {
                 log.info(
                     "Review agent wrote summary | number={} | officerReview={} | chars={}\n{}",
                     app.applicationNumber, decision.officerReviewRequired, decision.summary.length, decision.summary,
+                )
+                trace.record(
+                    app.id, TraceKind.AGENT_DECISION, if (decision.officerReviewRequired) TraceStatus.WARN else TraceStatus.OK, agentActor(),
+                    "Decision: write the officer summary" + (if (decision.officerReviewRequired) " - officer review required" else " - no manual items"),
+                    decision.summary.lineSequence().take(3).joinToString(" / ").take(300),
+                    mapOf("tool" to "write_summary", "officerReviewRequired" to decision.officerReviewRequired, "chars" to decision.summary.length), round = app.reviewRounds,
                 )
                 applications.save(
                     app.copy(
@@ -342,6 +386,71 @@ class CustomerConversationService(
             }
         }
     }
+
+    /** Records what the document check did, in enough detail for the agent timeline (stub or Claude vision). */
+    private fun traceCheck(app: DealerApplication, type: DocumentType, result: DocumentCheckResult, ms: Long) {
+        val a = result.analysis
+        val round = app.reviewRounds
+        if (a == null) {
+            if (result.analysisFailed) {
+                trace.record(app.id, TraceKind.VISION_ANALYSIS, TraceStatus.FAIL, AgentTraceService.SYSTEM, "Vision analysis unavailable; document kept for an officer", result.reason, durationMs = ms, round = round)
+            } else {
+                trace.record(
+                    app.id, TraceKind.QUALITY_CHECK, if (result.passed) TraceStatus.OK else TraceStatus.FAIL, AgentTraceService.STUB,
+                    "${type.label}: ${if (result.passed) "accepted" else "rejected"}", result.reason ?: "Demo check (stub mode): no vision model configured", durationMs = ms, round = round,
+                )
+            }
+        } else {
+            val high = a.qualityIssues.filter { it.severity == Severity.HIGH }
+            trace.record(
+                app.id, TraceKind.VISION_ANALYSIS, if (a.usable) TraceStatus.OK else TraceStatus.FAIL, AgentTraceService.claude(a.model),
+                "Seen as ${a.documentType.label} (${(a.documentTypeConfidence * 100).toInt()}%)" + (if (a.usable) ", usable" else ", not usable"),
+                (if (a.qualityIssues.isEmpty()) "No quality issues" else a.qualityIssues.joinToString("; ") { "${it.type} ${it.severity}: ${it.detail}" }) +
+                    (a.modelNotes?.let { " | notes: $it" } ?: ""),
+                mapOf(
+                    "documentType" to a.documentType.name, "confidence" to a.documentTypeConfidence, "typeMatchesRequest" to a.typeMatchesRequest,
+                    "qualityIssues" to a.qualityIssues, "highSeverityIssues" to high.size, "usage" to a.usage,
+                    "fields" to a.fields.map { mapOf("name" to it.name, "status" to it.status.name, "confidence" to it.confidence) },
+                ),
+                durationMs = a.usage?.durationMs ?: ms, round = round,
+            )
+            a.nik?.let { n ->
+                trace.record(
+                    app.id, TraceKind.NIK_VALIDATION, if (n.valid) TraceStatus.OK else TraceStatus.FAIL, AgentTraceService.RULES,
+                    if (n.valid) "NIK structure valid (${n.provinceName ?: n.provinceCode})" else "NIK validation failed: ${n.issues.firstOrNull() ?: "see issues"}",
+                    "Encoded DOB ${n.dobFromNik ?: "invalid"} (${n.genderFromNik ?: "?"}) vs card ${n.statedDob ?: "?"} (${n.statedGender ?: "?"})" + (if (n.issues.isEmpty()) "" else " | " + n.issues.joinToString("; ")),
+                    mapOf("formatValid" to n.formatValid, "regionValid" to n.regionValid, "dobMatches" to n.dobMatches, "genderMatches" to n.genderMatches, "issues" to n.issues), round = round,
+                )
+            }
+            if (type == DocumentType.KTP && a.usable) {
+                val f = result.fields
+                val review = a.fields.filter { it.status == FieldStatus.NEEDS_OFFICER_REVIEW }.map { it.name }
+                val hidden = a.fields.filter { it.status == FieldStatus.NOT_VISIBLE }.map { it.name }
+                trace.record(
+                    app.id, TraceKind.FIELD_EXTRACTION, if (f != null) TraceStatus.OK else TraceStatus.WARN, AgentTraceService.RULES,
+                    if (f != null) "Name, NIK, date of birth and address read with confidence >= ${"%.2f".format(minFieldConfidence())}" else "Required fields not confident enough: no automatic verification",
+                    listOfNotNull(review.takeIf { it.isNotEmpty() }?.let { "needs officer review: ${it.joinToString()}" }, hidden.takeIf { it.isNotEmpty() }?.let { "not visible: ${it.joinToString()}" }).joinToString(" | ").ifBlank { null },
+                    mapOf("promoted" to (f != null), "needsOfficerReview" to review, "notVisible" to hidden), round = round,
+                )
+            }
+        }
+        if (a == null && result.passed && result.fields != null) {
+            trace.record(app.id, TraceKind.FIELD_EXTRACTION, TraceStatus.OK, AgentTraceService.STUB, "Sample fields used (stub mode): NIK ***${result.fields.nik.takeLast(4)}", round = round)
+        }
+    }
+
+    private fun traceRisk(app: DealerApplication, a: com.nextasean.wawebhook.risk.RiskAssessment) {
+        trace.record(
+            app.id, TraceKind.RISK_ASSESSMENT, when { a.grade.highRisk -> TraceStatus.WARN; a.flags.isEmpty() -> TraceStatus.OK; else -> TraceStatus.INFO }, AgentTraceService.RULES,
+            a.headline, if (a.flags.isEmpty()) "No risk flags" else a.flags.joinToString("; ") { "${it.code} (${it.severity.name.lowercase()})" },
+            mapOf("grade" to a.grade.name, "score" to a.score, "method" to a.method.name, "flags" to a.flags.map { it.code }, "badges" to a.badges.map { it.name }), round = app.reviewRounds,
+        )
+        trace.record(app.id, TraceKind.SUBMITTED, TraceStatus.OK, AgentTraceService.SYSTEM, "Application is ready for review", "Customer and dealer notified", round = app.reviewRounds)
+    }
+
+    private fun agentActor(): String = (reviewAgent as? TracingReviewAgent)?.actor ?: AgentTraceService.RULES
+
+    private fun minFieldConfidence(): Double = (reviewAgent as? TracingReviewAgent)?.minFieldConfidence ?: 0.85
 
     private fun prompt(session: CustomerSession, app: DealerApplication) = when (session.state) {
         CustomerSessionState.AWAITING_CONSENT -> send(session.phone, CustomerMessages.greetingAndConsent(app, session.customerName))

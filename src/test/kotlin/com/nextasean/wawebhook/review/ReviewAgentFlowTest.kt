@@ -9,6 +9,9 @@ import com.nextasean.wawebhook.customer.CustomerSessionState
 import com.nextasean.wawebhook.customer.findActiveByPhone
 import com.nextasean.wawebhook.documents.DocumentRepository
 import com.nextasean.wawebhook.documents.DocumentType
+import com.nextasean.wawebhook.trace.AgentTraceService
+import com.nextasean.wawebhook.trace.TraceKind
+import com.nextasean.wawebhook.trace.TraceStatus
 import com.nextasean.wawebhook.webhook.FakeIntegrationsConfig
 import com.nextasean.wawebhook.webhook.RecordingSender
 import com.nextasean.wawebhook.webhook.WebhookProcessor
@@ -61,6 +64,7 @@ class ReviewAgentFlowTest @Autowired constructor(
     private val applications: ApplicationRepository,
     private val sessions: CustomerSessionRepository,
     private val documents: DocumentRepository,
+    private val trace: AgentTraceService,
 ) {
     private fun id() = "wamid." + UUID.randomUUID()
     private fun text(from: String, body: String) = processor.process(textMessagePayload(id(), from, body).toByteArray())
@@ -131,5 +135,28 @@ class ReviewAgentFlowTest @Autowired constructor(
         assertNull(sessions.findActiveByPhone(CUSTOMER))
         val dealerNotice = assertIs<OutboundMessage.Buttons>(sentTo(DEALER).single())
         assertTrue(dealerNotice.body.contains(number) && dealerNotice.body.contains("ID verification"), dealerNotice.body)
+
+        // The agent timeline tells the whole story in order: receive -> check -> decision -> customer messaged -> re-receive -> ... -> ready.
+        val steps = trace.steps(app2.id)
+        assertEquals(
+            listOf(
+                TraceKind.DOCUMENT_RECEIVED, TraceKind.QUALITY_CHECK, TraceKind.FIELD_EXTRACTION,          // KTP_1
+                TraceKind.DOCUMENT_RECEIVED, TraceKind.QUALITY_CHECK,                                     // SELFIE_1
+                TraceKind.AGENT_DECISION, TraceKind.CUSTOMER_MESSAGED,                                    // round 1: request KTP
+                TraceKind.DOCUMENT_RECEIVED, TraceKind.QUALITY_CHECK, TraceKind.FIELD_EXTRACTION,          // KTP_2
+                TraceKind.AGENT_DECISION, TraceKind.ID_VERIFICATION, TraceKind.CREDIT_CHECK, TraceKind.RISK_ASSESSMENT, TraceKind.SUBMITTED,
+            ),
+            steps.map { it.kind },
+        )
+        val request = steps.first { it.kind == TraceKind.AGENT_DECISION }
+        assertEquals(TraceStatus.DECISION, request.status)
+        assertTrue(request.title.contains("request KTP again (round 1 of"), request.title)
+        assertTrue(request.detail!!.contains("the NIK line has glare on the right"), request.detail)
+        assertEquals(0, request.round)
+        val summary = steps.last { it.kind == TraceKind.AGENT_DECISION }
+        assertEquals(TraceStatus.OK, summary.status)
+        assertEquals(1, summary.round)
+        assertTrue(steps.first { it.kind == TraceKind.ID_VERIFICATION }.actor.startsWith("provider:"))
+        assertEquals("rules", steps.first { it.kind == TraceKind.RISK_ASSESSMENT }.actor)
     }
 }

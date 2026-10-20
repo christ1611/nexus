@@ -42,6 +42,13 @@ interface ReviewAgent {
     fun decide(context: ReviewContext): ReviewDecision
 }
 
+/** A [ReviewAgent] that writes its own turns to the agent trace and names itself as the actor of its decisions. */
+interface TracingReviewAgent : ReviewAgent {
+    /** Actor string for the trace, e.g. `claude:claude-opus-5-5`. */
+    val actor: String
+    val minFieldConfidence: Double
+}
+
 /** Assembles the [ReviewContext] from the stored documents and answers "which document is still missing". */
 @Component
 class ReviewContextBuilder(

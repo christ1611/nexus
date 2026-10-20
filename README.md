@@ -19,6 +19,7 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 | Step 3 | 고객 여정: wa.me `START <신청번호>` 링크, 동의 버튼, KTP → 셀피 수집(미디어 다운로드·저장), 스텁 문서 검사, 목업 Dukcapil + PEFINDO 조회, `READY_FOR_REVIEW` 전환, 양측 알림 | ✅ 완료 |
 | Step 3b | Claude 문서 분석 + 리뷰 에이전트 (`DOCUMENT_CHECK=claude`): 비전 분석(JSON 스키마), NIK 검증, 신뢰도 임계값, 도구 사용 에이전트(`request_documents` / `write_summary`), 규칙 기반 폴백 | ✅ 코드·테스트 완료, **실 API 미검증** |
 | Step 4 | **심사 백오피스 (`/review`)**: 심사 큐(필터·검색), 신청 상세(서류 이미지·분석 상세·추출 데이터·조회 결과·Risk Flag 근거·리뷰 요약·심사 이력), 승인/거절(딜러 **+ 고객** WhatsApp 알림), 고객 서류 재요청(고객 WhatsApp으로 직접, 재접수 시 검사·조회 재실행), 딜러 폼 재제출 요청, 심사 메모, 리스크 재평가, `REVIEW_EVENTS` 감사 이력, 심사자 이름 기록 | ✅ 완료 (2026-10-20) |
+| Step 4b | **AI Agent 판단 타임라인**: 파이프라인과 리뷰 에이전트가 한 일을 단계별로 저장(`AGENT_STEPS`)하고 심사 화면에 실시간 표시 — 서류 수신 → 비전 분석/품질 확인 → NIK 검증 → 필드 추출 → 에이전트 턴(stop reason·토큰·도구 호출) → 코드 가드레일 → 결정 → 고객 안내 → 신원·신용 조회 → 리스크 평가 → 심사 대기, 심사자 재요청·결정까지. 대시보드에 AI 에이전트 활동 카드 | ✅ 완료 (2026-10-20) |
 | Step 5 | 통계 대시보드(`/dashboard`): 국가별 통계(인도네시아·미얀마·캄보디아), **Fraud/위조 감지 Risk Flag**, **고객 리스크 등급(A~D) AI 표시**, 고객 배지(재무 정합성·우수 딜러 유입), 퍼널·딜러별 현황. 딜러 국가·등급, 국가별 조회 제공자(목업). 10-20 추가: 심사 대기 큐(대기 시간), 주간 추이 차트(8주, 국가별 누적 + 고위험 건수), 고객 서류 재요청·최장 대기·평균 결정 시간 타일, 신청번호 → 심사 화면 링크 | ✅ 완료 (2026-10-19, 보강 10-20) |
 | 운영 | 실 Meta 미디어 다운로드 검증, PostgreSQL + Flyway, 영속 중복 제거, 시크릿·문서 암호화, 관측성, ngrok 대신 고정 도메인 | ⬜ 미착수 |
 
@@ -196,6 +197,40 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
    결정이 끝난 신청은 메모만 추가할 수 있고 다른 동작은 `409`를 돌려줍니다.
 
+### 6.1b AI Agent 판단 타임라인 (Step 4b)
+
+> **Q. AI가 일하는 과정이 화면에 표시되는가?**
+>
+> **A. 네.** 신청 상세의 두 번째 카드 **AI Agent 판단 타임라인**이 파이프라인과 리뷰 에이전트의 모든 단계를 순서대로 보여 줍니다.
+> 신청이 아직 진행 중이면 4초마다 갱신되어 고객이 사진을 보내는 동안 단계가 실시간으로 나타나고(🟢 실시간 표시), 상태가 바뀌면 상세 전체와 큐를 다시 불러옵니다.
+
+- **흐름 요약 줄**: `서류 수신 → 품질 확인 ✓ → NIK 구조 검증 ✗ → 에이전트 결정 → 고객 안내 전송 → 서류 수신 → … → 심사 대기 전환 ✓` 처럼 한 줄로 읽히는 칩 목록 (에이전트 턴·도구 호출 같은 세부 단계는 아래 상세에만).
+- **단계 상세**: 시각, 단계(한/영), 상태(통과·실패·주의·결정·정보), **행위자**(`Claude <모델>` / 코드 규칙 / 스텁 / 제공자 이름 / 고객 / 심사자 / 시스템), 제목, 근거 문장, 소요 시간, 펼치면 구조화 데이터(JSON).
+  서류 라운드가 바뀌면 구분선이 들어갑니다.
+- **기록되는 단계** (`trace/AgentTrace.kt`의 `TraceKind`):
+
+  | 단계 | 행위자 | 내용 |
+  | --- | --- | --- |
+  | 서류 수신 | 고객 | 종류, 크기, MIME, 캡션 |
+  | Claude 비전 분석 | `claude:<모델>` | 감지된 서류 종류·신뢰도, 품질 문제, 필드별 상태, **토큰·지연·stop reason** (`DocumentAnalysis.usage`) |
+  | 품질 확인 | 스텁 | 스텁 모드의 통과/실패 |
+  | NIK 구조 검증 | 코드 규칙 | 도 코드, 인코딩된 생년월일·성별 vs 카드, 실패 사유 |
+  | 필드 추출 | 코드 규칙 / 스텁 | 자동 조회에 쓸 수 있는지, 담당자 검토·미표시 필드 |
+  | 리뷰 에이전트 턴 | `claude:<모델>` | `stop=tool_use` 등 stop reason, 입력·캐시·출력 토큰, 호출한 도구, 모델의 텍스트 |
+  | 도구 호출 | `claude:<모델>` | `request_documents` / `write_summary` 입력 요약 + 전체 입력 JSON |
+  | 에이전트 재시도 요청 / 규칙 기반 폴백 / 코드 가드레일 적용 | 코드 규칙 | 잘못된 도구 입력, API 실패 시 폴백, 모델 결정을 코드가 덮어쓴 이유 |
+  | 에이전트 결정 | 에이전트 | 서류 재요청(라운드 n/최대) 또는 요약 작성(담당자 검토 필요 여부) |
+  | 고객 안내 전송 | 시스템 | 재촬영 요청이 WhatsApp으로 나감 |
+  | 신원 조회 / 신용 조회 | `provider:<이름>` | 결과, 상세, 점수, 지연 |
+  | 리스크 평가 | 코드 규칙 | 등급·점수·플래그·배지 |
+  | 심사자 인계 / 심사 대기 전환 | 시스템 | 조회 생략 인계 또는 정상 완료 |
+  | 심사자 서류 재요청 / 심사자 결정 | `officer:<이름>` | 심사 화면에서 한 동작 |
+
+- 스텁 모드(`DOCUMENT_CHECK=stub`)에서는 비전 분석·에이전트 턴 대신 품질 확인(스텁)·필드 추출(스텁)이 기록되고, 리뷰 에이전트 빈이 없으므로 에이전트 결정 단계가 없습니다.
+  Claude 모드에서 전체 그림이 나옵니다.
+- API: `GET /admin/applications/{number}`의 `agentTrace[]`, 폴링용 `GET /admin/applications/{number}/agent-trace` (`live`, `status`, `steps[]`).
+  대시보드 통계의 `agent` 블록(비전 분석 수·평균 시간, 에이전트 턴, 도구 호출, 에이전트 재요청, 요약, 가드레일, 폴백, 고객 재촬영 안내, 조회 수)은 **AI 에이전트 활동** 카드로 표시됩니다.
+
 ### 6.2 Admin API
 
 `/admin/**`는 모두 `X-Admin-Key` 헤더가 `ADMIN_API_KEY`와 일치해야 합니다. 본문의 `reviewer`는 선택이며 이력에 기록됩니다.
@@ -206,6 +241,7 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 | `GET /admin/applications?status=&country=&grade=&q=&queue=true` | 신청 목록(최신순). `status`·`grade`는 쉼표로 여러 개, `queue=true`면 열린 건만 심사 우선순위로 정렬 |
 | `GET /admin/applications/{number}` | 상세: 추출 데이터, 조회 결과, `review`, `risk`, `documents[]`(id·`fileUrl`·검사 결과·분석 JSON·superseded), `events[]`(이력), `decidedBy/At` |
 | `GET /admin/applications/{number}/documents/{id}/file` | 저장된 서류 이미지(원본 MIME) |
+| `GET /admin/applications/{number}/agent-trace` | AI Agent 판단 타임라인만 (`live`, `status`, `steps[]`), 심사 화면이 4초마다 폴링 |
 | `POST /admin/applications/{number}/decision` `{"decision":"APPROVED"\|"REJECTED","note":"...","reviewer":"..."}` | 결정 → 딜러·고객 알림. 응답 `dealerNotified`, `customerNotified`(고객 번호가 없으면 `null`) |
 | `POST /admin/applications/{number}/request-documents` `{"items":[{"type":"KTP"\|"SELFIE_KTP","reason":"..."}],"note":"...","reviewer":"..."}` | 고객 서류 재요청(위 표 참고). 고객 번호가 없으면 `409` |
 | `POST /admin/applications/{number}/request-resubmission` `{"reason":"...","reviewer":"..."}` | 딜러 폼 재제출 요청 + 새 1회용 링크 |
@@ -221,7 +257,8 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 ## 7. 데이터 모델
 
 테이블: `DEALERS`(국가·등급 포함), `CONVERSATIONS`(딜러당 1행, 현재 상태), `APPLICATIONS`(국가·리스크 등급·플래그·배지·`decided_by/at` 포함), `CUSTOMER_SESSIONS`, `DOCUMENTS`,
-`REVIEW_EVENTS`(Step 4 감사 이력: 서류 접수 완료, 리스크 평가/재평가, 고객 서류 재요청, 딜러 재제출 요청, 메모, 승인/거절 — 행위자·내용·시각).
+`REVIEW_EVENTS`(Step 4 감사 이력: 서류 접수 완료, 리스크 평가/재평가, 고객 서류 재요청, 딜러 재제출 요청, 메모, 승인/거절 — 행위자·내용·시각),
+`AGENT_STEPS`(Step 4b 에이전트 타임라인: 종류·상태·행위자·제목·근거·데이터 JSON·소요 시간·라운드·시각).
 신청 상태: `DRAFT` → `SUBMITTED`(딜러 폼) / `RESUBMISSION_REQUESTED` → `READY_FOR_REVIEW` ⇄ `DOCUMENTS_REQUESTED`(심사자가 고객 서류 재요청) → `APPROVED` / `REJECTED`.
 스키마는 `src/main/resources/schema.sql`에 있고, H2 파일은 `./data/`에 첫 기동 시 생성됩니다.
 
@@ -392,7 +429,13 @@ once the new photo arrives the checks, provider calls and risk assessment run ag
 **request form resubmission from the dealer** (new one-time link), **re-assess risk** and **add a note**. Final applications only accept notes.
 Every action lands in `REVIEW_EVENTS` and the API gained `GET /admin/applications?status=&country=&grade=&q=&queue=true`,
 `GET /admin/applications/{n}/documents/{id}/file`, `POST .../request-documents`, `POST .../note`, plus `reviewer` on the existing POSTs
-and `customerNotified` in their responses. The dashboard now also shows the review queue with waiting times, an 8-week trend chart and
+and `customerNotified` in their responses.
+
+**AI agent timeline (Step 4b).** Every step the pipeline and the review agent take is stored in `AGENT_STEPS` and shown on the
+review page as a flow strip (`서류 수신 → 품질 확인 ✓ → NIK 구조 검증 ✗ → 에이전트 결정 → 고객 안내 전송 → … → 심사 대기 전환 ✓`) plus a
+detailed stepper: time, step, status, actor (`claude:<model>`, rules, stub, provider, customer, officer), title, evidence, duration and the
+structured data (tool input JSON, token usage, stop reason). While the application is still active the panel polls
+`GET /admin/applications/{n}/agent-trace` every 4 s, so officers watch the agent work live. The dashboard shows an agent-activity card. The dashboard now also shows the review queue with waiting times, an 8-week trend chart and
 links every application number to `/review?app=<number>`.
 
 ## Step 5 - Risk flags, customer risk grade and the statistics dashboard

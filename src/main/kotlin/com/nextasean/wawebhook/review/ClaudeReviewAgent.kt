@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.nextasean.wawebhook.config.ClaudeProperties
 import com.nextasean.wawebhook.documents.DocumentType
 import com.nextasean.wawebhook.documents.analysis.FieldStatus
+import com.nextasean.wawebhook.trace.AgentTraceService
+import com.nextasean.wawebhook.trace.TraceKind
+import com.nextasean.wawebhook.trace.TraceStatus
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
@@ -37,10 +40,14 @@ class ClaudeReviewAgent(
     private val client: AnthropicClient,
     private val props: ClaudeProperties,
     private val objectMapper: ObjectMapper,
+    private val trace: AgentTraceService,
     private val fallback: RuleBasedReviewAgent = RuleBasedReviewAgent(),
-) : ReviewAgent {
+) : TracingReviewAgent {
 
     private val log = LoggerFactory.getLogger(javaClass)
+
+    override val actor: String get() = AgentTraceService.claude(props.model)
+    override val minFieldConfidence: Double get() = props.minFieldConfidence
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class RequestDocumentsInput(val documents: List<Item> = emptyList(), val note: String? = null) {
@@ -102,15 +109,23 @@ class ClaudeReviewAgent(
     )
 
     override fun decide(context: ReviewContext): ReviewDecision {
-        val decision = try {
+        val appId = context.application.id
+        val round = context.round
+        var failure: String? = null
+        val modelDecision = try {
             run(context)
         } catch (e: AnthropicException) {
             log.error("Review agent failed, using rule-based decision | application={}", context.application.applicationNumber, e)
+            failure = "Claude API error: ${e.message}"
             null
         } catch (e: RuntimeException) {
             log.error("Review agent error, using rule-based decision | application={}", context.application.applicationNumber, e)
+            failure = "Agent error: ${e.message}"
             null
-        } ?: fallback.decide(context)
+        }
+        val decision = modelDecision ?: fallback.decide(context).also {
+            trace.record(appId, TraceKind.AGENT_FALLBACK, TraceStatus.WARN, AgentTraceService.RULES, "Model gave no usable decision; deterministic rules decided instead", failure, round = round)
+        }
         return guard(context, decision)
     }
 
@@ -127,21 +142,41 @@ class ClaudeReviewAgent(
                 .toolChoice(ToolChoiceAuto.builder().disableParallelToolUse(true).build())
                 .messages(messages)
             tools.forEach { builder.addTool(it) }
+            val started = System.currentTimeMillis()
             val response = client.messages().create(builder.build())
+            val ms = System.currentTimeMillis() - started
             val stop = response.stopReason().getOrNull()
+            val toolUse = response.content().mapNotNull { it.toolUse().getOrNull() }.firstOrNull()
+            val thinking = response.content().mapNotNull { it.text().getOrNull()?.text() }.joinToString("\n").trim()
             log.info(
                 "Review agent turn | application={} | attempt={} | stop={} | in={} | out={}",
                 context.application.applicationNumber, attempt + 1, stop?.asString(), response.usage().inputTokens(), response.usage().outputTokens(),
+            )
+            trace.record(
+                context.application.id, TraceKind.AGENT_TURN, if (stop == StopReason.REFUSAL) TraceStatus.FAIL else TraceStatus.INFO, actor,
+                "Turn ${attempt + 1}: stop=${stop?.asString() ?: "?"}" + (toolUse?.let { " -> tool ${it.name()}" } ?: " (no tool call)"),
+                thinking.take(600).ifBlank { null },
+                mapOf(
+                    "attempt" to attempt + 1, "stopReason" to stop?.asString(), "tool" to toolUse?.name(), "model" to response.model().asString(),
+                    "inputTokens" to response.usage().inputTokens(), "cacheReadTokens" to response.usage().cacheReadInputTokens().getOrNull(),
+                    "outputTokens" to response.usage().outputTokens(), "durationMs" to ms,
+                ),
+                durationMs = ms, round = context.round,
             )
             if (stop == StopReason.REFUSAL) {
                 log.warn("Review agent refused | application={} | details={}", context.application.applicationNumber, response.stopDetails().getOrNull())
                 return null
             }
-            val toolUse = response.content().mapNotNull { it.toolUse().getOrNull() }.firstOrNull()
             if (toolUse != null) {
                 val decision = execute(toolUse)
+                trace.record(
+                    context.application.id, TraceKind.AGENT_TOOL_CALL, if (decision != null) TraceStatus.DECISION else TraceStatus.FAIL, actor,
+                    "${toolUse.name()}(" + "...)" + (if (decision == null) " rejected: invalid input" else ""),
+                    toolInputSummary(toolUse), mapOf("tool" to toolUse.name(), "input" to toolUse._input()), round = context.round,
+                )
                 if (decision != null) return decision
                 // Invalid tool input: tell the model and let it try once more.
+                trace.record(context.application.id, TraceKind.AGENT_RETRY, TraceStatus.WARN, AgentTraceService.RULES, "Tool input rejected by the code; model asked to try again", round = context.round)
                 messages += response.toParam()
                 messages += MessageParam.builder().role(MessageParam.Role.USER).contentOfBlockParams(
                     listOf(
@@ -153,6 +188,7 @@ class ClaudeReviewAgent(
                     ),
                 ).build()
             } else {
+                trace.record(context.application.id, TraceKind.AGENT_RETRY, TraceStatus.WARN, AgentTraceService.RULES, "No tool call in the reply; model reminded to call exactly one tool", round = context.round)
                 messages += response.toParam()
                 messages += MessageParam.builder().role(MessageParam.Role.USER)
                     .content("You must now call exactly one of the tools: $REQUEST_DOCUMENTS or $WRITE_SUMMARY.").build()
@@ -184,22 +220,41 @@ class ClaudeReviewAgent(
         }
     }
 
+    private fun toolInputSummary(toolUse: ToolUseBlock): String? = runCatching {
+        @Suppress("UNCHECKED_CAST")
+        val input = toolUse._input().convert(Map::class.java) as Map<String, Any?>
+        when (toolUse.name()) {
+            REQUEST_DOCUMENTS -> (input["documents"] as? List<*>).orEmpty().joinToString("; ") { d -> (d as? Map<*, *>)?.let { "${it["type"]}: ${it["reason"]}" } ?: d.toString() } +
+                (input["note"]?.toString()?.takeIf { it.isNotBlank() }?.let { " | note: $it" } ?: "")
+            WRITE_SUMMARY -> "officer_review_required=${input["officer_review_required"]} | " + input["summary"]?.toString()?.lineSequence()?.take(3)?.joinToString(" / ").orEmpty()
+            else -> input.toString()
+        }.take(600)
+    }.getOrNull()
+
     /** Floors under the model's decision. */
     private fun guard(ctx: ReviewContext, decision: ReviewDecision): ReviewDecision {
+        val appId = ctx.application.id
         val mustRequest = fallback.requestsFor(ctx).filter { r -> ctx.documents.first { it.type == r.type }.let { !it.received || it.analysis?.usable == false } }
         return when (decision) {
             is ReviewDecision.RequestDocuments -> if (!ctx.canRequestMore) {
                 log.info("Agent asked for documents but no rounds remain; writing summary for officer | application={}", ctx.application.applicationNumber)
+                trace.record(appId, TraceKind.AGENT_GUARDRAIL, TraceStatus.WARN, AgentTraceService.RULES, "Agent wanted more documents but no retake rounds remain: summary for the officer instead", round = ctx.round)
                 ReviewDecision.SummaryWritten(SummaryTemplate.render(ctx, true), true)
             } else {
                 decision
             }
             is ReviewDecision.SummaryWritten -> if (mustRequest.isNotEmpty() && ctx.canRequestMore) {
                 log.info("Agent wrote a summary while documents are missing or unusable; requesting instead | application={} | {}", ctx.application.applicationNumber, mustRequest)
+                trace.record(appId, TraceKind.AGENT_GUARDRAIL, TraceStatus.WARN, AgentTraceService.RULES, "Agent wrote a summary while a document is missing or unusable: requesting it instead", mustRequest.joinToString("; ") { "${it.type.label}: ${it.reason}" }, round = ctx.round)
                 ReviewDecision.RequestDocuments(mustRequest)
             } else {
                 val anyReview = ctx.documents.any { d -> d.analysis?.needsOfficerReview == true || (d.analysis == null && d.record?.needsOfficerReview == true) }
-                if (anyReview && !decision.officerReviewRequired) decision.copy(officerReviewRequired = true) else decision
+                if (anyReview && !decision.officerReviewRequired) {
+                    trace.record(appId, TraceKind.AGENT_GUARDRAIL, TraceStatus.WARN, AgentTraceService.RULES, "Summary said no manual items, but a document is flagged for review: officer_review_required forced to true", round = ctx.round)
+                    decision.copy(officerReviewRequired = true)
+                } else {
+                    decision
+                }
             }
         }
     }
