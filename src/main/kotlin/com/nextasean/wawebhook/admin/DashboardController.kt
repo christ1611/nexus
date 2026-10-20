@@ -60,6 +60,8 @@ class DashboardController(
         val oldestWaitingHours: Double?,
         /** Average time from document completion to decision over decided applications, in hours. */
         val avgDecisionHours: Double?,
+        /** Rows created by the demo seeder (shown as a note on the dashboard). */
+        val demoApplications: Int,
     )
 
     data class FunnelStage(val stage: String, val stageKo: String, val count: Int)
@@ -195,6 +197,7 @@ class DashboardController(
             officerReviewRequired = apps.count { it.officerReviewRequired == true },
             oldestWaitingHours = waiting.minOfOrNull { hours(waitingSince(it), now) },
             avgDecisionHours = decided.takeIf { it.isNotEmpty() }?.map { hours((it.riskAssessedAt ?: it.verifiedAt)!!, it.decidedAt!!) }?.average(),
+            demoApplications = apps.count { it.demoSeed },
         )
         val funnel = listOf(
             FunnelStage("Created by dealer", "딜러 신청 생성", apps.size),

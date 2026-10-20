@@ -23,7 +23,7 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 | Step 5 | 통계 대시보드(`/dashboard`): 국가별 통계(인도네시아·미얀마·캄보디아), **Fraud/위조 감지 Risk Flag**, **고객 리스크 등급(A~D) AI 표시**, 고객 배지(재무 정합성·우수 딜러 유입), 퍼널·딜러별 현황. 딜러 국가·등급, 국가별 조회 제공자(목업). 10-20 추가: 심사 대기 큐(대기 시간), 주간 추이 차트(8주, 국가별 누적 + 고위험 건수), 고객 서류 재요청·최장 대기·평균 결정 시간 타일, 신청번호 → 심사 화면 링크 | ✅ 완료 (2026-10-19, 보강 10-20) |
 | 운영 | 실 Meta 미디어 다운로드 검증, PostgreSQL + Flyway, 영속 중복 제거, 시크릿·문서 암호화, 관측성, ngrok 대신 고정 도메인 | ⬜ 미착수 |
 
-- 테스트: `./gradlew test` → **71개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
+- 테스트: `./gradlew test` → **73개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
 - Meta 웹훅은 ngrok 예약 도메인(`amaretto-tipoff-excess.ngrok-free.dev`)에 이미 등록·검증되어 있어 터널만 올리면 됩니다.
 - 데모 진행 순서는 `DEMO.md`, 남은 작업의 우선순위는 `NEXT_STEPS.md`에 정리되어 있습니다.
 
@@ -32,6 +32,8 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 - Meta 대시보드의 임시 액세스 토큰은 24시간 후 만료됩니다. 발신 로그에 `HTTP 401`이 보이면 System User 토큰으로 교체하세요.
 - 중복 메시지 캐시는 인메모리라 재시작·다중 인스턴스 간에 공유되지 않습니다.
 - 24시간 고객 서비스 창 밖의 알림(고객 결정 알림·서류 재요청 포함)은 템플릿 메시지가 필요하며 아직 적용하지 않았습니다. 응답 JSON의 `customerNotified`가 `false`면 이 경우일 가능성이 큽니다.
+- 심사자의 서류 재요청도 `review_rounds`에 포함됩니다. 두 번 이상이면 리뷰 에이전트의 재촬영 예산(`claude.max-review-rounds`)이 소진되고 `REPEATED_RESUBMISSION` 플래그가 붙습니다.
+- 리스크 재평가는 등급·플래그만 갱신하고 `risk_assessed_at`(서류 완료 시각)은 처음 값을 유지합니다. 결정 후 재평가해도 대시보드의 대기·결정 시간 통계가 바뀌지 않습니다.
 - 심사자 인증은 공유 `ADMIN_API_KEY` 하나뿐입니다. 심사 화면의 심사자 이름은 기록용이며 로그인은 아닙니다.
 
 ---
@@ -231,6 +233,18 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 - API: `GET /admin/applications/{number}`의 `agentTrace[]`, 폴링용 `GET /admin/applications/{number}/agent-trace` (`live`, `status`, `steps[]`).
   대시보드 통계의 `agent` 블록(비전 분석 수·평균 시간, 에이전트 턴, 도구 호출, 에이전트 재요청, 요약, 가드레일, 폴백, 고객 재촬영 안내, 조회 수)은 **AI 에이전트 활동** 카드로 표시됩니다.
 
+### 6.1c 데모 데이터 (가짜 신청 생성)
+
+데모에서 대시보드와 심사 화면이 비어 보이지 않도록 가짜 신청을 만들 수 있습니다. 세 나라의 고객 이름·주소, 최근 8주에 걸친 생성 시각,
+자리표시자 서류 이미지(`DEMO SAMPLE` 표시), 신원·신용 조회 결과, **실제 `RiskRules`로 계산한 등급·플래그·배지**, 심사자 결정(승인/거절/서류 재요청/메모),
+심사 이력과 AI Agent 판단 타임라인(일부는 Claude 비전·에이전트 턴 포함)이 함께 생성됩니다. WhatsApp 메시지는 전혀 보내지 않습니다.
+
+- 기동 시 자동: `wa.env`에 `DEMO_SEED_APPLICATIONS=true` (개수 `DEMO_SEED_COUNT`, 기본 40). 이미 데모 데이터가 있으면 다시 만들지 않습니다.
+- 수동: `POST /admin/demo/seed` 본문 `{"count": 40, "reset": true}` (reset이면 기존 데모 데이터 삭제 후 생성), 현황 `GET /admin/demo/seed`, 삭제 `DELETE /admin/demo/seed`.
+- 데모 행은 `APPLICATIONS.demo_seed = true`로 표시되고 대시보드 하단에 "데모 데이터 n건 포함"이 보입니다. 삭제하면 세션·서류 파일·이력·타임라인까지 함께 지워집니다.
+- MM/KH 딜러가 `wa.env`에 없으면 `DLR-DEMO-MM` / `DLR-DEMO-KH` 자리표시자 딜러가 만들어지며, 데모 데이터를 지우면 함께 제거됩니다.
+- 신청번호는 실제 시퀀스를 쓰므로 라이브 데모의 번호는 데모 데이터 다음 번호부터 시작합니다.
+
 ### 6.2 Admin API
 
 `/admin/**`는 모두 `X-Admin-Key` 헤더가 `ADMIN_API_KEY`와 일치해야 합니다. 본문의 `reviewer`는 선택이며 이력에 기록됩니다.
@@ -248,6 +262,7 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 | `POST /admin/applications/{number}/note` `{"note":"...","reviewer":"..."}` | 심사 메모 |
 | `POST /admin/applications/{number}/assess-risk?reviewer=` | 리스크 재평가(한 건) |
 | `POST /admin/risk/reassess-all` | 전체 재평가(규칙 변경 후) |
+| `GET` / `POST` / `DELETE /admin/demo/seed` | 데모 데이터 현황 / 생성(`{"count","reset","seed"}`) / 삭제 |
 | `GET /admin/dashboard/stats` | 대시보드 통계(`totals`, `funnel`, `byCountry`, `riskGrades`, `flagCounts`, `badges`, `dealers`, `highRiskApplications`, `recent`, `reviewQueue`, `trend`) |
 
 1회용 링크는 `GET /apply/{token}`을 한 번만 열 수 있고, 자리표시자 폼을 제출하면 신청서가 `SUBMITTED`로 바뀝니다.
@@ -430,6 +445,10 @@ once the new photo arrives the checks, provider calls and risk assessment run ag
 Every action lands in `REVIEW_EVENTS` and the API gained `GET /admin/applications?status=&country=&grade=&q=&queue=true`,
 `GET /admin/applications/{n}/documents/{id}/file`, `POST .../request-documents`, `POST .../note`, plus `reviewer` on the existing POSTs
 and `customerNotified` in their responses.
+
+**Demo data.** `DEMO_SEED_APPLICATIONS=true` (or `POST /admin/demo/seed {"count":40,"reset":true}`) creates fake applications across
+the three countries over the last eight weeks with placeholder document images, provider results, real rule-based risk grades, officer
+decisions, review events and agent-timeline steps, without sending any WhatsApp message; `DELETE /admin/demo/seed` removes them.
 
 **AI agent timeline (Step 4b).** Every step the pipeline and the review agent take is stored in `AGENT_STEPS` and shown on the
 review page as a flow strip (`서류 수신 → 품질 확인 ✓ → NIK 구조 검증 ✗ → 에이전트 결정 → 고객 안내 전송 → … → 심사 대기 전환 ✓`) plus a

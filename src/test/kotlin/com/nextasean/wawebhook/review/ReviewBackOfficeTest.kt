@@ -9,6 +9,7 @@ import com.nextasean.wawebhook.customer.CustomerSessionState
 import com.nextasean.wawebhook.customer.findActiveByPhone
 import com.nextasean.wawebhook.documents.DocumentRepository
 import com.nextasean.wawebhook.documents.DocumentType
+import com.nextasean.wawebhook.trace.TraceKind
 import com.nextasean.wawebhook.webhook.FakeIntegrationsConfig
 import com.nextasean.wawebhook.webhook.RecordingSender
 import com.nextasean.wawebhook.webhook.WebhookProcessor
@@ -56,6 +57,7 @@ class ReviewBackOfficeTest @Autowired constructor(
     private val sessions: CustomerSessionRepository,
     private val documents: DocumentRepository,
     private val events: ReviewEventRepository,
+    private val trace: com.nextasean.wawebhook.trace.AgentTraceService,
     private val mockMvc: MockMvc,
 ) {
     private fun id() = "wamid." + UUID.randomUUID()
@@ -221,6 +223,46 @@ class ReviewBackOfficeTest @Autowired constructor(
             jsonPath("$.steps[-1].kind") { value("OFFICER_DECISION") }
             jsonPath("$.steps[-1].actor") { value("officer:Officer Kim") }
         }
+    }
+
+    @Test
+    fun `a final decision closes the customer session, and a photo sent afterwards cannot re-open the case`() {
+        val customer = "6287000000002"
+        sender.clear()
+        val number = onboard(customer)
+        // Officer sends the customer back, then rejects before the customer answers.
+        mockMvc.post("/admin/applications/$number/request-documents") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            content = """{"items":[{"type":"KTP","reason":"the photo is blurry"}],"reviewer":"Officer Lee"}"""
+        }.andExpect { status { isOk() } }
+        assertEquals(CustomerSessionState.AWAITING_KTP, sessions.findActiveByPhone(customer)!!.state)
+        mockMvc.post("/admin/applications/$number/decision") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            content = """{"decision":"REJECTED","note":"Could not verify","reviewer":"Officer Lee"}"""
+        }.andExpect { status { isOk() }; jsonPath("$.application.status") { value("REJECTED") } }
+        assertNull(sessions.findActiveByPhone(customer), "decision closes the open customer session")
+
+        // A late photo does not run the pipeline again; the decision stands and the customer is told.
+        sender.clear()
+        image(customer, "late-ktp")
+        val app = applications.findByApplicationNumber(number)!!
+        assertEquals(ApplicationStatus.REJECTED, app.status)
+        assertEquals("Officer Lee", app.decidedBy)
+        assertTrue(sender.sent.none { it.first == DEALER }, "dealer is not told about documents on a decided application")
+        // With no open session the photo falls through to the dealer flow's polite rejection; it is never treated as a document.
+        assertTrue(sender.sent.filter { it.first == customer }.none { it.second.bodyText.startsWith("Received:") }, "photo not accepted as a document")
+        assertTrue(trace.steps(app.id).none { it.kind == TraceKind.DOCUMENT_RECEIVED && it.createdAt.isAfter(app.decidedAt) }, "no pipeline steps after the decision")
+
+        // Risk cannot be assessed on an empty draft; documents cannot be requested while the dealer form is pending.
+        val draft = createApplication()
+        mockMvc.post("/admin/applications/$draft/assess-risk") { header("X-Admin-Key", KEY) }.andExpect { status { isConflict() } }
+        mockMvc.post("/admin/applications/$draft/request-resubmission") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"reason":"income proof missing"}"""
+        }.andExpect { status { isOk() } }
+        text(customer, "START $draft")
+        mockMvc.post("/admin/applications/$draft/request-documents") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"items":[{"type":"KTP","reason":"x"}]}"""
+        }.andExpect { status { isConflict() } }
     }
 
     @Test

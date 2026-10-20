@@ -34,7 +34,8 @@ class RiskAssessmentService(
                 riskFlagsJson = objectMapper.writeValueAsString(assessment.flags).take(16_000),
                 riskMethod = assessment.method.name,
                 customerBadges = assessment.badges.joinToString(",") { it.name }.ifBlank { null },
-                riskAssessedAt = assessment.assessedAt,
+                // First assessment marks "documents complete" for the dashboard; re-assessments keep that timestamp.
+                riskAssessedAt = app.riskAssessedAt ?: assessment.assessedAt,
                 updatedAt = Instant.now(),
             ),
         )

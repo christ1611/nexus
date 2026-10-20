@@ -78,6 +78,8 @@ data class DealerApplication(
     /** Name the officer typed in the review UI (or API) when deciding; null for decisions made before Step 4. */
     val decidedBy: String? = null,
     val decidedAt: Instant? = null,
+    /** True for rows created by the demo seeder. */
+    val demoSeed: Boolean = false,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now(),
 )
@@ -89,4 +91,5 @@ interface ApplicationRepository : CrudRepository<DealerApplication, Long> {
     fun findAllByOrderByCreatedAtDesc(): List<DealerApplication>
     fun findByCountryOrderByCreatedAtDesc(country: String): List<DealerApplication>
     fun findByStatusOrderByCreatedAtDesc(status: ApplicationStatus): List<DealerApplication>
+    fun findByDemoSeedTrue(): List<DealerApplication>
 }

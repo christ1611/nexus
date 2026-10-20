@@ -2,7 +2,7 @@
 
 _Last updated: 20 Oct 2026_
 
-## Current state (done and tested, 71 tests green, 1 skipped live test)
+## Current state (done and tested, 73 tests green, 1 skipped live test)
 
 - **Step 1 - Webhook**: `GET /webhook` verification, `POST /webhook` with `X-Hub-Signature-256` check,
   async processing, duplicate message IDs ignored, structured logging of messages and statuses.
@@ -43,9 +43,13 @@ _Last updated: 20 Oct 2026_
   carries tokens / latency / stop reason of the vision call. Review page: flow strip + stepper, live polling of
   `GET /admin/applications/{n}/agent-trace` every 4 s while the application is active. Dashboard: "AI 에이전트 활동" card (`stats.agent`).
 
+- **Demo data seeder** (20 Oct 2026): `demo/DemoDataSeeder.kt` + `POST/DELETE /admin/demo/seed` + `DEMO_SEED_APPLICATIONS=true`.
+  Fake applications over eight weeks and three countries with placeholder images, provider results, real `RiskRules` grades, officer
+  decisions, review events and agent-timeline steps; rows carry `demo_seed = true` and are fully removable. No WhatsApp sends.
+
 Code map: `src/main/kotlin/com/nextasean/wawebhook/` -> `webhook/` (inbound), `conversation/` (dealer flow +
 router), `customer/` (customer flow + customer notifier), `documents/` (+ `analysis/`), `review/` (agent step + audit events),
-`trace/` (agent timeline), `risk/` (flags, grade, badges), `verification/`, `application/`, `admin/` (admin API + dashboard stats),
+`trace/` (agent timeline), `demo/` (demo data seeder), `risk/` (flags, grade, badges), `verification/`, `application/`, `admin/` (admin API + dashboard stats),
 `web/` (one-time link page, dashboard + review pages), `whatsapp/` (Graph API client). Schema in `src/main/resources/schema.sql`,
 demo data in `demo-data.yml`.
 
@@ -78,6 +82,11 @@ demo data in `demo-data.yml`.
 - Session timeouts: expire customer sessions idle for N hours and tell the customer how to resume.
 
 ### B. Step 4 follow-ups (the back office itself is done)
+- Known gaps from the 20 Oct review (not fixed): an officer document request that lands while the customer flow is in VERIFYING is not
+  serialised against it (seconds-wide race; reload the application after verification and abort on a changed status); officer requests
+  count toward the agent's retake rounds and the REPEATED_RESUBMISSION flag (consider a separate counter); review page keeps document
+  blob URLs for the session (revoke on switch); DemoImages uses AWT fonts (a headless Linux image without fontconfig would leave
+  `fileAvailable=false`).
 - Agent timeline: with a real `ANTHROPIC_API_KEY`, check the turn / tool-call steps on live Claude responses (only the stub path and
   the scripted agent are covered by tests); consider streaming the model's text into the panel instead of showing it after the turn.
 - Agent timeline: a per-application "cost" line (sum of tokens) and the timeline as a downloadable audit export.

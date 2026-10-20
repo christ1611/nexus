@@ -286,6 +286,7 @@ class AdminApplicationController(
     fun decide(@PathVariable number: String, @RequestBody body: DecisionRequest): ResponseEntity<Any> {
         val app = service.findByNumber(number) ?: return notFound(number)
         val decided = service.decide(app, body.decision, body.note, body.reviewer) ?: return conflict(app)
+        customerFlow.closeSessions(decided)
         audit.record(decided, if (body.decision == Decision.APPROVED) ReviewEventKind.APPROVED else ReviewEventKind.REJECTED, body.reviewer, decided.decisionNote)
         trace.record(
             decided.id, TraceKind.OFFICER_DECISION, if (body.decision == Decision.APPROVED) TraceStatus.OK else TraceStatus.FAIL, AgentTraceService.officer(body.reviewer),
@@ -309,6 +310,9 @@ class AdminApplicationController(
     @PostMapping("/applications/{number}/assess-risk")
     fun assessRisk(@PathVariable number: String, @RequestParam(required = false) reviewer: String?): ResponseEntity<Any> {
         val app = service.findByNumber(number) ?: return notFound(number)
+        if (app.riskAssessedAt == null && app.verifiedAt == null && documents.findByApplicationIdOrderByCreatedAtAsc(app.id!!).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "application ${app.applicationNumber} has no documents or checks to assess yet"))
+        }
         val (saved, assessment) = risk.assessAndStore(app)
         audit.record(saved, ReviewEventKind.RISK_REASSESSED, reviewer, assessment.headline)
         return ResponseEntity.ok(detail(saved))

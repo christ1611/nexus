@@ -56,6 +56,15 @@ outgoing messages fail with a 131030 error.
    rm -rf data/wa-webhook.mv.db data/documents
    ```
 
+5. Recommended for the dashboard: add `DEMO_SEED_APPLICATIONS=true` to `wa.env` so the first start creates about 40 fake
+   applications (three countries, eight weeks of history, risk grades, decisions, agent timelines). The live application you
+   create on stage then gets the next number after the demo rows. To regenerate or remove them later:
+
+   ```bash
+   curl -s -X POST -H "X-Admin-Key: $ADMIN_API_KEY" -H 'Content-Type: application/json' -d '{"count":40,"reset":true}' http://localhost:8080/admin/demo/seed
+   curl -s -X DELETE -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/demo/seed
+   ```
+
 ---
 
 ## 2. Thirty minutes before: start everything (3 minutes)

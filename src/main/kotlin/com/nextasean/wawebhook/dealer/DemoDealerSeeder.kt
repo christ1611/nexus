@@ -4,10 +4,12 @@ import com.nextasean.wawebhook.config.DemoProperties
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
+import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 
-/** Upserts the demo dealers from `demo.dealers` (DEMO_DEALER_n_PHONE / _NAME / _COUNTRY / _TIER in wa.env). */
+/** Upserts the demo dealers from `demo.dealers` (DEMO_DEALER_n_PHONE / _NAME / _COUNTRY / _TIER in wa.env). Runs before the demo application seeder. */
 @Component
+@Order(10)
 class DemoDealerSeeder(
     private val props: DemoProperties,
     private val dealers: DealerRepository,

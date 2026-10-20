@@ -90,7 +90,10 @@ class AgentTraceService(private val steps: AgentStepRepository, private val obje
     ): AgentStep? {
         if (applicationId == null) return null
         return try {
-            val json = data?.let { d -> runCatching { objectMapper.writeValueAsString(d) }.getOrNull() }?.take(8_000)
+            val json = data?.let { d -> runCatching { objectMapper.writeValueAsString(d) }.getOrNull() }?.let { full ->
+                if (full.length <= MAX_DATA_CHARS) full
+                else objectMapper.writeValueAsString(mapOf("truncated" to true, "chars" to full.length, "preview" to full.take(MAX_DATA_CHARS - 200)))
+            }
             steps.save(
                 AgentStep(
                     applicationId = applicationId, kind = kind, status = status, actor = actor.take(80), title = title.take(200),
@@ -111,6 +114,7 @@ class AgentTraceService(private val steps: AgentStepRepository, private val obje
     fun all(): List<AgentStep> = steps.findAll().toList()
 
     companion object {
+        const val MAX_DATA_CHARS = 8_000
         const val RULES = "rules"
         const val STUB = "stub"
         const val CUSTOMER = "customer"

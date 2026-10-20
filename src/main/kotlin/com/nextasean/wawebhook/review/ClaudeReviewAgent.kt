@@ -172,7 +172,7 @@ class ClaudeReviewAgent(
                 trace.record(
                     context.application.id, TraceKind.AGENT_TOOL_CALL, if (decision != null) TraceStatus.DECISION else TraceStatus.FAIL, actor,
                     "${toolUse.name()}(" + "...)" + (if (decision == null) " rejected: invalid input" else ""),
-                    toolInputSummary(toolUse), mapOf("tool" to toolUse.name(), "input" to toolUse._input()), round = context.round,
+                    toolInputSummary(toolUse), mapOf("tool" to toolUse.name(), "input" to runCatching { toolUse._input().convert(Map::class.java) }.getOrNull()), round = context.round,
                 )
                 if (decision != null) return decision
                 // Invalid tool input: tell the model and let it try once more.

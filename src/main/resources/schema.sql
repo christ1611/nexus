@@ -108,6 +108,9 @@ CREATE TABLE IF NOT EXISTS review_events (
 );
 CREATE INDEX IF NOT EXISTS idx_review_events_application ON review_events (application_id);
 
+-- Demo data marker: rows created by the demo seeder (removable with DELETE /admin/demo/seed)
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS demo_seed BOOLEAN DEFAULT FALSE NOT NULL;
+
 -- Step 4b: agent trace (what the pipeline and the review agent did, shown live on the review page)
 CREATE TABLE IF NOT EXISTS agent_steps (
     id             BIGINT AUTO_INCREMENT PRIMARY KEY,

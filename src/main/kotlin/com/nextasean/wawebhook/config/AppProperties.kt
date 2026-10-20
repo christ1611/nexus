@@ -21,7 +21,12 @@ data class AppProperties(
 }
 
 @ConfigurationProperties(prefix = "demo")
-data class DemoProperties(val dealers: List<DemoDealer> = emptyList()) {
+data class DemoProperties(
+    val dealers: List<DemoDealer> = emptyList(),
+    /** Seed fake applications at startup (dashboard / review demo) when none exist yet. */
+    val seedApplications: Boolean = false,
+    val seedCount: Int = 40,
+) {
     data class DemoDealer(
         val code: String = "",
         val name: String = "",

@@ -76,7 +76,8 @@ class CustomerConversationService(
      */
     fun requestDocuments(app: DealerApplication, items: List<DocumentRequest>, note: String?, actor: String?): OfficerRequestResult {
         require(items.isNotEmpty()) { "at least one document must be requested" }
-        if (!app.status.reviewable) return OfficerRequestResult.NotReviewable(app)
+        // Final applications and applications waiting for the dealer's form cannot be sent to the customer.
+        if (!app.status.reviewable || app.status == ApplicationStatus.RESUBMISSION_REQUESTED) return OfficerRequestResult.NotReviewable(app)
         val phone = app.customerPhone ?: return OfficerRequestResult.NoCustomerPhone(app)
         val now = Instant.now()
         val types = items.map { it.type }.toSet()
@@ -94,10 +95,11 @@ class CustomerConversationService(
                 status = ApplicationStatus.DOCUMENTS_REQUESTED,
                 resubmissionReason = reason.take(500),
                 reviewDecision = "OFFICER_REQUEST_DOCUMENTS",
+                // The old summary described the superseded document; the agent (or the officer) writes a new one.
+                reviewSummary = null,
+                officerReviewRequired = null,
                 reviewRounds = app.reviewRounds + 1,
                 reviewedAt = now,
-                linkTokenHash = null,
-                linkExpiresAt = null,
                 updatedAt = now,
             ),
         )
@@ -116,9 +118,9 @@ class CustomerConversationService(
         )
         log.info("Officer requested documents | number={} | by={} | round={} | items={}", saved.applicationNumber, actor ?: "n/a", saved.reviewRounds, items)
         audit.record(saved, ReviewEventKind.DOCUMENTS_REQUESTED, actor, reason + (note?.takeIf { it.isNotBlank() }?.let { " | note: $it" } ?: ""))
-        trace.record(saved.id, TraceKind.OFFICER_REQUEST, TraceStatus.DECISION, AgentTraceService.officer(actor), "Officer sent the customer back for ${items.joinToString(" + ") { it.type.label }}", reason, round = saved.reviewRounds)
-        val notified = send(phone, CustomerMessages.documentsRequestedByOfficer(saved, items, next, note))
-        if (!consented) send(phone, CustomerMessages.greetingAndConsent(saved, previous?.customerName ?: saved.customerName))
+        trace.record(saved.id, TraceKind.OFFICER_REQUEST, TraceStatus.DECISION, AgentTraceService.officer(actor), "Officer sent the customer back for ${items.joinToString(" + ") { it.type.label }}", reason, round = app.reviewRounds)
+        val notified = send(saved, phone, CustomerMessages.documentsRequestedByOfficer(saved, items, next, note))
+        if (!consented) send(saved, phone, CustomerMessages.greetingAndConsent(saved, previous?.customerName ?: saved.customerName))
         return OfficerRequestResult.Sent(saved, notified)
     }
 
@@ -171,6 +173,13 @@ class CustomerConversationService(
         if (app == null) {
             log.error("Session {} points to missing application {}", session.id, session.applicationId)
             sessions.save(session.copy(state = CustomerSessionState.CANCELLED, updatedAt = Instant.now()))
+            return
+        }
+        if (!app.status.acceptsCustomerDocuments) {
+            // The officer decided (or the dealer form is pending) while this session was still open: close it instead of letting a photo re-open the case.
+            sessions.save(session.copy(state = CustomerSessionState.CANCELLED, updatedAt = Instant.now()))
+            log.info("Customer session closed: application {} is {} | phone={}", app.applicationNumber, app.status, session.phone)
+            send(session.phone, CustomerMessages.notAcceptingDocuments(app))
             return
         }
         val input = Input.of(message)
@@ -276,7 +285,21 @@ class CustomerConversationService(
             send(session.phone, CustomerMessages.requestDocument(next))
             return
         }
-        completeAndVerify(session, current)
+        try {
+            completeAndVerify(session, current)
+        } catch (e: Exception) {
+            // Whatever failed, the session must not stay in VERIFYING forever: back to the last step with an apology.
+            log.error("Completion failed | application={}", app.applicationNumber, e)
+            sessions.save(session.copy(state = stateFor(type), updatedAt = Instant.now()))
+            send(session.phone, CustomerMessages.requestDocument(type, "Sorry, something went wrong while checking your data."))
+        }
+    }
+
+    /** Closes any open session of the application's customer (after a final decision). */
+    fun closeSessions(app: DealerApplication) {
+        val id = app.id ?: return
+        sessions.findByApplicationIdOrderByCreatedAtDesc(id).filter { it.state.active }
+            .forEach { sessions.save(it.copy(state = CustomerSessionState.CANCELLED, updatedAt = Instant.now())) }
     }
 
     private fun completeAndVerify(session: CustomerSession, app: DealerApplication) {
@@ -466,6 +489,10 @@ class CustomerConversationService(
     }
 
     private fun send(phone: String, message: OutboundMessage): Boolean = sender.send(phone, message)
+
+    /** Demo rows must never reach a real phone, whatever an officer does with them. */
+    private fun send(app: DealerApplication, phone: String, message: OutboundMessage): Boolean =
+        if (app.demoSeed) { log.info("Demo application {}: customer message suppressed", app.applicationNumber); false } else send(phone, message)
 
     private companion object {
         val AGREE_WORDS = setOf("agree", "i agree", "yes", "ya", "setuju", "ok", "oke")

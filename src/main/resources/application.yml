@@ -61,6 +61,9 @@ claude:
 # Demo dealers are upserted at startup by dealer code; entries with a blank phone are skipped.
 # country: ID / MM / KH (market and verification providers); tier: STANDARD / EXCELLENT (customer badge).
 demo:
+  # Fake applications for the dashboard / review demo (DEMO_SEED_APPLICATIONS=true), or POST /admin/demo/seed at runtime.
+  seed-applications: ${DEMO_SEED_APPLICATIONS:false}
+  seed-count: ${DEMO_SEED_COUNT:40}
   dealers:
     - code: DLR-001
       name: ${DEMO_DEALER_1_NAME:Demo Dealer One}

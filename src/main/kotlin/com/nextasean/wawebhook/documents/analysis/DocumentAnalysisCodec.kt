@@ -17,6 +17,9 @@ class DocumentAnalysisCodec(private val objectMapper: ObjectMapper) {
         return objectMapper.writeValueAsString(analysis.copy(rawJson = "<omitted, ${analysis.rawJson.length} chars>"))
     }
 
+    /** Serialises any value with the application mapper (used by the demo seeder for agent-step data). */
+    fun toJsonAny(value: Any): String = objectMapper.writeValueAsString(value)
+
     fun fromJson(json: String?): DocumentAnalysis? {
         if (json.isNullOrBlank()) return null
         return try {

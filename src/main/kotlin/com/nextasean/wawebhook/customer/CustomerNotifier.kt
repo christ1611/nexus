@@ -18,6 +18,10 @@ class CustomerNotifier(private val sender: WhatsAppSender) {
     fun decision(app: DealerApplication): Boolean? = notify(app, CustomerMessages.decision(app))
 
     private fun notify(app: DealerApplication, message: OutboundMessage): Boolean? {
+        if (app.demoSeed) {
+            log.info("Demo application {}: customer notification suppressed ({})", app.applicationNumber, message::class.simpleName)
+            return false
+        }
         val phone = app.customerPhone
         if (phone.isNullOrBlank()) {
             log.info("No customer phone on {}; customer not notified ({})", app.applicationNumber, message::class.simpleName)

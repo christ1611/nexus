@@ -37,6 +37,10 @@ class DealerNotifier(
         notify(app, messages.documentsRequestedFromCustomer(app, items))
 
     private fun notify(app: DealerApplication, message: OutboundMessage): Boolean {
+        if (app.demoSeed) {
+            log.info("Demo application {}: dealer notification suppressed ({})", app.applicationNumber, message::class.simpleName)
+            return false
+        }
         val dealer = dealers.findById(app.dealerId).orElse(null)
         if (dealer == null) {
             log.error("Cannot notify: dealer {} not found for application {}", app.dealerId, app.applicationNumber)

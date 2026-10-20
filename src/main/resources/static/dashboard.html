@@ -124,7 +124,7 @@
 
   try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
 
-  function showTip(e, html) { tip.innerHTML = html; tip.style.opacity = 1; moveTip(e); }
+  function showTip(e, text) { tip.textContent = text; tip.style.opacity = 1; moveTip(e); }
   function moveTip(e) { tip.style.left = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; }
   function hideTip() { tip.style.opacity = 0; }
   function bindTips(root) {
@@ -273,7 +273,7 @@
     h += `<section class="card"><h2>최근 신청 <small>Recent applications</small></h2><div class="scroll"><table><thead><tr><th>신청번호</th><th>국가</th><th>딜러</th><th>상태</th><th>등급</th><th>생성</th></tr></thead><tbody>${d.recent.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">아직 신청이 없습니다.</td></tr>'}</tbody></table></div>
       <details style="margin-top:10px"><summary>등급 산정 기준 · How the grade is computed</summary><p class="sub" style="display:block;margin:8px 0 0">점수 = Risk Flag 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A: 0-14, B: 15-39, C: 40-69, D: 70+. 심각도 '높음'의 위조·사기 신호가 하나라도 있으면 최소 C. 근거: Claude 비전 분석(화면 재촬영·변조·서류 종류·NIK 구조·셀피 불일치), 신원 조회, 신용 조회, 고객 행동(재요청·실패 업로드·연령). 스텁 모드에서는 조회 결과와 행동 규칙만 적용됩니다.<br>Score = sum of flag severities (LOW 10, MEDIUM 20, HIGH 35, capped at 100). A 0-14, B 15-39, C 40-69, D 70+. Any HIGH fraud signal floors the grade at C.</p></details>
     </section>`;
-    h += `<p class="status">생성 시각 ${fmtTime(d.generatedAt)} · generated ${fmtTime(d.generatedAt)}</p>`;
+    h += `<p class="status">생성 시각 ${fmtTime(d.generatedAt)} · generated ${fmtTime(d.generatedAt)}${t.demoApplications ? ` · 데모 데이터 ${t.demoApplications}건 포함 (demo seed; DELETE /admin/demo/seed 로 제거)` : ''}</p>`;
     main.innerHTML = h;
     bindTips(main);
   }

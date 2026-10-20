@@ -238,7 +238,11 @@
       if (!current || current.applicationNumber !== number) { stopTracePolling(); return; }
       try {
         const t = await api('/admin/applications/' + encodeURIComponent(number) + '/agent-trace');
-        if (t.status !== current.status) { open(number, true); loadQueue(); return; }
+        if (t.status !== current.status) {
+          // Do not throw away what the officer is typing; reload once the focus leaves the detail pane.
+          if (document.activeElement && document.activeElement.closest('#detail')) { setStatus('상태가 ' + (STATUS_KO[t.status] || t.status) + '(으)로 바뀌었습니다. 입력을 마치면 새로고침됩니다.'); document.activeElement.addEventListener('blur', () => open(number, true), { once: true }); return; }
+          open(number, true); loadQueue(); return;
+        }
         if (t.steps.length !== traceCount) { traceCount = t.steps.length; const panel = $('#trace-panel'); if (panel) panel.innerHTML = renderTrace(t.steps, t.live); }
         if (!t.live) stopTracePolling();
       } catch (e) { /* keep polling; the next tick may succeed */ }
@@ -258,7 +262,7 @@
   }
   function setStatus(msg, err) { status.textContent = msg; status.className = 'status' + (err ? ' err' : ''); }
 
-  function showTip(e, html) { tip.innerHTML = html; tip.style.opacity = 1; moveTip(e); }
+  function showTip(e, text) { tip.textContent = text; tip.style.opacity = 1; moveTip(e); }
   function moveTip(e) { tip.style.left = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; }
   function hideTip() { tip.style.opacity = 0; }
   function bindTips(root) { root.querySelectorAll('[data-tip]').forEach(el => { el.addEventListener('mouseenter', e => showTip(e, el.dataset.tip)); el.addEventListener('mousemove', moveTip); el.addEventListener('mouseleave', hideTip); }); }
@@ -321,7 +325,7 @@
           <div style="margin-top:6px"><b>${esc(a.extracted?.name || a.customerName || '고객 미연결')}</b> ${a.customerPhone ? `<span class="sub">+${esc(a.customerPhone)}</span>` : '<span class="sub">(START 링크를 아직 열지 않음)</span>'}</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          ${r ? `<div class="gradebox" style="border-color:${GRADE[r.grade].color}"><span class="big" style="color:${GRADE[r.grade].color}">${esc(r.grade)}</span><div><div><b>${esc(r.gradeLabelKo)}</b> <span class="sub">${esc(r.gradeLabel)}</span></div><div class="sub">점수 ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ 위조·사기 경고 ${r.fraudWarnings}</span>` : '위조 신호 없음'}</div><div class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')} · ${fmtTime(r.assessedAt)}</div></div></div>` : '<span class="sub">리스크 미평가 (서류 미완료)</span>'}
+          ${r ? `<div class="gradebox" style="border-color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}"><span class="big" style="color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}">${esc(r.grade)}</span><div><div><b>${esc(r.gradeLabelKo)}</b> <span class="sub">${esc(r.gradeLabel)}</span></div><div class="sub">점수 ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ 위조·사기 경고 ${r.fraudWarnings}</span>` : '위조 신호 없음'}</div><div class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')} · ${fmtTime(r.assessedAt)}</div></div></div>` : '<span class="sub">리스크 미평가 (서류 미완료)</span>'}
         </div>
       </div>
       <div style="margin-top:8px">${(r?.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(b.labelKo)}</span>`).join('')}${a.review?.officerReviewRequired ? '<span class="chip warn" data-tip="자동 분석이 일부 데이터를 확신하지 못했습니다. 이미지와 대조해 주세요.">담당자 검토 필요</span>' : ''}${a.linkOutstanding ? '<span class="chip">딜러 폼 링크 유효</span>' : ''}</div>
