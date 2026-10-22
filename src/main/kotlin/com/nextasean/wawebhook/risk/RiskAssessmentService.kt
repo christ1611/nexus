@@ -22,11 +22,23 @@ class RiskAssessmentService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    /** Assesses and stores; returns the updated application and the assessment. */
-    fun assessAndStore(app: DealerApplication): Pair<DealerApplication, RiskAssessment> {
+    /**
+     * Assesses and stores; returns the updated application and the assessment. Other still-open applications that share
+     * this one's ID number or phone are re-assessed too, so both sides of a shared ID carry the warning.
+     */
+    fun assessAndStore(app: DealerApplication, cascade: Boolean = true): Pair<DealerApplication, RiskAssessment> {
         val dealer = dealers.findById(app.dealerId).orElse(null)
         val docs = documents.findByApplicationIdOrderByCreatedAtAsc(app.id!!).map { AnalysedDocument(it, codec.fromJson(it.analysisJson)) }
-        val assessment = RiskRules.evaluate(app, dealer, docs)
+        val related = related(app)
+        val assessment = RiskRules.evaluate(app, dealer, docs, related = related)
+        if (cascade) {
+            (related.sameIdNumber + related.samePhone).distinctBy { it.id }
+                .filter { !it.status.isFinal && it.riskAssessedAt != null }
+                .forEach { other ->
+                    log.info("Re-assessing related application | number={} | because of {}", other.applicationNumber, app.applicationNumber)
+                    assessAndStore(applications.findById(other.id!!).orElse(other), cascade = false)
+                }
+        }
         val saved = applications.save(
             app.copy(
                 riskGrade = assessment.grade.name,
@@ -46,6 +58,12 @@ class RiskAssessmentService(
         )
         return saved to assessment
     }
+
+    /** Other applications sharing the ID number or the customer phone, for the cross-application rules. */
+    fun related(app: DealerApplication): RelatedApplications = RelatedApplications(
+        sameIdNumber = app.extractedNik?.takeIf { it.isNotBlank() }?.let { applications.findByExtractedNik(it) }.orEmpty().filter { it.id != app.id },
+        samePhone = app.customerPhone?.takeIf { it.isNotBlank() }?.let { applications.findByCustomerPhone(it) }.orEmpty().filter { it.id != app.id },
+    )
 
     /** Re-runs the rules for every application that has reached verification (after a rule change). */
     fun reassessAll(): Int = applications.findAll()

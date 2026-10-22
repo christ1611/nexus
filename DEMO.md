@@ -132,6 +132,7 @@ result and credit bureau result, plus a Check status button.
 | --- | --- | --- | --- |
 | `nik0` to `nik6` (or no caption) | Match | Match | 620 + 25 x digit (e.g. `nik4` = 720) |
 | `nik7` | Data mismatch | Data mismatch | none |
+| `dup` | (previous customer's NIK) | | same as that customer; **both** applications get the ⚠ `SHARED_ID_NUMBER` flag (same ID card, different person) and drop to grade C |
 | `nik8` | Not found | Not found | none |
 | `nik9` | Timed out | Timed out | none |
 

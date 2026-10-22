@@ -21,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
@@ -37,6 +38,7 @@ private const val STRANGER = "6289999999999"
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Import(FakeIntegrationsConfig::class)
+@TestPropertySource(properties = ["spring.datasource.url=jdbc:h2:mem:dealertest;DB_CLOSE_DELAY=-1"])
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 class DealerConversationFlowTest @Autowired constructor(
     private val processor: WebhookProcessor,

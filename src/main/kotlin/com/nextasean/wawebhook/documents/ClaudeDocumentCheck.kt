@@ -38,7 +38,7 @@ class ClaudeDocumentCheck(private val analysis: DocumentAnalysisService) : Docum
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun check(type: DocumentType, file: Path, mimeType: String?, caption: String?): DocumentCheckResult {
+    override fun check(type: DocumentType, file: Path, mimeType: String?, caption: String?, context: CheckContext): DocumentCheckResult {
         val result = try {
             analysis.analyze(AnalysisRequest(type, file, mimeType))
         } catch (e: DocumentAnalysisException) {

@@ -22,8 +22,12 @@ object AnalysisPrompt {
         - Report quality issues honestly. Severity HIGH means the issue prevents reliable reading of important fields or the
           document identity; MEDIUM means some fields are affected; LOW is cosmetic.
         - Report the document type you actually see, even when it differs from what was requested.
-        - Do not perform any identity check yourself and do not speculate about fraud; just describe what is visible.
-          Mention anything odd about the document (editing artefacts, mismatched fonts, a photo of a screen) in notes.
+        - Do not perform any identity check yourself and do not decide whether the document is fraudulent. You only
+          report visible evidence: list every sign that the card may have been edited or is not a genuine card under
+          tamper_signals (mismatched fonts or print quality between fields, misaligned text, cloning or blur patches,
+          a pasted or replaced photo, wrong layout, colours or logos, missing or fake security features, fields that
+          contradict each other). Say exactly where you see it and how strong the evidence is. An empty list means the
+          card looks genuine to you. Anything else odd goes in notes.
     """.trimIndent()
 
     fun userInstruction(type: DocumentType): String = when (type) {
@@ -41,7 +45,9 @@ object AnalysisPrompt {
             Return a fields entry for each of these names: ${DocumentAnalysis.SELFIE_FIELDS.joinToString()}.
             face_count = number of faces visible (digits); face_clearly_visible = yes/no (unobstructed, in focus, not a photo of a photo);
             ktp_held_in_frame = yes/no (a physical KTP card is held by the person and is visible);
-            nik_on_held_ktp = the NIK printed on the held card, digits only, only if clearly legible, otherwise "".
+            nik_on_held_ktp = the NIK printed on the held card, digits only, only if clearly legible, otherwise "";
+            face_matches_ktp_photo = yes/no/unclear: whether the person's face looks like the photo printed on the held card
+            (compare face shape, eyes, nose, mouth; "unclear" when either is too small, blurred or turned away).
         """.trimIndent()
     }
 
@@ -49,7 +55,7 @@ object AnalysisPrompt {
     val SCHEMA: Map<String, Any> = mapOf(
         "type" to "object",
         "additionalProperties" to false,
-        "required" to listOf("document_type", "document_type_confidence", "quality_issues", "fields", "notes"),
+        "required" to listOf("document_type", "document_type_confidence", "quality_issues", "tamper_signals", "fields", "notes"),
         "properties" to mapOf(
             "document_type" to mapOf(
                 "type" to "string",
@@ -68,6 +74,20 @@ object AnalysisPrompt {
                         "type" to mapOf("type" to "string", "enum" to QualityIssueType.entries.map { it.name }),
                         "severity" to mapOf("type" to "string", "enum" to Severity.entries.map { it.name }),
                         "detail" to mapOf("type" to "string", "description" to "Where in the image and what it affects."),
+                    ),
+                ),
+            ),
+            "tamper_signals" to mapOf(
+                "type" to "array",
+                "description" to "Visible signs of editing or forgery; empty when the card looks genuine.",
+                "items" to mapOf(
+                    "type" to "object",
+                    "additionalProperties" to false,
+                    "required" to listOf("type", "severity", "detail"),
+                    "properties" to mapOf(
+                        "type" to mapOf("type" to "string", "enum" to TamperSignalType.entries.map { it.name }),
+                        "severity" to mapOf("type" to "string", "enum" to Severity.entries.map { it.name }, "description" to "HIGH = clear evidence, MEDIUM = likely, LOW = weak hint."),
+                        "detail" to mapOf("type" to "string", "description" to "Where on the card and what exactly looks wrong."),
                     ),
                 ),
             ),

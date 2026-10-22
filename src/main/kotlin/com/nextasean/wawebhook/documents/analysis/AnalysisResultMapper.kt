@@ -22,6 +22,7 @@ class AnalysisResultMapper(
         @JsonProperty("document_type") val documentType: String? = null,
         @JsonProperty("document_type_confidence") val documentTypeConfidence: Double? = null,
         @JsonProperty("quality_issues") val qualityIssues: List<RawIssue> = emptyList(),
+        @JsonProperty("tamper_signals") val tamperSignals: List<RawIssue> = emptyList(),
         val fields: List<RawField> = emptyList(),
         val notes: String? = null,
     )
@@ -54,6 +55,14 @@ class AnalysisResultMapper(
             )
         }
 
+        val tamper = raw.tamperSignals.map {
+            TamperSignal(
+                type = it.type?.let { t -> runCatching { TamperSignalType.valueOf(t) }.getOrNull() } ?: TamperSignalType.OTHER,
+                severity = it.severity?.let { s -> runCatching { Severity.valueOf(s) }.getOrNull() } ?: Severity.MEDIUM,
+                detail = it.detail.orEmpty(),
+            )
+        }
+
         val fields = raw.fields.filter { !it.name.isNullOrBlank() }.map { f ->
             val value = f.value?.trim()?.takeIf { it.isNotEmpty() }
             val confidence = f.confidence.clamp()
@@ -70,6 +79,8 @@ class AnalysisResultMapper(
         val reasons = mutableListOf<String>()
         if (!typeMatches) reasons += "Image shows ${detected.label}, but ${requested.label} was requested"
         issues.filter { it.severity == Severity.HIGH }.forEach { reasons += "Quality issue ${it.type} (HIGH): ${it.detail}" }
+        // Forgery evidence never sends the customer back for a retake; it sends the case to an officer.
+        tamper.filter { it.severity != Severity.LOW }.forEach { reasons += "Possible forgery ${it.type} (${it.severity}): ${it.detail}" }
 
         var nikValidation: NikValidation? = null
         if (requested == DocumentType.KTP && usable) {
@@ -111,6 +122,9 @@ class AnalysisResultMapper(
             if (fields.firstOrNull { it.name == "face_clearly_visible" }?.value?.equals("yes", ignoreCase = true) == false) {
                 reasons += "Face is not clearly visible in the selfie"
             }
+            if (fields.firstOrNull { it.name == "face_matches_ktp_photo" }?.value?.equals("no", ignoreCase = true) == true) {
+                reasons += "Face in the selfie does not look like the photo on the held KTP"
+            }
         }
 
         return DocumentAnalysis(
@@ -120,6 +134,7 @@ class AnalysisResultMapper(
             typeMatchesRequest = typeMatches,
             qualityIssues = issues,
             usable = usable,
+            tamperSignals = tamper,
             fields = fields,
             nik = nikValidation,
             needsOfficerReview = reasons.isNotEmpty(),

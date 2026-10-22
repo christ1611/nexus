@@ -38,6 +38,8 @@ private const val DEALER_MM = "6285555555555"
 private const val GOOD_CUSTOMER = "6286000000001"
 private const val RISKY_CUSTOMER = "6286000000002"
 private const val MM_CUSTOMER = "6286000000003"
+private const val FIRST_CUSTOMER = "6286000000004"
+private const val COPYCAT_CUSTOMER = "6286000000005"
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -146,5 +148,41 @@ class DashboardAndRiskFlowTest @Autowired constructor(
             content { string(containsString("NEXT ASEAN 온보딩 대시보드")) }
         }
         mockMvc.get("/admin/dashboard/stats").andExpect { status { isUnauthorized() } }
+    }
+
+    @Test
+    fun `two customers submitting the same ID number are both flagged, and different customers never collide by accident`() {
+        val first = onboard(DEALER_ID, FIRST_CUSTOMER, "")
+        val firstApp = applications.findByApplicationNumber(first)!!
+        assertEquals("A", firstApp.riskGrade, "a fresh customer has a unique sample NIK: " + firstApp.riskFlagsJson)
+        assertTrue(firstApp.extractedNik!!.endsWith("4"))
+        assertEquals(first.takeLast(3), firstApp.extractedNik!!.substring(12, 15), "serial digits come from the application number")
+
+        // The caption "dup" makes the stub submit the previous customer's NIK: a different person with the same ID card.
+        val copycat = onboard(DEALER_ID, COPYCAT_CUSTOMER, "dup")
+        val copycatApp = applications.findByApplicationNumber(copycat)!!
+        assertEquals(firstApp.extractedNik, copycatApp.extractedNik)
+        assertTrue(copycatApp.riskFlagsJson!!.contains(RiskCodes.SHARED_ID_NUMBER), copycatApp.riskFlagsJson)
+        assertTrue(copycatApp.riskFlagsJson!!.contains(first), "the other application number is in the evidence: " + copycatApp.riskFlagsJson)
+        assertTrue(copycatApp.riskGrade == "C" || copycatApp.riskGrade == "D", copycatApp.riskGrade)
+        val summary = sender.sent.last { it.first == DEALER_ID }.second as OutboundMessage.Buttons
+        assertTrue(summary.body.contains("fraud/forgery warning"), summary.body)
+
+        // The first application is still open, so it is re-assessed and now carries the warning as well.
+        val firstAgain = applications.findByApplicationNumber(first)!!
+        assertTrue(firstAgain.riskFlagsJson!!.contains(RiskCodes.SHARED_ID_NUMBER), firstAgain.riskFlagsJson)
+        assertTrue(firstAgain.riskFlagsJson!!.contains(copycat), firstAgain.riskFlagsJson)
+        assertTrue(firstAgain.riskGrade == "C" || firstAgain.riskGrade == "D", firstAgain.riskGrade)
+
+        mockMvc.get("/admin/applications/$copycat") { header("X-Admin-Key", "test-admin-key") }.andExpect {
+            status { isOk() }
+            jsonPath("$.risk.flags[*].code") { value(hasItem(RiskCodes.SHARED_ID_NUMBER)) }
+            jsonPath("$.risk.flags[?(@.code == '${RiskCodes.SHARED_ID_NUMBER}')].sourceKo") { value(hasItem("중복 신청 조회")) }
+        }
+        mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", "test-admin-key") }.andExpect {
+            status { isOk() }
+            jsonPath("$.flagCounts[?(@.code == '${RiskCodes.SHARED_ID_NUMBER}')].count") { value(hasItem(2)) }
+            jsonPath("$.flagCounts[?(@.code == '${RiskCodes.SHARED_ID_NUMBER}')].fraud") { value(hasItem(true)) }
+        }
     }
 }

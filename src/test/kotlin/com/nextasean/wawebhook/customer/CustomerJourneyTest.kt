@@ -138,7 +138,7 @@ class CustomerJourneyTest @Autowired constructor(
 
         val app = applications.findByApplicationNumber(appNumber)!!
         assertEquals("Budi Santoso", app.extractedName)
-        assertEquals("3171051705900007", app.extractedNik)
+        assertTrue(app.extractedNik!!.startsWith("317105170590") && app.extractedNik!!.endsWith("7"), "sample NIK with per-application serial: " + app.extractedNik)
     }
 
     @Test

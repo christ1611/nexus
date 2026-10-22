@@ -22,6 +22,8 @@ import com.nextasean.wawebhook.documents.analysis.ExtractedField
 import com.nextasean.wawebhook.documents.analysis.FieldStatus
 import com.nextasean.wawebhook.documents.analysis.ModelUsage
 import com.nextasean.wawebhook.documents.analysis.NikValidator
+import com.nextasean.wawebhook.documents.analysis.TamperSignal
+import com.nextasean.wawebhook.documents.analysis.TamperSignalType
 import com.nextasean.wawebhook.documents.analysis.QualityIssue
 import com.nextasean.wawebhook.documents.analysis.QualityIssueType
 import com.nextasean.wawebhook.documents.analysis.Severity
@@ -82,7 +84,11 @@ class DemoDataSeeder(
 
     data class SeedResult(val created: Int, val removed: Int, val total: Int)
 
-    private enum class Scenario { CLEAN, MEDIUM, IDENTITY_MISMATCH, NOT_FOUND, TIMEOUT, SCREEN_PHOTO, INVALID_NIK, SELFIE_MISMATCH, IN_PROGRESS, DRAFT }
+    private enum class Scenario { CLEAN, MEDIUM, IDENTITY_MISMATCH, NOT_FOUND, TIMEOUT, SCREEN_PHOTO, INVALID_NIK, SELFIE_MISMATCH, FORGERY, SHARED_ID, IN_PROGRESS, DRAFT }
+
+    /** NIK of the last clean Indonesian application seeded in this run; [Scenario.SHARED_ID] submits it again under another name. */
+    private var lastSeededNik: String? = null
+    private var lastSeededName: String? = null
 
     private class Persona(val name: String, val dob: LocalDate, val gender: String, val address: String, val phone: String)
 
@@ -90,6 +96,8 @@ class DemoDataSeeder(
     @Transactional
     fun seed(count: Int = DEFAULT_COUNT, reset: Boolean = false, seed: Long = DEFAULT_SEED): SeedResult {
         val removed = if (reset) clear() else 0
+        lastSeededNik = null
+        lastSeededName = null
         val random = Random(seed + applications.findByDemoSeedTrue().size)
         val dealersByCountry = ensureDealers()
         val now = Instant.now()
@@ -173,13 +181,17 @@ class DemoDataSeeder(
             r < 0.78 -> if (country == "ID") Scenario.SCREEN_PHOTO else Scenario.MEDIUM
             r < 0.83 -> if (country == "ID") Scenario.INVALID_NIK else Scenario.NOT_FOUND
             r < 0.86 -> if (country == "ID") Scenario.SELFIE_MISMATCH else Scenario.IDENTITY_MISMATCH
+            r < 0.89 -> if (country == "ID") Scenario.FORGERY else Scenario.MEDIUM
             r < 0.95 -> Scenario.IN_PROGRESS
             else -> Scenario.DRAFT
         }
     }
 
     private fun createOne(random: Random, country: String, dealer: Dealer, scenario: Scenario, createdAt: Instant, now: Instant, index: Int) {
-        val persona = persona(random, country, index)
+        var persona = persona(random, country, index)
+        // A shared ID must come from a different person: never reuse the previous customer's name.
+        var tries = 0
+        while (scenario == Scenario.SHARED_ID && persona.name == lastSeededName && tries++ < 10) persona = persona(random, country, index)
         val number = nextNumber(createdAt)
         var app = applications.save(
             DealerApplication(applicationNumber = number, dealerId = dealer.id!!, status = ApplicationStatus.DRAFT, country = country, demoSeed = true, createdAt = createdAt, updatedAt = createdAt),
@@ -213,14 +225,17 @@ class DemoDataSeeder(
         }
 
         // Full document journey.
-        val claudeMode = scenario in setOf(Scenario.SCREEN_PHOTO, Scenario.INVALID_NIK, Scenario.SELFIE_MISMATCH) || (country == "ID" && random.nextDouble() < 0.35)
-        val lastDigit = when (scenario) {
+        val claudeMode = scenario in setOf(Scenario.SCREEN_PHOTO, Scenario.INVALID_NIK, Scenario.SELFIE_MISMATCH, Scenario.FORGERY) || (country == "ID" && scenario != Scenario.SHARED_ID && random.nextDouble() < 0.35)
+        // A shared ID reuses the NIK of the last clean Indonesian application: a different person submitting the same card.
+        val reusedNik = if (scenario == Scenario.SHARED_ID && country == "ID") lastSeededNik else null
+        val lastDigit = reusedNik?.last()?.digitToInt() ?: when (scenario) {
             Scenario.IDENTITY_MISMATCH, Scenario.SELFIE_MISMATCH -> 7
             Scenario.NOT_FOUND -> 8
             Scenario.TIMEOUT -> 9
             else -> random.nextInt(0, 7)
         }
-        val idNumber = idNumber(random, country, persona, lastDigit, encodeWrongDob = scenario == Scenario.INVALID_NIK)
+        val idNumber = reusedNik ?: idNumber(random, country, persona, lastDigit, encodeWrongDob = scenario == Scenario.INVALID_NIK)
+        if (country == "ID" && scenario in setOf(Scenario.CLEAN, Scenario.MEDIUM)) { lastSeededNik = idNumber; lastSeededName = persona.name }
         sessions.save(CustomerSession(phone = persona.phone, customerName = app.customerName, applicationId = app.id!!, state = CustomerSessionState.COMPLETED, consentAt = consentAt, createdAt = startAt, updatedAt = consentAt.plus(Duration.ofMinutes(12))))
         var t = consentAt.plus(Duration.ofMinutes(random.nextLong(1, 6)))
         var round = 0
@@ -241,8 +256,11 @@ class DemoDataSeeder(
         if (ktpAnalysis != null) {
             step(
                 app, TraceKind.VISION_ANALYSIS, TraceStatus.OK, AgentTraceService.claude(MODEL), "Seen as ${ktpAnalysis.documentType.label} (${(ktpAnalysis.documentTypeConfidence * 100).toInt()}%), usable",
-                if (ktpAnalysis.qualityIssues.isEmpty()) "No quality issues" else ktpAnalysis.qualityIssues.joinToString("; ") { "${it.type} ${it.severity}: ${it.detail}" },
-                t.plusSeconds(4), ktpAnalysis.usage?.durationMs, mapOf("documentType" to ktpAnalysis.documentType.name, "confidence" to ktpAnalysis.documentTypeConfidence, "usage" to ktpAnalysis.usage, "qualityIssues" to ktpAnalysis.qualityIssues),
+                listOf(
+                    if (ktpAnalysis.qualityIssues.isEmpty()) "No quality issues" else ktpAnalysis.qualityIssues.joinToString("; ") { "${it.type} ${it.severity}: ${it.detail}" },
+                    if (ktpAnalysis.tamperSignals.isEmpty()) "No forgery evidence" else "Forgery evidence: " + ktpAnalysis.tamperSignals.joinToString("; ") { "${it.type} ${it.severity}: ${it.detail}" },
+                ).joinToString(". "),
+                t.plusSeconds(4), ktpAnalysis.usage?.durationMs, mapOf("documentType" to ktpAnalysis.documentType.name, "confidence" to ktpAnalysis.documentTypeConfidence, "usage" to ktpAnalysis.usage, "qualityIssues" to ktpAnalysis.qualityIssues, "tamperSignals" to ktpAnalysis.tamperSignals),
             )
             val n = ktpAnalysis.nik!!
             step(
@@ -418,12 +436,22 @@ class DemoDataSeeder(
             f("name", persona.name, 0.96), f("place_of_birth", "Jakarta", 0.9), f("date_of_birth", persona.dob.toString(), 0.95), f("gender", persona.gender, 0.98),
             f("address", persona.address.substringBefore(","), 0.91), f("rt_rw", "003/005", 0.88), f("village", persona.address.substringAfter(", ").substringBefore(","), 0.86),
             f("district", "Gambir", 0.86), f("religion", "ISLAM", 0.9), f("marital_status", "KAWIN", 0.9), f("occupation", "KARYAWAN SWASTA", 0.88), f("nationality", "WNI", 0.99), f("valid_until", "SEUMUR HIDUP", 0.97),
-            f("province", "DKI JAKARTA", 0.95), f("city", "JAKARTA PUSAT", 0.94),
+            f("province", NikValidator.PROVINCES[nik.substring(0, 2)]?.uppercase() ?: "DKI JAKARTA", 0.95), f("city", if (nik.startsWith("31")) "JAKARTA PUSAT" else "KOTA ${persona.address.substringAfterLast(", ").substringBefore(" ").uppercase()}", 0.9),
         )
+        val tamper = if (scenario == Scenario.FORGERY) listOf(
+            TamperSignal(TamperSignalType.PHOTO_REPLACED, Severity.HIGH, "The portrait has a sharp rectangular edge and a lighter background than the card; it looks pasted over the original photo"),
+            TamperSignal(TamperSignalType.FONT_MISMATCH, Severity.MEDIUM, "The NIK digits are thinner and slightly larger than the other printed fields"),
+        ) else emptyList()
+        val reasons = (if (validation.valid) emptyList() else listOf("NIK validation failed: ${validation.issues.joinToString("; ")}")) +
+            tamper.filter { it.severity != Severity.LOW }.map { "Possible forgery ${it.type} (${it.severity}): ${it.detail}" }
         return DocumentAnalysis(
             requestedType = DocumentType.KTP, documentType = DetectedDocumentType.KTP, documentTypeConfidence = 0.98, typeMatchesRequest = true, qualityIssues = issues, usable = true,
-            fields = fields, nik = validation, needsOfficerReview = !validation.valid, reviewReasons = if (validation.valid) emptyList() else listOf("NIK validation failed: ${validation.issues.joinToString("; ")}"),
-            modelNotes = if (scenario == Scenario.SCREEN_PHOTO) "The card appears to be displayed on a phone screen rather than photographed directly." else null,
+            tamperSignals = tamper, fields = fields, nik = validation, needsOfficerReview = reasons.isNotEmpty(), reviewReasons = reasons,
+            modelNotes = when (scenario) {
+                Scenario.SCREEN_PHOTO -> "The card appears to be displayed on a phone screen rather than photographed directly."
+                Scenario.FORGERY -> "The card layout is otherwise consistent with a genuine e-KTP, but the portrait and the NIK line look edited."
+                else -> null
+            },
             model = MODEL, rawJson = "<demo seed: no model call>", usage = ModelUsage(2_210, 1_980, 540, 4_300, "end_turn"),
         )
     }
@@ -432,7 +460,7 @@ class DemoDataSeeder(
         val held = if (scenario == Scenario.SELFIE_MISMATCH) nik.dropLast(6) + "%06d".format(random.nextInt(100_000, 999_999)) else nik
         return DocumentAnalysis(
             requestedType = DocumentType.SELFIE_KTP, documentType = DetectedDocumentType.SELFIE_WITH_KTP, documentTypeConfidence = 0.95, typeMatchesRequest = true, qualityIssues = emptyList(), usable = true,
-            fields = listOf(ExtractedField("face_count", "1", 0.99, FieldStatus.EXTRACTED), ExtractedField("face_clearly_visible", "true", 0.97, FieldStatus.EXTRACTED), ExtractedField("ktp_held_in_frame", "true", 0.96, FieldStatus.EXTRACTED), ExtractedField("nik_on_held_ktp", held, 0.9, FieldStatus.EXTRACTED)),
+            fields = listOf(ExtractedField("face_count", "1", 0.99, FieldStatus.EXTRACTED), ExtractedField("face_clearly_visible", "true", 0.97, FieldStatus.EXTRACTED), ExtractedField("ktp_held_in_frame", "true", 0.96, FieldStatus.EXTRACTED), ExtractedField("nik_on_held_ktp", held, 0.9, FieldStatus.EXTRACTED), ExtractedField("face_matches_ktp_photo", if (scenario == Scenario.FORGERY) "no" else "yes", 0.88, FieldStatus.EXTRACTED, if (scenario == Scenario.FORGERY) "jaw line and eye spacing differ from the card portrait" else null)),
             nik = null, needsOfficerReview = false, reviewReasons = emptyList(), modelNotes = null, model = MODEL, rawJson = "<demo seed: no model call>", usage = ModelUsage(1_900, 1_980, 210, 3_600, "end_turn"),
         )
     }
@@ -485,6 +513,7 @@ class DemoDataSeeder(
         /** Scenario and age in days of the first applications of every seed run. */
         private val SHOWCASE = listOf(
             Scenario.CLEAN to 0.08, Scenario.SCREEN_PHOTO to 0.4, Scenario.INVALID_NIK to 0.6, Scenario.IDENTITY_MISMATCH to 0.9, Scenario.MEDIUM to 1.2,
+            Scenario.SHARED_ID to 1.1, Scenario.FORGERY to 0.3,
             Scenario.SELFIE_MISMATCH to 1.6, Scenario.NOT_FOUND to 2.5, Scenario.IN_PROGRESS to 0.05, Scenario.TIMEOUT to 3.5, Scenario.CLEAN to 5.0,
         )
         val PROVINCES = listOf("31", "32", "33", "35", "51", "12", "73")

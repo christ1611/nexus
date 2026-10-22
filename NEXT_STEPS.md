@@ -35,6 +35,12 @@ _Last updated: 20 Oct 2026_
   reopens the customer session at that step, customer + dealer messaged; new photo re-runs checks and verification), dealer form
   resubmission, re-assess risk, notes. `reviewer` is accepted on every POST. Dashboard additions: review queue with waiting times,
   8-week trend chart, documents-requested / oldest-waiting / avg-decision tiles, links to `/review?app=`.
+  22 Oct: the dashboard is split into five tabs (overview, risk & fraud, countries & dealers, AI agent, recent applications);
+  the active tab is kept in the URL hash (`/dashboard#risk`) and survives the 60 s auto-refresh.
+  22 Oct: the review page has a **statistics tab** (`/review#stats`, `admin/ReviewStatsController.kt`, `GET /admin/review/stats`):
+  workload now (high-risk / fraud / agent-flagged waiting, waiting-time buckets, by country and grade), throughput (today / 7 d / 30 d
+  decisions, approval rate, avg time to decision, officer document re-requests), 14-day decisions vs arrivals chart, per-reviewer
+  table from `REVIEW_EVENTS`, flags in the queue, outcomes per AI grade, agent flag vs final decision.
 
 - **Step 4b - AI agent timeline** (20 Oct 2026): `trace/AgentTrace.kt` (`AGENT_STEPS`, `AgentTraceService`, `TraceKind`). Recorded from
   `CustomerConversationService` (document received, vision analysis / stub quality check, NIK validation, field extraction, agent
@@ -52,6 +58,14 @@ router), `customer/` (customer flow + customer notifier), `documents/` (+ `analy
 `trace/` (agent timeline), `demo/` (demo data seeder), `risk/` (flags, grade, badges), `verification/`, `application/`, `admin/` (admin API + dashboard stats),
 `web/` (one-time link page, dashboard + review pages), `whatsapp/` (Graph API client). Schema in `src/main/resources/schema.sql`,
 demo data in `demo-data.yml`.
+
+- **Step 5b - Forgery and duplicate-ID checks** (22 Oct 2026): vision schema gained `tamper_signals` (font mismatch, misaligned text,
+  digital editing, replaced photo, layout, missing security features, inconsistent fields) -> `FORGERY_SIGNS`; NIK province vs printed
+  PROVINSI header -> `ID_REGION_MISMATCH`; selfie `face_matches_ktp_photo` -> `SELFIE_FACE_MISMATCH`; cross-application lookup in
+  `RiskAssessmentService.related()` -> `SHARED_ID_NUMBER` (same NIK, different person), `DUPLICATE_APPLICATION` (same person),
+  `PHONE_USED_WITH_OTHER_ID`; open related applications are re-assessed too. Forgery evidence routes to an officer, never a retake.
+  Stub NIKs are unique per application (serial = last three digits of the number); caption `dup` reuses the previous NIK. Demo seeder
+  has `FORGERY` and `SHARED_ID` showcase scenarios. `AI_USAGE.md` documents where and how AI is used. 80 tests + 1 skipped.
 
 ## To do first next session (10 minutes)
 

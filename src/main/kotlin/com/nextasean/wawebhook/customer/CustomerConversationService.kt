@@ -6,6 +6,7 @@ import com.nextasean.wawebhook.application.DealerApplication
 import com.nextasean.wawebhook.conversation.DealerNotifier
 import com.nextasean.wawebhook.conversation.Input
 import com.nextasean.wawebhook.documents.DocumentCheckResult
+import com.nextasean.wawebhook.documents.CheckContext
 import com.nextasean.wawebhook.documents.DocumentCheckService
 import com.nextasean.wawebhook.documents.DocumentRecord
 import com.nextasean.wawebhook.documents.DocumentRepository
@@ -254,7 +255,7 @@ class CustomerConversationService(
         send(session.phone, CustomerMessages.received(type))
 
         val checkStarted = System.currentTimeMillis()
-        val result = documentCheck.check(type, file, media.mimeType, image.caption)
+        val result = documentCheck.check(type, file, media.mimeType, image.caption, CheckContext(app.applicationNumber, session.phone))
         traceCheck(app, type, result, System.currentTimeMillis() - checkStarted)
         record = documents.save(
             record.copy(

@@ -18,14 +18,15 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 | Step 2b | 백오피스 이벤트: 폼 제출, 재제출 요청, 승인/거절 알림을 딜러에게 WhatsApp으로 푸시 (`/admin/**`) | ✅ 완료 |
 | Step 3 | 고객 여정: wa.me `START <신청번호>` 링크, 동의 버튼, KTP → 셀피 수집(미디어 다운로드·저장), 스텁 문서 검사, 목업 Dukcapil + PEFINDO 조회, `READY_FOR_REVIEW` 전환, 양측 알림 | ✅ 완료 |
 | Step 3b | Claude 문서 분석 + 리뷰 에이전트 (`DOCUMENT_CHECK=claude`): 비전 분석(JSON 스키마), NIK 검증, 신뢰도 임계값, 도구 사용 에이전트(`request_documents` / `write_summary`), 규칙 기반 폴백 | ✅ 코드·테스트 완료, **실 API 미검증** |
-| Step 4 | **심사 백오피스 (`/review`)**: 심사 큐(필터·검색), 신청 상세(서류 이미지·분석 상세·추출 데이터·조회 결과·Risk Flag 근거·리뷰 요약·심사 이력), 승인/거절(딜러 **+ 고객** WhatsApp 알림), 고객 서류 재요청(고객 WhatsApp으로 직접, 재접수 시 검사·조회 재실행), 딜러 폼 재제출 요청, 심사 메모, 리스크 재평가, `REVIEW_EVENTS` 감사 이력, 심사자 이름 기록 | ✅ 완료 (2026-10-20) |
+| Step 4 | **심사 백오피스 (`/review`)**: 심사 큐(필터·검색), 신청 상세(서류 이미지·분석 상세·추출 데이터·조회 결과·Risk Flag 근거·리뷰 요약·심사 이력), 승인/거절(딜러 **+ 고객** WhatsApp 알림), 고객 서류 재요청(고객 WhatsApp으로 직접, 재접수 시 검사·조회 재실행), 딜러 폼 재제출 요청, 심사 메모, 리스크 재평가, `REVIEW_EVENTS` 감사 이력, 심사자 이름 기록. 10-22: **심사 통계 탭**(`/review#stats`, `GET /admin/review/stats`) — 현재 대기 현황(고위험·위조 경고·담당자 검토·대기 시간 분포·국가/등급별), 처리 속도(오늘/7일/30일 결정, 승인율, 평균 결정 시간, 서류 재요청), 14일 일별 결정 vs 유입 차트, 심사자별 현황, 대기 중 Risk Flag, 등급별 결정 결과, 에이전트 플래그 vs 최종 결정 | ✅ 완료 (2026-10-22) |
 | Step 4b | **AI Agent 판단 타임라인**: 파이프라인과 리뷰 에이전트가 한 일을 단계별로 저장(`AGENT_STEPS`)하고 심사 화면에 실시간 표시 — 서류 수신 → 비전 분석/품질 확인 → NIK 검증 → 필드 추출 → 에이전트 턴(stop reason·토큰·도구 호출) → 코드 가드레일 → 결정 → 고객 안내 → 신원·신용 조회 → 리스크 평가 → 심사 대기, 심사자 재요청·결정까지. 대시보드에 AI 에이전트 활동 카드 | ✅ 완료 (2026-10-20) |
-| Step 5 | 통계 대시보드(`/dashboard`): 국가별 통계(인도네시아·미얀마·캄보디아), **Fraud/위조 감지 Risk Flag**, **고객 리스크 등급(A~D) AI 표시**, 고객 배지(재무 정합성·우수 딜러 유입), 퍼널·딜러별 현황. 딜러 국가·등급, 국가별 조회 제공자(목업). 10-20 추가: 심사 대기 큐(대기 시간), 주간 추이 차트(8주, 국가별 누적 + 고위험 건수), 고객 서류 재요청·최장 대기·평균 결정 시간 타일, 신청번호 → 심사 화면 링크 | ✅ 완료 (2026-10-19, 보강 10-20) |
+| Step 5 | 통계 대시보드(`/dashboard`): 국가별 통계(인도네시아·미얀마·캄보디아), **Fraud/위조 감지 Risk Flag**, **고객 리스크 등급(A~D) AI 표시**, 고객 배지(재무 정합성·우수 딜러 유입), 퍼널·딜러별 현황. 딜러 국가·등급, 국가별 조회 제공자(목업). 10-20 추가: 심사 대기 큐(대기 시간), 주간 추이 차트(8주, 국가별 누적 + 고위험 건수), 고객 서류 재요청·최장 대기·평균 결정 시간 타일, 신청번호 → 심사 화면 링크. 10-22: 페이지를 5개 탭(개요 · 리스크·사기 · 국가·딜러 · AI 에이전트 · 최근 신청)으로 분리, URL 해시(`/dashboard#risk`)로 탭 직접 열기 | ✅ 완료 (2026-10-19, 보강 10-22) |
+| Step 5b | **위변조·중복 제출 검증 강화** (2026-10-22): 비전 분석에 위조 증거 `tamper_signals`(글꼴 불일치·편집 흔적·사진 교체·레이아웃·보안 요소) 추가 → `FORGERY_SIGNS`; NIK 지역 코드 vs 카드 발급 지역 `ID_REGION_MISMATCH`; 셀피 얼굴 vs 카드 사진 `SELFIE_FACE_MISMATCH`; **동일 신분증 다수 제출** 교차 조회 `SHARED_ID_NUMBER` / `DUPLICATE_APPLICATION` / `PHONE_USED_WITH_OTHER_ID`(양쪽 신청 모두 재평가). 위조 의심은 재촬영 대신 담당자 검토. 스텁 NIK는 신청마다 고유, 캡션 `dup`으로 중복 시연. AI 활용 전체 설명은 **[AI_USAGE.md](AI_USAGE.md)** | ✅ 완료 (2026-10-22), 실 API 미검증 |
 | 운영 | 실 Meta 미디어 다운로드 검증, PostgreSQL + Flyway, 영속 중복 제거, 시크릿·문서 암호화, 관측성, ngrok 대신 고정 도메인 | ⬜ 미착수 |
 
-- 테스트: `./gradlew test` → **73개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
+- 테스트: `./gradlew test` → **80개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
 - Meta 웹훅은 ngrok 예약 도메인(`amaretto-tipoff-excess.ngrok-free.dev`)에 이미 등록·검증되어 있어 터널만 올리면 됩니다.
-- 데모 진행 순서는 `DEMO.md`, 남은 작업의 우선순위는 `NEXT_STEPS.md`에 정리되어 있습니다.
+- 데모 진행 순서는 `DEMO.md`, 남은 작업의 우선순위는 `NEXT_STEPS.md`, **AI를 어디에 어떻게 쓰는지**는 `AI_USAGE.md`에 정리되어 있습니다.
 
 ### 알려진 제약
 
@@ -77,7 +78,8 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 - `StubDocumentCheck`는 `demo-data.check-delay`(2초)만큼 기다린 뒤 샘플 이름·NIK·생년월일·주소로 PASS를 반환합니다.
   기본 NIK는 4로 끝나(신용 점수 720) 리스크 등급 **A**와 "재무 정합성 우수" 배지가 나오고, 캡션 `nik1`은 645점으로 **B**, `nik7`은 불일치로 **C**(위조 경고)가 됩니다.
 - 이미지 캡션에 `blur`가 있으면 "Photo is blurry"로 FAIL.
-- 이미지 캡션에 `nik7`(임의 숫자)이 있으면 데모 NIK 마지막 자리를 덮어씁니다.
+- 이미지 캡션에 `nik7`(임의 숫자)이 있으면 데모 NIK 마지막 자리를 덮어씁니다. 스텁 NIK의 일련번호(13~15번째 자리)는 신청번호 끝 세 자리이므로 고객마다 다릅니다.
+- 이미지 캡션에 `dup`이 있으면 **직전 다른 신청의 NIK를 그대로 제출**합니다 → 두 신청 모두 `SHARED_ID_NUMBER`(동일 신분증 다수 제출) 위조 경고, 등급 C 이상.
 - 목업 제공자는 NIK 마지막 자리로 결과를 정합니다: 0~6 일치, 7 불일치, 8 미발견, 9 타임아웃. 1~3초 지연을 흉내 냅니다.
 - `VERIFICATION_COUNTRY`(기본 `ID`)로 제공자 쌍을 고르며, 해당 국가의 제공자가 없으면 앱이 기동을 거부합니다.
 
@@ -131,6 +133,12 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 | `ID_CHANGED_BETWEEN_UPLOADS` | 서류 분석 | 높음 | 재업로드 사이에 신분증 번호가 바뀜 | ⚠ |
 | `SELFIE_ID_MISMATCH` | 서류 분석 | 높음 | 셀피에 든 신분증 번호와 제출 서류 번호가 다름 | ⚠ |
 | `MULTIPLE_FACES` | 서류 분석 | 중간 | 셀피에 얼굴이 1명이 아님 | ⚠ |
+| `FORGERY_SIGNS` | 서류 분석 | 높음 (가장 강한 신호가 HIGH) / 중간 | 비전 분석이 본 편집·위조 증거: 글꼴 불일치, 텍스트 정렬, 디지털 편집 흔적, 증명사진 교체, 레이아웃·색상, 보안 요소 누락, 항목 간 모순 (`tamper_signals`) | ⚠ |
+| `ID_REGION_MISMATCH` | 서류 분석 | 높음 | NIK 앞 두 자리의 시·도와 카드 상단 PROVINSI 헤더가 다름 | ⚠ |
+| `SELFIE_FACE_MISMATCH` | 서류 분석 | 높음 | 셀피 얼굴이 들고 있는 카드의 사진과 다름 (`face_matches_ktp_photo` = no) | ⚠ |
+| `SHARED_ID_NUMBER` | 중복 신청 조회 | 높음 | 같은 NIK가 **다른 사람**(이름 또는 전화가 다름)의 신청에도 제출됨. 열려 있는 양쪽 신청 모두 표시 | ⚠ |
+| `PHONE_USED_WITH_OTHER_ID` | 중복 신청 조회 | 높음 | 같은 전화번호로 다른 NIK가 제출됨 | ⚠ |
+| `DUPLICATE_APPLICATION` | 중복 신청 조회 | 중간 | 같은 사람(NIK·이름·전화 동일)의 중복 신청 | |
 | `LOW_CONFIDENCE_FIELDS` | 서류 분석 | 낮음 | 핵심 필드 판독 신뢰도 낮음 | |
 | `IDENTITY_MISMATCH` | 신원 조회 | 높음 | 등록부 데이터와 서류 불일치 | ⚠ |
 | `IDENTITY_NOT_FOUND` | 신원 조회 | 높음 | 등록부에 없는 번호 | |
@@ -427,7 +435,7 @@ open http://localhost:8080/dashboard
 [한국어](#korean) | **English**
 
 Spring Boot 3 (Kotlin, Gradle) webhook for the WhatsApp Cloud API.
-_Current status (20 Oct 2026): Steps 1-3b, Step 4 (reviewer back office at `/review`) and Step 5 (statistics dashboard with fraud/forgery risk flags, AI risk grade A-D, customer badges and per-country statistics for Indonesia, Myanmar and Cambodia) done, 71 tests passing (1 skipped live Claude test); production hardening not started. See the Korean section above or `NEXT_STEPS.md` for the full status table._
+_Current status (20 Oct 2026): Steps 1-3b, Step 4 (reviewer back office at `/review`) and Step 5 (statistics dashboard with fraud/forgery risk flags, AI risk grade A-D, customer badges and per-country statistics for Indonesia, Myanmar and Cambodia) done, 80 tests passing (1 skipped live Claude test); 22 Oct: forgery evidence, NIK-vs-province, selfie face match and duplicate-ID cross checks added, see `AI_USAGE.md`; production hardening not started. See the Korean section above or `NEXT_STEPS.md` for the full status table._
 
 ## Step 4 - Reviewer back office (`/review`)
 
@@ -521,7 +529,8 @@ Demo controls (see `src/main/resources/demo-data.yml`):
 
 - `StubDocumentCheck` waits `demo-data.check-delay` (2 s) and returns PASS with the sample name, NIK, DOB and address.
 - Image caption containing `blur` fails the check with "Photo is blurry".
-- Image caption containing `nik7` (any digit) overrides the last digit of the demo NIK.
+- Image caption containing `nik7` (any digit) overrides the last digit of the demo NIK; serial digits 13-15 come from the application number, so customers never share a NIK by accident.
+- Image caption containing `dup` submits the NIK of the previous application: both applications get the `SHARED_ID_NUMBER` fraud flag (same ID card submitted by different people).
 - Mock providers decide by the last NIK digit: 0-6 match, 7 mismatch, 8 not found, 9 timeout, with 1-3 s simulated latency.
 - `VERIFICATION_COUNTRY` (default `ID`) selects the provider pair; the app refuses to start if none exist for that country.
 

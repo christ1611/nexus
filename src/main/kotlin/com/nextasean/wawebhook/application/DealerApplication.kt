@@ -92,4 +92,6 @@ interface ApplicationRepository : CrudRepository<DealerApplication, Long> {
     fun findByCountryOrderByCreatedAtDesc(country: String): List<DealerApplication>
     fun findByStatusOrderByCreatedAtDesc(status: ApplicationStatus): List<DealerApplication>
     fun findByDemoSeedTrue(): List<DealerApplication>
+    fun findByExtractedNik(extractedNik: String): List<DealerApplication>
+    fun findByCustomerPhone(customerPhone: String): List<DealerApplication>
 }

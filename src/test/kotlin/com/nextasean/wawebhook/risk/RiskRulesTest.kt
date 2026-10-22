@@ -9,6 +9,9 @@ import com.nextasean.wawebhook.documents.analysis.DetectedDocumentType
 import com.nextasean.wawebhook.documents.analysis.DocumentAnalysis
 import com.nextasean.wawebhook.documents.analysis.ExtractedField
 import com.nextasean.wawebhook.documents.analysis.FieldStatus
+import com.nextasean.wawebhook.documents.analysis.NikValidator
+import com.nextasean.wawebhook.documents.analysis.TamperSignal
+import com.nextasean.wawebhook.documents.analysis.TamperSignalType
 import com.nextasean.wawebhook.documents.analysis.QualityIssue
 import com.nextasean.wawebhook.documents.analysis.QualityIssueType
 import com.nextasean.wawebhook.documents.analysis.Severity
@@ -138,5 +141,86 @@ class RiskRulesTest {
         val a = RiskRules.evaluate(app(dob = "2015-01-01"), standardDealer, failed)
         assertEquals(setOf(RiskCodes.AGE_OUT_OF_RANGE, RiskCodes.MANY_FAILED_UPLOADS), a.flags.map { it.code }.toSet())
         assertTrue(a.flags.all { it.source == RiskSource.BEHAVIOUR })
+    }
+
+    @Test
+    fun `the same ID number on another person's application is a HIGH fraud flag, on the same person's a duplicate warning`() {
+        val mine = app().copy(customerPhone = "6281000000001", extractedName = "BUDI SANTOSO")
+        val otherPerson = mine.copy(id = 11, applicationNumber = "APP-2026-001002", customerPhone = "6281000000002", extractedName = "SITI RAHAYU")
+        val fraud = RiskRules.evaluate(mine, standardDealer, emptyList(), related = RelatedApplications(sameIdNumber = listOf(otherPerson)))
+        val flag = fraud.flags.single { it.code == RiskCodes.SHARED_ID_NUMBER }
+        assertEquals(RiskSeverity.HIGH, flag.severity)
+        assertTrue(flag.fraudSignal)
+        assertTrue(flag.detail.contains("APP-2026-001002") && flag.detail.contains("SITI") && !flag.detail.contains("3171051705900004"), flag.detail)
+        assertTrue(fraud.grade.highRisk)
+
+        val samePerson = mine.copy(id = 12, applicationNumber = "APP-2026-001003")
+        val duplicate = RiskRules.evaluate(mine, standardDealer, emptyList(), related = RelatedApplications(sameIdNumber = listOf(samePerson)))
+        assertEquals(listOf(RiskCodes.DUPLICATE_APPLICATION), duplicate.flags.map { it.code })
+        assertFalse(duplicate.flags.single().fraudSignal)
+        assertEquals(RiskGrade.B, duplicate.grade)
+
+        // The application itself is never its own duplicate.
+        assertTrue(RiskRules.evaluate(mine, standardDealer, emptyList(), related = RelatedApplications(sameIdNumber = listOf(mine))).flags.isEmpty())
+    }
+
+    @Test
+    fun `the same phone number with a different ID number on another application is a HIGH fraud flag`() {
+        val mine = app().copy(customerPhone = "6281000000001")
+        val other = mine.copy(id = 13, applicationNumber = "APP-2026-001009", extractedNik = "3171051705900007")
+        val a = RiskRules.evaluate(mine, standardDealer, emptyList(), related = RelatedApplications(samePhone = listOf(other)))
+        val flag = a.flags.single { it.code == RiskCodes.PHONE_USED_WITH_OTHER_ID }
+        assertEquals(RiskSeverity.HIGH, flag.severity)
+        assertTrue(flag.fraudSignal)
+        assertTrue(flag.detail.contains("***0007") && !flag.detail.contains("3171051705900007"), flag.detail)
+        // Same phone, same ID number: a re-application, not this flag.
+        assertTrue(RiskRules.evaluate(mine, standardDealer, emptyList(), related = RelatedApplications(samePhone = listOf(other.copy(extractedNik = mine.extractedNik)))).flags.none { it.code == RiskCodes.PHONE_USED_WITH_OTHER_ID })
+    }
+
+    @Test
+    fun `forgery evidence from the vision analysis is a fraud flag whose severity follows the strongest signal`() {
+        val weak = analysis(DocumentType.KTP, DetectedDocumentType.KTP).copy(tamperSignals = listOf(TamperSignal(TamperSignalType.FONT_MISMATCH, Severity.MEDIUM, "NIK digits are in a thinner font than the name")))
+        val a = RiskRules.evaluate(app(), standardDealer, listOf(AnalysedDocument(record(DocumentType.KTP), weak)))
+        val medium = a.flags.single { it.code == RiskCodes.FORGERY_SIGNS }
+        assertEquals(RiskSeverity.MEDIUM, medium.severity)
+        assertTrue(medium.fraudSignal)
+        assertTrue(medium.detail.contains("글꼴"), medium.detail)
+        assertEquals(RiskMethod.CLAUDE_VISION_RULES, a.method)
+
+        val strong = weak.copy(tamperSignals = weak.tamperSignals + TamperSignal(TamperSignalType.PHOTO_REPLACED, Severity.HIGH, "photo edges are cut and the background colour differs"))
+        val b = RiskRules.evaluate(app(), standardDealer, listOf(AnalysedDocument(record(DocumentType.KTP), strong)))
+        assertEquals(RiskSeverity.HIGH, b.flags.single { it.code == RiskCodes.FORGERY_SIGNS }.severity)
+        assertTrue(b.grade.highRisk)
+    }
+
+    @Test
+    fun `NIK province that differs from the printed province is a fraud flag, matching spellings are not`() {
+        val jakartaNik = NikValidator.validate("3171051705900004", "1990-05-17", "LAKI-LAKI")
+        assertEquals("DKI Jakarta", jakartaNik.provinceName)
+        val mismatch = analysis(DocumentType.KTP, DetectedDocumentType.KTP, fields = listOf(field("province", "PROVINSI JAWA BARAT"))).copy(nik = jakartaNik)
+        val a = RiskRules.evaluate(app(), standardDealer, listOf(AnalysedDocument(record(DocumentType.KTP), mismatch)))
+        val flag = a.flags.single { it.code == RiskCodes.ID_REGION_MISMATCH }
+        assertEquals(RiskSeverity.HIGH, flag.severity)
+        assertTrue(flag.detail.contains("DKI Jakarta") && flag.detail.contains("JAWA BARAT"), flag.detail)
+
+        listOf("PROVINSI DKI JAKARTA", "DKI JAKARTA", "JAKARTA").forEach { printed ->
+            val ok = mismatch.copy(fields = listOf(field("province", printed)))
+            assertTrue(RiskRules.evaluate(app(), standardDealer, listOf(AnalysedDocument(record(DocumentType.KTP), ok))).flags.none { it.code == RiskCodes.ID_REGION_MISMATCH }, printed)
+        }
+        // A province the model could not read confidently is not compared.
+        val unsure = mismatch.copy(fields = listOf(ExtractedField("province", "JAWA BARAT", 0.4, FieldStatus.NEEDS_OFFICER_REVIEW)))
+        assertTrue(RiskRules.evaluate(app(), standardDealer, listOf(AnalysedDocument(record(DocumentType.KTP), unsure))).flags.none { it.code == RiskCodes.ID_REGION_MISMATCH })
+    }
+
+    @Test
+    fun `selfie face that does not match the card photo is a HIGH fraud flag`() {
+        val selfie = analysis(DocumentType.SELFIE_KTP, DetectedDocumentType.SELFIE_WITH_KTP, fields = listOf(field("face_count", "1"), field("nik_on_held_ktp", "3171051705900004"), field("face_matches_ktp_photo", "no")))
+        val a = RiskRules.evaluate(app(), standardDealer, listOf(AnalysedDocument(record(DocumentType.SELFIE_KTP, id = 2), selfie)))
+        val flag = a.flags.single { it.code == RiskCodes.SELFIE_FACE_MISMATCH }
+        assertEquals(RiskSeverity.HIGH, flag.severity)
+        assertTrue(flag.fraudSignal)
+        assertTrue(a.grade.highRisk)
+        val unclear = selfie.copy(fields = selfie.fields.map { if (it.name == "face_matches_ktp_photo") it.copy(value = "unclear") else it })
+        assertTrue(RiskRules.evaluate(app(), standardDealer, listOf(AnalysedDocument(record(DocumentType.SELFIE_KTP, id = 2), unclear))).flags.none { it.code == RiskCodes.SELFIE_FACE_MISMATCH })
     }
 }

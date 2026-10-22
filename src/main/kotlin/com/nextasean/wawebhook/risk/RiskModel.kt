@@ -8,6 +8,8 @@ enum class RiskSource(val label: String, val labelKo: String) {
     IDENTITY("Identity registry", "신원 조회"),
     CREDIT("Credit bureau", "신용 조회"),
     BEHAVIOUR("Customer behaviour", "고객 행동"),
+    /** The same ID number or phone number seen on other applications. */
+    CROSS_CHECK("Cross-application check", "중복 신청 조회"),
 }
 
 enum class RiskSeverity(val points: Int, val label: String, val labelKo: String) {
@@ -35,6 +37,8 @@ data class RiskFlag(
         val FRAUD_CODES = setOf(
             RiskCodes.SCREEN_OR_COPY, RiskCodes.TAMPERING_SUSPECTED, RiskCodes.WRONG_DOCUMENT_TYPE, RiskCodes.INVALID_ID_NUMBER,
             RiskCodes.ID_CHANGED_BETWEEN_UPLOADS, RiskCodes.SELFIE_ID_MISMATCH, RiskCodes.MULTIPLE_FACES, RiskCodes.IDENTITY_MISMATCH,
+            RiskCodes.FORGERY_SIGNS, RiskCodes.ID_REGION_MISMATCH, RiskCodes.SELFIE_FACE_MISMATCH,
+            RiskCodes.SHARED_ID_NUMBER, RiskCodes.PHONE_USED_WITH_OTHER_ID,
         )
     }
 }
@@ -59,6 +63,19 @@ object RiskCodes {
     const val REPEATED_RESUBMISSION = "REPEATED_RESUBMISSION"
     const val MANY_FAILED_UPLOADS = "MANY_FAILED_UPLOADS"
     const val AGE_OUT_OF_RANGE = "AGE_OUT_OF_RANGE"
+
+    /** Visible editing / forgery evidence reported by the vision analysis (fonts, photo swap, layout, security features). */
+    const val FORGERY_SIGNS = "FORGERY_SIGNS"
+    /** The province encoded in the NIK is not the province printed on the card. */
+    const val ID_REGION_MISMATCH = "ID_REGION_MISMATCH"
+    /** The face in the selfie does not look like the photo on the held KTP. */
+    const val SELFIE_FACE_MISMATCH = "SELFIE_FACE_MISMATCH"
+    /** The same ID number was submitted on another application by a different person (name or phone differs). */
+    const val SHARED_ID_NUMBER = "SHARED_ID_NUMBER"
+    /** The same customer phone number was used on another application with a different ID number. */
+    const val PHONE_USED_WITH_OTHER_ID = "PHONE_USED_WITH_OTHER_ID"
+    /** The same person (same ID number, name and phone) already has another application. */
+    const val DUPLICATE_APPLICATION = "DUPLICATE_APPLICATION"
 }
 
 /** Customer risk grade shown on the dashboard. A is the best. */

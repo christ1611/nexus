@@ -79,4 +79,27 @@ class ClaudeDocumentCheckTest {
         assertNull(result.analysis)
         assertNull(result.fields)
     }
+
+    @Test
+    fun `tamper signals are parsed, keep the document usable and send it to an officer`() {
+        val json = """{"document_type":"KTP","document_type_confidence":0.98,"quality_issues":[],
+           "tamper_signals":[{"type":"PHOTO_REPLACED","severity":"HIGH","detail":"photo edges are cut, background colour differs"},
+                             {"type":"FONT_MISMATCH","severity":"LOW","detail":"name slightly bolder"},
+                             {"type":"NOT_A_KNOWN_TYPE","severity":"MEDIUM","detail":"mapped to OTHER"}],
+           "fields":[{"name":"nik","value":"3171051705900001","confidence":0.99,"legibility_note":""},
+                     {"name":"name","value":"BUDI SANTOSO","confidence":0.99,"legibility_note":""},
+                     {"name":"date_of_birth","value":"1990-05-17","confidence":0.97,"legibility_note":""},
+                     {"name":"gender","value":"LAKI-LAKI","confidence":0.99,"legibility_note":""},
+                     {"name":"address","value":"JL. MERDEKA NO. 10","confidence":0.95,"legibility_note":""}],"notes":""}"""
+        val a = mapper.map(DocumentType.KTP, json, "m", today = today)
+        assertTrue(a.usable, "forgery evidence never asks the customer for a retake")
+        assertEquals(3, a.tamperSignals.size)
+        assertEquals(com.nextasean.wawebhook.documents.analysis.TamperSignalType.OTHER, a.tamperSignals[2].type)
+        assertTrue(a.needsOfficerReview)
+        assertEquals(2, a.reviewReasons.count { it.startsWith("Possible forgery") }, "only non-LOW signals become review reasons -> ${a.reviewReasons}")
+        val check = ClaudeDocumentCheck(Scripted { a })
+        val result = check.check(DocumentType.KTP, Path.of("x.jpg"), "image/jpeg", null)
+        assertTrue(result.passed)
+        assertEquals("3171051705900001", result.fields?.nik)
+    }
 }

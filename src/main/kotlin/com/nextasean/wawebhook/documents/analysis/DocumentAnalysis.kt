@@ -35,6 +35,20 @@ enum class Severity { LOW, MEDIUM, HIGH }
 
 data class QualityIssue(val type: QualityIssueType, val severity: Severity, val detail: String)
 
+/** Visible evidence that the document was edited or is not a genuine card. The model describes; the rules decide. */
+enum class TamperSignalType(val label: String, val labelKo: String) {
+    FONT_MISMATCH("Font or print style differs between fields", "필드 간 글꼴·인쇄 상태 불일치"),
+    TEXT_MISALIGNED("Text is misaligned with the card layout", "텍스트가 카드 레이아웃과 어긋남"),
+    DIGITAL_EDITING("Digital editing artefacts (cloning, blur patches, cut edges)", "디지털 편집 흔적"),
+    PHOTO_REPLACED("ID photo looks pasted or replaced", "증명사진 교체·덧붙임 흔적"),
+    LAYOUT_MISMATCH("Layout, colours or logos differ from a genuine card", "정품 카드와 레이아웃·색상·로고 다름"),
+    SECURITY_FEATURE_MISSING("Expected security features are missing or fake", "보안 요소 누락·위조"),
+    FIELD_INCONSISTENT("Fields contradict each other on the card", "카드 내 항목 간 모순"),
+    OTHER("Other forgery indication", "기타 위조 의심 요소"),
+}
+
+data class TamperSignal(val type: TamperSignalType, val severity: Severity, val detail: String)
+
 enum class FieldStatus {
     /** Clearly legible with confidence at or above the threshold; safe to use downstream. */
     EXTRACTED,
@@ -73,6 +87,8 @@ data class DocumentAnalysis(
     val qualityIssues: List<QualityIssue>,
     /** True when the image is the requested document and has no HIGH severity quality issue. */
     val usable: Boolean,
+    /** Forgery / editing evidence the model saw (empty when the card looks genuine). Never makes the image unusable: a suspect card goes to an officer, not back to the customer. */
+    val tamperSignals: List<TamperSignal> = emptyList(),
     val fields: List<ExtractedField>,
     val nik: NikValidation?,
     /** True when a human must look at this document before the application can move on automatically. */
@@ -117,6 +133,6 @@ data class DocumentAnalysis(
         val KTP_REQUIRED_FIELDS = listOf("nik", "name", "date_of_birth", "gender", "address")
 
         /** Observations the model is asked to return for the selfie. */
-        val SELFIE_FIELDS = listOf("face_count", "face_clearly_visible", "ktp_held_in_frame", "nik_on_held_ktp")
+        val SELFIE_FIELDS = listOf("face_count", "face_clearly_visible", "ktp_held_in_frame", "nik_on_held_ktp", "face_matches_ktp_photo")
     }
 }
