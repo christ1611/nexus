@@ -81,6 +81,16 @@
   .pill.READY_FOR_REVIEW { background: var(--seq-light); color: var(--text); }
   .pill.DOCUMENTS_REQUESTED, .pill.RESUBMISSION_REQUESTED { background: var(--warn); color: #000; }
   .pill.APPROVED { background: var(--good); color: #fff; } .pill.REJECTED { background: var(--critical); color: #fff; }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; margin-bottom: -4px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px 10px; color: var(--text-2); white-space: nowrap; display: inline-flex; align-items: baseline; gap: 6px; }
+  .tabs button small { font-size: 11px; color: var(--text-3); }
+  .tabs button:hover { color: var(--text); background: var(--surface-2); }
+  .tabs button[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--seq); }
+  .tabs button .n { font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); align-self: center; }
+  .tabs button[aria-selected="true"] .n { background: var(--seq); color: #fff; }
+  .panel { display: grid; gap: 16px; }
+  .panel[hidden] { display: none; }
   @media (max-width: 600px) { main, header { padding: 12px 16px; } .tile .v { font-size: 22px; } }
 </style>
 </head>
@@ -207,6 +217,14 @@
 
   function gradeCell(g) { const m = GRADE[g] || { color: 'var(--text-3)', icon: '○', ko: '미평가', en: 'n/a' }; return `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g || '–')} <span class="sub" style="display:inline">${m.ko}</span></span>`; }
 
+  const TABS = [
+    ['overview', '개요', 'Overview'], ['risk', '리스크·사기', 'Risk & fraud'], ['country', '국가·딜러', 'Countries & dealers'],
+    ['agent', 'AI 에이전트', 'AI agent'], ['recent', '최근 신청', 'Recent applications'],
+  ];
+  let activeTab = 'overview';
+  try { activeTab = sessionStorage.getItem('dashboardTab') || activeTab; } catch {}
+  if (location.hash.length > 1 && TABS.some(x => x[0] === location.hash.slice(1))) activeTab = location.hash.slice(1);
+
   function render(d) {
     const t = d.totals;
     const tiles = [
@@ -216,7 +234,9 @@
       ['담당자 검토 필요', 'Officer review required', t.officerReviewRequired], ['고객 서류 재요청 중', 'Documents requested', t.documentsRequested],
       ['최장 대기', 'Oldest waiting', hrs(t.oldestWaitingHours)], ['평균 결정 시간', 'Avg time to decision', hrs(t.avgDecisionHours)],
     ];
-    let h = `<section class="card"><div class="tiles">${tiles.map(([ko, en, v, alert]) =>
+    const P = {};
+    let h = '';
+    h += `<section class="card"><div class="tiles">${tiles.map(([ko, en, v, alert]) =>
       `<div class="tile ${alert && v > 0 ? 'alert' : ''}"><div class="k">${ko} <small>${en}</small></div><div class="v">${v}</div></div>`).join('')}</div></section>`;
 
     h += `<section class="card"><h2>심사 대기 큐 <small>Review queue · highest risk first · <a class="app" href="/review">심사 화면 열기 →</a></small></h2>`;
@@ -225,6 +245,48 @@
       d.reviewQueue.map(q => `<tr><td>${appLink(q.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[q.country] || 'var(--text-3)'}"></span>${esc(q.country)}</td><td>${esc(q.dealerCode || '–')}</td><td>${esc(q.customerName || '–')}</td><td>${gradeCell(q.grade)}${q.score != null ? ` <span class="sub">${q.score}</span>` : ''}</td><td class="num">${q.fraudWarnings ? `<span style="color:var(--critical);font-weight:600">⚠ ${q.fraudWarnings}</span>` : '–'}</td><td>${q.officerReviewRequired ? '<span class="chip">필요</span>' : '–'}</td><td class="num" title="${esc(fmtTime(q.waitingSince))}">${hrs(q.waitingHours)}</td></tr>`).join('')
     }</tbody></table></div>`;
     h += `</section>`;
+
+    h += `<div class="row">
+      <section class="card"><h2>주간 추이 <small>Weekly trend · applications created per ISO week (last 8 weeks)</small></h2>${trendChart(d.trend)}</section>
+      <section class="card"><h2>국가별 신청 현황 <small>Applications by country and status</small></h2>${countryStacked(d.byCountry)}</section>
+    </div>`;
+
+    P.overview = h; h = '';
+
+    h += `<div class="row">
+      <section class="card"><h2>고객 리스크 등급 분포 <small>AI risk grade distribution (${esc(d.totals.assessed)} assessed)</small></h2>
+        ${hbars(d.riskGrades.map(g => ({ label: `${g.grade} ${g.labelKo}`, value: g.count, color: GRADE[g.grade].color, tip: `${g.grade} · ${g.labelKo} (${g.label}): ${g.count}` })), { left: 90, aria: 'Risk grade distribution' })}
+        <div class="legend">${d.riskGrades.map(g => `<span><span class="ic grade" style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${GRADE[g.grade].color}"></span> ${g.grade} = ${g.labelKo} · ${g.label}</span>`).join('')}</div>
+      </section>
+      <section class="card"><h2>Risk Flag 발생 건수 <small>Flag counts (⚠ = fraud / forgery signal)</small></h2>${d.flagCounts.length ? hbars(d.flagCounts.slice(0, 10).map(f => ({ label: (f.fraud ? '⚠ ' : '') + f.titleKo, value: f.count, color: f.fraud ? 'var(--critical)' : 'var(--seq)', tip: `${f.titleKo} · ${f.title} (${f.severity}): ${f.count}` })), { left: 200, aria: 'Risk flag counts' }) : '<p class="empty">아직 발생한 Risk Flag가 없습니다. <span class="sub">No flags yet.</span></p>'}</section>
+    </div>`;
+
+    h += `<section class="card"><h2>Risk Flag · 위조/사기 감지 경고 <small>Fraud / forgery warnings and high-risk customers (grade C or D)</small></h2>`;
+    if (!d.highRiskApplications.length) h += `<p class="empty">현재 고위험(C·D) 고객이 없습니다. <span class="sub">No high-risk customers right now.</span></p>`;
+    else h += `<div class="scroll"><table><thead><tr><th>신청번호<br><span class="sub">Application</span></th><th>국가</th><th>딜러</th><th>고객<br><span class="sub">Customer</span></th><th>상태</th><th>AI 리스크 등급<br><span class="sub">Grade · score</span></th><th>Risk Flags</th><th>배지<br><span class="sub">Badges</span></th><th>평가 방식<br><span class="sub">Method</span></th></tr></thead><tbody>${
+      d.highRiskApplications.map(r => `<tr><td>${appLink(r.applicationNumber)}<br><span class="sub">${fmtTime(r.assessedAt)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)} <span class="sub">score ${r.score}${r.fraudWarnings ? ` · ⚠ 위조 경고 ${r.fraudWarnings}` : ''}</span></td><td>${r.flags.map(f => `<span class="chip ${f.fraud ? 'fraud' : ''}" data-tip="${esc(f.title + ' — ' + f.detail)}">${f.fraud ? '⚠ ' : ''}${esc(f.titleKo)} · ${esc(f.severity)}</span>`).join('')}</td><td>${r.badgesKo.map(b => `<span class="chip badge">✓ ${esc(b)}</span>`).join('') || '–'}</td><td><span class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')}</span></td></tr>`).join('')
+    }</tbody></table></div>`;
+    h += `</section>`;
+
+    h += `<div class="row">
+      <section class="card"><h2>고객 배지 요약 <small>Customer badges</small></h2><div class="tiles">${d.badges.map(b => `<div class="tile"><div class="k">${esc(b.labelKo)} <small>${esc(b.label)}</small></div><div class="v">${b.count}</div></div>`).join('')}</div></section>
+      <section class="card"><h2>등급 산정 기준 <small>How the AI risk grade is computed</small></h2>
+      <details style="margin-top:4px"><summary>자세히 보기 · Show details</summary><p class="sub" style="display:block;margin:8px 0 0">점수 = Risk Flag 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A: 0-14, B: 15-39, C: 40-69, D: 70+. 심각도 '높음'의 위조·사기 신호가 하나라도 있으면 최소 C. 근거: Claude 비전 분석(화면 재촬영·변조·서류 종류·NIK 구조·셀피 불일치), 신원 조회, 신용 조회, 고객 행동(재요청·실패 업로드·연령). 스텁 모드에서는 조회 결과와 행동 규칙만 적용됩니다.<br>Score = sum of flag severities (LOW 10, MEDIUM 20, HIGH 35, capped at 100). A 0-14, B 15-39, C 40-69, D 70+. Any HIGH fraud signal floors the grade at C.</p></details>
+    </section>
+    </div>`;
+    P.risk = h; h = '';
+
+    h += `<section class="card"><h2>국가별 통계 <small>Per-country statistics (Indonesia · Myanmar · Cambodia)</small></h2><div class="scroll"><table>
+      <thead><tr><th>국가<br><span class="sub">Country</span></th><th>신분증<br><span class="sub">ID doc</span></th><th class="num">딜러<br><span class="sub">Dealers</span></th><th class="num">신청<br><span class="sub">Apps</span></th><th class="num">진행 중</th><th class="num">심사 대기</th><th class="num">승인</th><th class="num">거절</th><th class="num">고위험<br><span class="sub">C·D</span></th><th class="num">위조 경고<br><span class="sub">Fraud</span></th><th class="num">신원 일치율<br><span class="sub">ID match</span></th><th class="num">평균 신용점수<br><span class="sub">Avg score</span></th><th>등급 A/B/C/D</th><th class="num">우수 재무<br><span class="sub">Fin. badge</span></th><th class="num">우수 딜러 유입<br><span class="sub">Dealer badge</span></th></tr></thead>
+      <tbody>${d.byCountry.map(c => `<tr><td><span class="dot" style="background:${COUNTRY_COLOR[c.code]}"></span>${esc(c.nameKo)} <span class="sub" style="display:inline">${esc(c.name)}</span></td><td>${esc(c.idDocument)}</td><td class="num">${c.dealers}</td><td class="num">${c.applications}</td><td class="num">${c.inProgress}</td><td class="num">${c.readyForReview}</td><td class="num">${c.approved}</td><td class="num">${c.rejected}</td><td class="num">${c.highRisk}</td><td class="num">${c.fraudWarnings}</td><td class="num">${pct(c.identityMatchRate)}</td><td class="num">${num(c.avgCreditScore)}</td><td>${['A','B','C','D'].map(g => `<span title="${g}">${g}:${c.grades[g] || 0}</span>`).join(' ')}</td><td class="num">${c.badges.FINANCIAL_STABILITY || 0}</td><td class="num">${c.badges.EXCELLENT_DEALER_REFERRAL || 0}</td></tr>`).join('')}</tbody>
+    </table></div></section>`;
+
+    h += `<div class="row">
+      <section class="card"><h2>온보딩 퍼널 <small>Onboarding funnel</small></h2>${hbars(d.funnel.map((f, i) => ({ label: f.stageKo, value: f.count, color: 'var(--seq)', tip: `${f.stageKo} · ${f.stage}: ${f.count}` })), { left: 110, aria: 'Onboarding funnel' })}</section>
+      <section class="card"><h2>딜러별 현황 <small>Per dealer</small></h2><div class="scroll"><table><thead><tr><th>코드</th><th>딜러</th><th>국가</th><th>등급<br><span class="sub">Tier</span></th><th class="num">신청</th><th class="num">승인</th><th class="num">고위험</th></tr></thead><tbody>${d.dealers.map(x => `<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${x.tier === 'EXCELLENT' ? '★ 우수 딜러' : '일반'}</td><td class="num">${x.applications}</td><td class="num">${x.approved}</td><td class="num">${x.highRisk}</td></tr>`).join('')}</tbody></table></div></section>
+    </div>`;
+
+    P.country = h; h = '';
 
     const ag = d.agent;
     h += `<section class="card"><h2>AI 에이전트 활동 <small>Agent activity · what the pipeline and the review agent did across all applications (${ag.steps} steps)</small></h2><div class="tiles">${[
@@ -236,47 +298,36 @@
     ].map(([ko, en, v]) => `<div class="tile"><div class="k">${ko} <small>${esc(en)}</small></div><div class="v">${v}</div></div>`).join('')}</div>
     <p class="sub" style="margin:8px 0 0">각 신청의 단계별 판단 과정은 심사 화면의 <a class="app" href="/review">AI Agent 판단 타임라인</a>에서 실시간으로 볼 수 있습니다. 스텁 모드에서는 비전 분석·에이전트 턴이 0으로 남고 규칙·조회 단계만 기록됩니다.</p></section>`;
 
-    h += `<div class="row">
-      <section class="card"><h2>주간 추이 <small>Weekly trend · applications created per ISO week (last 8 weeks)</small></h2>${trendChart(d.trend)}</section>
-      <section class="card"><h2>국가별 신청 현황 <small>Applications by country and status</small></h2>${countryStacked(d.byCountry)}</section>
-    </div>`;
-
-    h += `<div class="row">
-      <section class="card"><h2>고객 리스크 등급 분포 <small>AI risk grade distribution (${esc(d.totals.assessed)} assessed)</small></h2>
-        ${hbars(d.riskGrades.map(g => ({ label: `${g.grade} ${g.labelKo}`, value: g.count, color: GRADE[g.grade].color, tip: `${g.grade} · ${g.labelKo} (${g.label}): ${g.count}` })), { left: 90, aria: 'Risk grade distribution' })}
-        <div class="legend">${d.riskGrades.map(g => `<span><span class="ic grade" style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${GRADE[g.grade].color}"></span> ${g.grade} = ${g.labelKo} · ${g.label}</span>`).join('')}</div>
-      </section>
-    </div>`;
-
-    h += `<section class="card"><h2>국가별 통계 <small>Per-country statistics (Indonesia · Myanmar · Cambodia)</small></h2><div class="scroll"><table>
-      <thead><tr><th>국가<br><span class="sub">Country</span></th><th>신분증<br><span class="sub">ID doc</span></th><th class="num">딜러<br><span class="sub">Dealers</span></th><th class="num">신청<br><span class="sub">Apps</span></th><th class="num">진행 중</th><th class="num">심사 대기</th><th class="num">승인</th><th class="num">거절</th><th class="num">고위험<br><span class="sub">C·D</span></th><th class="num">위조 경고<br><span class="sub">Fraud</span></th><th class="num">신원 일치율<br><span class="sub">ID match</span></th><th class="num">평균 신용점수<br><span class="sub">Avg score</span></th><th>등급 A/B/C/D</th><th class="num">우수 재무<br><span class="sub">Fin. badge</span></th><th class="num">우수 딜러 유입<br><span class="sub">Dealer badge</span></th></tr></thead>
-      <tbody>${d.byCountry.map(c => `<tr><td><span class="dot" style="background:${COUNTRY_COLOR[c.code]}"></span>${esc(c.nameKo)} <span class="sub" style="display:inline">${esc(c.name)}</span></td><td>${esc(c.idDocument)}</td><td class="num">${c.dealers}</td><td class="num">${c.applications}</td><td class="num">${c.inProgress}</td><td class="num">${c.readyForReview}</td><td class="num">${c.approved}</td><td class="num">${c.rejected}</td><td class="num">${c.highRisk}</td><td class="num">${c.fraudWarnings}</td><td class="num">${pct(c.identityMatchRate)}</td><td class="num">${num(c.avgCreditScore)}</td><td>${['A','B','C','D'].map(g => `<span title="${g}">${g}:${c.grades[g] || 0}</span>`).join(' ')}</td><td class="num">${c.badges.FINANCIAL_STABILITY || 0}</td><td class="num">${c.badges.EXCELLENT_DEALER_REFERRAL || 0}</td></tr>`).join('')}</tbody>
-    </table></div></section>`;
-
-    h += `<section class="card"><h2>Risk Flag · 위조/사기 감지 경고 <small>Fraud / forgery warnings and high-risk customers (grade C or D)</small></h2>`;
-    if (!d.highRiskApplications.length) h += `<p class="empty">현재 고위험(C·D) 고객이 없습니다. <span class="sub">No high-risk customers right now.</span></p>`;
-    else h += `<div class="scroll"><table><thead><tr><th>신청번호<br><span class="sub">Application</span></th><th>국가</th><th>딜러</th><th>고객<br><span class="sub">Customer</span></th><th>상태</th><th>AI 리스크 등급<br><span class="sub">Grade · score</span></th><th>Risk Flags</th><th>배지<br><span class="sub">Badges</span></th><th>평가 방식<br><span class="sub">Method</span></th></tr></thead><tbody>${
-      d.highRiskApplications.map(r => `<tr><td>${appLink(r.applicationNumber)}<br><span class="sub">${fmtTime(r.assessedAt)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)} <span class="sub">score ${r.score}${r.fraudWarnings ? ` · ⚠ 위조 경고 ${r.fraudWarnings}` : ''}</span></td><td>${r.flags.map(f => `<span class="chip ${f.fraud ? 'fraud' : ''}" data-tip="${esc(f.title + ' — ' + f.detail)}">${f.fraud ? '⚠ ' : ''}${esc(f.titleKo)} · ${esc(f.severity)}</span>`).join('')}</td><td>${r.badgesKo.map(b => `<span class="chip badge">✓ ${esc(b)}</span>`).join('') || '–'}</td><td><span class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')}</span></td></tr>`).join('')
-    }</tbody></table></div>`;
-    h += `</section>`;
-
-    h += `<div class="row">
-      <section class="card"><h2>Risk Flag 발생 건수 <small>Flag counts (⚠ = fraud / forgery signal)</small></h2>${d.flagCounts.length ? hbars(d.flagCounts.slice(0, 10).map(f => ({ label: (f.fraud ? '⚠ ' : '') + f.titleKo, value: f.count, color: f.fraud ? 'var(--critical)' : 'var(--seq)', tip: `${f.titleKo} · ${f.title} (${f.severity}): ${f.count}` })), { left: 200, aria: 'Risk flag counts' }) : '<p class="empty">아직 발생한 Risk Flag가 없습니다. <span class="sub">No flags yet.</span></p>'}</section>
-      <section class="card"><h2>고객 배지 요약 <small>Customer badges</small></h2><div class="tiles">${d.badges.map(b => `<div class="tile"><div class="k">${esc(b.labelKo)} <small>${esc(b.label)}</small></div><div class="v">${b.count}</div></div>`).join('')}</div></section>
-    </div>`;
-
-    h += `<div class="row">
-      <section class="card"><h2>온보딩 퍼널 <small>Onboarding funnel</small></h2>${hbars(d.funnel.map((f, i) => ({ label: f.stageKo, value: f.count, color: 'var(--seq)', tip: `${f.stageKo} · ${f.stage}: ${f.count}` })), { left: 110, aria: 'Onboarding funnel' })}</section>
-      <section class="card"><h2>딜러별 현황 <small>Per dealer</small></h2><div class="scroll"><table><thead><tr><th>코드</th><th>딜러</th><th>국가</th><th>등급<br><span class="sub">Tier</span></th><th class="num">신청</th><th class="num">승인</th><th class="num">고위험</th></tr></thead><tbody>${d.dealers.map(x => `<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${x.tier === 'EXCELLENT' ? '★ 우수 딜러' : '일반'}</td><td class="num">${x.applications}</td><td class="num">${x.approved}</td><td class="num">${x.highRisk}</td></tr>`).join('')}</tbody></table></div></section>
-    </div>`;
+    P.agent = h; h = '';
 
     h += `<section class="card"><h2>최근 신청 <small>Recent applications</small></h2><div class="scroll"><table><thead><tr><th>신청번호</th><th>국가</th><th>딜러</th><th>상태</th><th>등급</th><th>생성</th></tr></thead><tbody>${d.recent.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">아직 신청이 없습니다.</td></tr>'}</tbody></table></div>
-      <details style="margin-top:10px"><summary>등급 산정 기준 · How the grade is computed</summary><p class="sub" style="display:block;margin:8px 0 0">점수 = Risk Flag 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A: 0-14, B: 15-39, C: 40-69, D: 70+. 심각도 '높음'의 위조·사기 신호가 하나라도 있으면 최소 C. 근거: Claude 비전 분석(화면 재촬영·변조·서류 종류·NIK 구조·셀피 불일치), 신원 조회, 신용 조회, 고객 행동(재요청·실패 업로드·연령). 스텁 모드에서는 조회 결과와 행동 규칙만 적용됩니다.<br>Score = sum of flag severities (LOW 10, MEDIUM 20, HIGH 35, capped at 100). A 0-14, B 15-39, C 40-69, D 70+. Any HIGH fraud signal floors the grade at C.</p></details>
     </section>`;
-    h += `<p class="status">생성 시각 ${fmtTime(d.generatedAt)} · generated ${fmtTime(d.generatedAt)}${t.demoApplications ? ` · 데모 데이터 ${t.demoApplications}건 포함 (demo seed; DELETE /admin/demo/seed 로 제거)` : ''}</p>`;
-    main.innerHTML = h;
+    P.recent = h; h = '';
+
+    const footer = `<p class="status">생성 시각 ${fmtTime(d.generatedAt)} · generated ${fmtTime(d.generatedAt)}${t.demoApplications ? ` · 데모 데이터 ${t.demoApplications}건 포함 (demo seed; DELETE /admin/demo/seed 로 제거)` : ''}</p>`;
+    const counts = { overview: t.readyForReview, risk: t.highRisk, agent: ag.steps };
+    main.innerHTML = `<div class="tabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([id, ko, en]) =>
+      `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}">${ko} <small>${en}</small>${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
+      + TABS.map(([id]) => `<div class="panel" role="tabpanel" id="panel-${id}" aria-labelledby="tab-${id}" data-panel="${id}"${id === activeTab ? '' : ' hidden'}>${P[id]}</div>`).join('')
+      + footer;
     bindTips(main);
   }
+
+  function showTab(id) {
+    if (!TABS.some(x => x[0] === id)) id = 'overview';
+    activeTab = id;
+    try { sessionStorage.setItem('dashboardTab', id); } catch {}
+    if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+    main.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === id)));
+    main.querySelectorAll('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== id; });
+  }
+  main.addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+  main.addEventListener('keydown', e => {
+    const b = e.target.closest('[data-tab]'); if (!b || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft')) return;
+    const i = TABS.findIndex(x => x[0] === b.dataset.tab); const n = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length][0];
+    showTab(n); main.querySelector(`[data-tab="${n}"]`).focus(); e.preventDefault();
+  });
+  window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id && id !== activeTab) showTab(id); });
 
   async function load() {
     const key = keyInput.value.trim();
