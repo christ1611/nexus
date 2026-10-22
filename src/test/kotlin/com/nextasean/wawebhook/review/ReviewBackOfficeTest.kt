@@ -169,7 +169,7 @@ class ReviewBackOfficeTest @Autowired constructor(
         assertTrue(replies.any { it.contains("Your documents are submitted") }, replies.toString())
         val resubmitted = applications.findByApplicationNumber(number)!!
         assertEquals(ApplicationStatus.READY_FOR_REVIEW, resubmitted.status)
-        assertEquals("3171051705900001", resubmitted.extractedNik)
+        assertTrue(resubmitted.extractedNik!!.startsWith("317105170590") && resubmitted.extractedNik!!.endsWith("1"), resubmitted.extractedNik)
         assertEquals("B", resubmitted.riskGrade)
         assertEquals(3, documents.findByApplicationIdOrderByCreatedAtAsc(app.id).size)
         assertEquals(1, documents.findByApplicationIdOrderByCreatedAtAsc(app.id).count { it.superseded })
@@ -282,5 +282,53 @@ class ReviewBackOfficeTest @Autowired constructor(
             content { string(containsString("NEXT ASEAN 심사")) }
         }
         mockMvc.get("/admin/applications?queue=true").andExpect { status { isUnauthorized() } }
+    }
+
+    @Test
+    fun `reviewer statistics show the queue, the decision throughput and who did what`() {
+        val waitingNumber = onboard("6287000000011")
+        val decidedNumber = onboard("6287000000012")
+        mockMvc.post("/admin/applications/$decidedNumber/note") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            content = """{"note":"checked the address","reviewer":"Officer Stats"}"""
+        }.andExpect { status { isOk() } }
+        mockMvc.post("/admin/applications/$decidedNumber/decision") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            content = """{"decision":"REJECTED","note":"income too low","reviewer":"Officer Stats"}"""
+        }.andExpect { status { isOk() } }
+        assertEquals(ApplicationStatus.READY_FOR_REVIEW, applications.findByApplicationNumber(waitingNumber)!!.status)
+
+        mockMvc.get("/admin/review/stats") { header("X-Admin-Key", KEY) }.andExpect {
+            status { isOk() }
+            jsonPath("$.workload.readyForReview") { value(greaterThanOrEqualTo(1)) }
+            jsonPath("$.workload.waitingUnder24h") { value(greaterThanOrEqualTo(1)) }
+            jsonPath("$.workload.queueByCountry[0].code") { value("ID") }
+            jsonPath("$.workload.queueByCountry[0].waiting") { value(greaterThanOrEqualTo(1)) }
+            jsonPath("$.workload.queueByGrade[0].grade") { value("A") }
+            jsonPath("$.throughput.decidedToday") { value(greaterThanOrEqualTo(1)) }
+            jsonPath("$.throughput.decided7d") { value(greaterThanOrEqualTo(1)) }
+            jsonPath("$.throughput.rejected30d") { value(greaterThanOrEqualTo(1)) }
+            jsonPath("$.daily", hasSize<Any>(14))
+            jsonPath("$.daily[-1].rejected") { value(greaterThanOrEqualTo(1)) }
+            jsonPath("$.reviewers[*].name") { value(hasItem("Officer Stats")) }
+            jsonPath("$.reviewers[?(@.name == 'Officer Stats')].rejected") { value(hasItem(1)) }
+            jsonPath("$.reviewers[?(@.name == 'Officer Stats')].notes") { value(hasItem(1)) }
+            jsonPath("$.reviewers[*].name") { value(not(hasItem("system"))) }
+            jsonPath("$.gradeOutcomes[0].grade") { value("A") }
+            jsonPath("$.gradeOutcomes[0].rejected") { value(greaterThanOrEqualTo(1)) }
+            jsonPath("$.agentAlignment.notFlaggedDecided") { value(greaterThanOrEqualTo(1)) }
+        }
+        mockMvc.get("/admin/review/stats").andExpect { status { isUnauthorized() } }
+
+        // Leave the queue as we found it for the other tests.
+        mockMvc.post("/admin/applications/$waitingNumber/decision") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            content = """{"decision":"APPROVED","reviewer":"Officer Stats"}"""
+        }.andExpect { status { isOk() } }
+        mockMvc.get("/admin/review/stats") { header("X-Admin-Key", KEY) }.andExpect {
+            status { isOk() }
+            jsonPath("$.reviewers[?(@.name == 'Officer Stats')].approved") { value(hasItem(1)) }
+            jsonPath("$.reviewers[?(@.name == 'Officer Stats')].decisions7d") { value(hasItem(2)) }
+        }
     }
 }

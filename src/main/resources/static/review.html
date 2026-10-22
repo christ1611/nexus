@@ -139,6 +139,34 @@
   .live .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 1.2s infinite; }
   @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: .3; transform: scale(.7); } 100% { opacity: 1; transform: scale(1); } }
   @media (max-width: 600px) { .trace li { grid-template-columns: 16px 1fr; } .trace time { grid-column: 2; } }
+  /* page tabs: work vs statistics */
+  .tabs { grid-column: 1 / -1; display: flex; gap: 2px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; margin-bottom: -4px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px 10px; color: var(--text-2); white-space: nowrap; display: inline-flex; align-items: baseline; gap: 6px; }
+  .tabs button small { font-size: 11px; color: var(--text-3); }
+  .tabs button:hover { color: var(--text); background: var(--surface-2); }
+  .tabs button[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--seq); }
+  .tabs button .n { font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); align-self: center; }
+  .tabs button[aria-selected="true"] .n { background: var(--seq); color: #fff; }
+  #stats { grid-column: 1 / -1; display: grid; gap: 16px; }
+  #stats[hidden], #queue[hidden], #detail[hidden] { display: none; }
+  .srow { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .tile { background: var(--surface-2); border-radius: 8px; padding: 12px; }
+  .tile .k { font-size: 12px; color: var(--text-2); }
+  .tile .k small { color: var(--text-3); }
+  .tile .v { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .tile.alert .v { color: var(--critical); }
+  .tile.good .v { color: var(--good); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-2); margin-top: 8px; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+  svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+  svg.chart text { fill: var(--text-2); font-size: 11px; }
+  svg.chart .lbl { fill: var(--text); font-size: 11px; }
+  svg.chart .grid { stroke: var(--grid); stroke-width: 1; }
+  svg.chart .bar { cursor: default; } svg.chart .bar:hover { filter: brightness(0.9); }
+  svg.chart .line { fill: none; stroke: var(--text); stroke-width: 1.5; }
+  svg.chart .pt { fill: var(--surface); stroke: var(--text); stroke-width: 1.5; }
   #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; z-index: 20; cursor: zoom-out; }
   #lightbox img { max-width: 96vw; max-height: 96vh; object-fit: contain; }
   #tip { position: fixed; pointer-events: none; background: var(--text); color: var(--surface); font-size: 12px; padding: 6px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s; z-index: 10; max-width: 280px; }
@@ -159,6 +187,10 @@
   </div>
 </header>
 <main>
+  <div class="tabs" role="tablist" aria-label="Review sections">
+    <button type="button" role="tab" id="tab-work" aria-controls="queue" aria-selected="true" data-tab="work">심사 작업 <small>Work queue &amp; decisions</small><span class="n" id="n-work" hidden></span></button>
+    <button type="button" role="tab" id="tab-stats" aria-controls="stats" aria-selected="false" data-tab="stats">심사 통계 <small>Reviewer statistics</small><span class="n" id="n-stats" hidden></span></button>
+  </div>
   <section class="card" id="queue">
     <h2>심사 큐 <small>Work queue</small></h2>
     <div class="filters">
@@ -171,6 +203,9 @@
   </section>
   <section id="detail">
     <div class="card"><p class="empty">왼쪽 큐에서 신청을 선택하면 서류·추출 데이터·조회 결과·Risk Flag 근거와 결정 버튼이 여기에 표시됩니다.<br><span class="sub">Pick an application from the queue to see its documents, extracted data, provider results, risk evidence and the decision buttons.</span></p></div>
+  </section>
+  <section id="stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
+    <div class="card"><p class="empty">관리자 키를 입력하고 <b>불러오기</b>를 누르면 심사 대기·처리 속도·심사자별 현황이 표시됩니다. <span class="sub">Enter the admin key and press Load to see the queue, throughput and per-reviewer figures.</span></p></div>
   </section>
 </main>
 <div id="lightbox"><img alt=""></div>
@@ -192,6 +227,7 @@
   const SEV = { HIGH: { icon: '■', color: 'var(--critical)', ko: '높음' }, MEDIUM: { icon: '◆', color: 'var(--serious)', ko: '중간' }, LOW: { icon: '▲', color: 'var(--warn)', ko: '낮음' } };
   const OUTCOME_KO = { MATCH: '일치', MISMATCH: '불일치', NOT_FOUND: '미발견', TIMEOUT: '시간 초과', ERROR: '오류' };
   const DOC_KO = { KTP: '신분증 (KTP)', SELFIE_KTP: '셀피 + 신분증' };
+  const TAMPER_KO = { FONT_MISMATCH: '글꼴·인쇄 불일치', TEXT_MISALIGNED: '텍스트 정렬 어긋남', DIGITAL_EDITING: '디지털 편집 흔적', PHOTO_REPLACED: '증명사진 교체', LAYOUT_MISMATCH: '레이아웃·색상 다름', SECURITY_FEATURE_MISSING: '보안 요소 누락', FIELD_INCONSISTENT: '항목 간 모순', OTHER: '기타 위조 의심' };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmtTime = iso => { if (!iso) return '–'; try { return new Date(iso).toLocaleString('ko-KR', { hour12: false }); } catch { return iso; } };
   const ago = iso => { if (!iso) return ''; const h = (Date.now() - new Date(iso).getTime()) / 36e5; return h < 1 ? Math.round(h * 60) + '분' : h < 48 ? h.toFixed(1) + '시간' : Math.round(h / 24) + '일'; };
@@ -291,7 +327,7 @@
     } catch (e) { setStatus('오류: ' + e.message, true); }
   }
   function renderQueue() {
-    if (!apps.length) { list.innerHTML = '<p class="empty">조건에 맞는 신청이 없습니다. <span class="sub">Nothing matches.</span></p>'; return; }
+    if (!apps.length) { list.innerHTML = '<p class="empty">조건에 맞는 신청이 없습니다. <span class="sub">Nothing matches.</span></p>'; $('#n-work').hidden = true; return; }
     list.innerHTML = `<div class="scroll"><table><thead><tr><th>신청번호</th><th>상태</th><th>등급</th><th>대기</th></tr></thead><tbody>${apps.map(a => {
       const r = a.risk, waitingSince = a.risk?.assessedAt || a.verifiedAt || a.updatedAt;
       return `<tr class="row ${current && current.applicationNumber === a.applicationNumber ? 'selected' : ''}" data-n="${esc(a.applicationNumber)}">
@@ -300,6 +336,7 @@
         <td>${r ? gradeCell(r.grade, r.score) : '<span class="sub">–</span>'}${r && r.fraudWarnings ? `<br><span class="chip fraud">⚠ 위조 ${r.fraudWarnings}</span>` : ''}</td>
         <td class="num"><span class="sub" title="${esc(fmtTime(waitingSince))}">${a.status === 'READY_FOR_REVIEW' ? ago(waitingSince) : ago(a.updatedAt)}</span></td></tr>`; }).join('')}</tbody></table></div>
       <p class="sub" style="margin:8px 0 0">${apps.length}건 · 심사 대기 우선, 리스크 점수 높은 순 · 60초마다 갱신</p>`;
+    const waitingCount = apps.filter(a => a.status === 'READY_FOR_REVIEW').length; $('#n-work').textContent = waitingCount; $('#n-work').hidden = !waitingCount;
     list.querySelectorAll('tr.row').forEach(tr => tr.addEventListener('click', () => open(tr.dataset.n)));
   }
 
@@ -409,9 +446,11 @@
       <div class="meta">${check}<br>${fmtTime(d.createdAt)}${d.caption ? ' · 캡션: ' + esc(d.caption) : ''}${d.detectedType ? '<br>감지: ' + esc(d.detectedType) : ''}</div>`;
     if (an) {
       const issues = (an.qualityIssues || []).map(q => `<span class="chip ${q.severity === 'HIGH' ? 'fraud' : q.severity === 'MEDIUM' ? 'warn' : ''}" data-tip="${esc(q.detail)}">${esc(q.type)} · ${esc(q.severity)}</span>`).join('');
+      const tamper = (an.tamperSignals || []).map(q => `<span class="chip fraud" data-tip="${esc(q.detail)}">⚠ ${esc(TAMPER_KO[q.type] || q.type)} · ${esc(q.severity)}</span>`).join('');
       const fields = (an.fields || []).filter(f => f.value != null || f.status !== 'NOT_VISIBLE');
       h += `<details style="margin-top:6px"><summary>분석 상세 · ${esc(an.documentType)} ${pct(an.documentTypeConfidence)}${an.needsOfficerReview ? ' · 담당자 검토' : ''}</summary>
         <div style="margin-top:6px">${issues || '<span class="sub">품질 문제 없음</span>'}</div>
+        ${tamper ? `<div style="margin-top:6px"><b class="bad">위조 의심 요소 · forgery evidence</b><br>${tamper}</div>` : (an.requestedType === 'KTP' && an.model && !String(an.model).startsWith('stub') ? '<div class="sub" style="margin-top:4px">위조 흔적 없음 · no forgery evidence seen</div>' : '')}
         ${fields.length ? `<table style="margin-top:6px"><thead><tr><th>필드</th><th>값</th><th class="num">신뢰도</th></tr></thead><tbody>${fields.map(f => `<tr><td>${esc(f.name.replace(/_/g, ' '))}</td><td>${esc(f.value ?? '–')}${f.status === 'NEEDS_OFFICER_REVIEW' ? ' <span class="chip warn">검토</span>' : ''}${f.note ? `<br><span class="sub">${esc(f.note)}</span>` : ''}</td><td class="num">${pct(f.confidence)}</td></tr>`).join('')}</tbody></table>` : ''}
         ${an.nik ? `<div style="margin-top:6px"><b>NIK 검증: </b>${an.nik.issues && an.nik.issues.length ? `<span class="bad">실패</span><ul style="margin:4px 0 0 16px;padding:0">${an.nik.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '<span class="ok">통과</span>'} <span class="sub">${esc(an.nik.provinceName || '')} ${an.nik.dobFromNik ? '· 생년월일 ' + esc(an.nik.dobFromNik) : ''} ${an.nik.genderFromNik ? '· ' + esc(an.nik.genderFromNik) : ''}</span></div>` : ''}
         ${(an.reviewReasons || []).length ? `<div style="margin-top:6px"><b>검토 사유:</b><ul style="margin:4px 0 0 16px;padding:0">${an.reviewReasons.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
@@ -468,14 +507,151 @@
     $('#btn-note').addEventListener('click', e => { const note = $('#note-text').value.trim(); if (!note) { setStatus('메모를 입력하세요.', true); return; } run(e.target, async () => { await api('/admin/applications/' + n + '/note', { method: 'POST', body: JSON.stringify({ note, reviewer: reviewer() }) }); after('메모 추가 완료'); }); });
   }
 
+  /* ---------- statistics tab ---------- */
+  const statsPanel = $('#stats'), queuePanel = $('#queue');
+  let activeTab = 'work', statsLoadedAt = 0;
+  try { activeTab = sessionStorage.getItem('reviewTab') || activeTab; } catch {}
+  if (location.hash === '#stats') activeTab = 'stats';
+
+  function showTab(id) {
+    activeTab = id === 'stats' ? 'stats' : 'work';
+    try { sessionStorage.setItem('reviewTab', activeTab); } catch {}
+    const h = activeTab === 'stats' ? '#stats' : '';
+    if (location.hash !== h) history.replaceState(null, '', location.pathname + location.search + h);
+    document.querySelectorAll('.tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === activeTab)));
+    queuePanel.hidden = detail.hidden = activeTab === 'stats';
+    statsPanel.hidden = activeTab !== 'stats';
+    if (activeTab === 'stats' && keyInput.value.trim() && Date.now() - statsLoadedAt > 15000) loadStats();
+  }
+  document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+  window.addEventListener('hashchange', () => showTab(location.hash === '#stats' ? 'stats' : 'work'));
+
+  async function loadStats() {
+    if (!keyInput.value.trim()) { setStatus('관리자 키를 입력하세요.', true); return; }
+    try {
+      const d = await api('/admin/review/stats');
+      statsLoadedAt = Date.now();
+      renderStats(d);
+    } catch (e) { setStatus('오류: ' + e.message, true); }
+  }
+
+  const hrs = h => h == null ? '–' : h < 1 ? Math.round(h * 60) + '분' : h < 48 ? h.toFixed(1) + 'h' : (h / 24).toFixed(1) + 'd';
+  const rate = v => v == null ? '–' : Math.round(v * 100) + '%';
+
+  /* Horizontal bars: rows = [{label, value, color, tip}]. */
+  function hbars(rows, opts = {}) {
+    const W = 520, rowH = 26, left = opts.left || 120, right = 44, top = 4;
+    const H = top + rows.length * rowH + 4;
+    const max = Math.max(1, ...rows.map(r => r.value));
+    const scale = v => (W - left - right) * v / max;
+    let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria || '')}">`;
+    [0.25, 0.5, 0.75, 1].forEach(f => { const x = left + scale(max * f); s += `<line class="grid" x1="${x}" x2="${x}" y1="${top}" y2="${H - 4}"/>`; });
+    rows.forEach((r, i) => {
+      const y = top + i * rowH + 5, h = rowH - 10, w = Math.max(r.value > 0 ? 4 : 0, scale(r.value));
+      s += `<text x="${left - 8}" y="${y + h / 2 + 4}" text-anchor="end" class="lbl">${esc(r.label)}</text>`;
+      if (w > 0) s += `<path class="bar" data-tip="${esc(r.tip || r.label + ': ' + r.value)}" d="M${left},${y} h${w - 4} a4,4 0 0 1 4,4 v${h - 8} a4,4 0 0 1 -4,4 h-${w - 4} z" fill="${r.color}"/>`;
+      s += `<text x="${left + w + 6}" y="${y + h / 2 + 4}">${r.value}</text>`;
+    });
+    return s + '</svg>';
+  }
+
+  /* Daily chart: stacked decision columns (approved, rejected) and a line for applications that became ready for review. */
+  function dailyChart(days) {
+    const W = 560, H = 190, left = 30, right = 8, top = 10, bottom = 26;
+    const max = Math.max(1, ...days.map(x => Math.max(x.approved + x.rejected, x.completed)));
+    const iw = (W - left - right) / days.length, y = v => top + (H - top - bottom) * (1 - v / max);
+    let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily decisions and arrivals">`;
+    [0, 0.5, 1].forEach(f => { const yy = y(max * f); s += `<line class="grid" x1="${left}" x2="${W - right}" y1="${yy}" y2="${yy}"/><text x="${left - 6}" y="${yy + 4}" text-anchor="end">${Math.round(max * f)}</text>`; });
+    days.forEach((d, i) => {
+      const x = left + i * iw + iw * 0.2, bw = iw * 0.6;
+      const yA = y(d.approved), yR = y(d.approved + d.rejected);
+      if (d.approved) s += `<rect class="bar" x="${x}" y="${yA}" width="${bw}" height="${y(0) - yA}" fill="var(--good)" data-tip="${esc(d.date)} · 승인 ${d.approved}"/>`;
+      if (d.rejected) s += `<rect class="bar" x="${x}" y="${yR}" width="${bw}" height="${yA - yR}" fill="var(--critical)" data-tip="${esc(d.date)} · 거절 ${d.rejected}"/>`;
+      if (i % 2 === 0 || days.length <= 8) s += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle">${esc(d.label)}</text>`;
+    });
+    const pts = days.map((d, i) => `${left + i * iw + iw / 2},${y(d.completed)}`);
+    s += `<polyline class="line" points="${pts.join(' ')}"/>`;
+    days.forEach((d, i) => { s += `<circle class="pt" cx="${left + i * iw + iw / 2}" cy="${y(d.completed)}" r="2.5" data-tip="${esc(d.date)} · 심사 대기 진입 ${d.completed}"/>`; });
+    return s + '</svg>';
+  }
+
+  function renderStats(d) {
+    const w = d.workload, t = d.throughput;
+    $('#n-stats').textContent = w.readyForReview; $('#n-stats').hidden = !w.readyForReview;
+    const tile = (ko, en, v, cls = '') => `<div class="tile ${cls}"><div class="k">${ko} <small>${esc(en)}</small></div><div class="v">${v}</div></div>`;
+    let h = `<div class="card"><h2>지금 내 책상 위 <small>Workload right now</small></h2><div class="tiles">
+      ${tile('심사 대기', 'Ready for review', w.readyForReview)}
+      ${tile('고위험 대기 (C·D)', 'High-risk waiting', w.highRiskWaiting, w.highRiskWaiting ? 'alert' : '')}
+      ${tile('위조·사기 경고 대기', 'Fraud warnings waiting', w.fraudWaiting, w.fraudWaiting ? 'alert' : '')}
+      ${tile('담당자 검토 필요', 'Flagged by the agent', w.officerReviewRequired)}
+      ${tile('고객 서류 재요청 중', 'Waiting on customer', w.documentsRequested)}
+      ${tile('딜러 재제출 대기', 'Waiting on dealer', w.resubmissionRequested)}
+      ${tile('최장 대기', 'Oldest waiting', hrs(w.oldestWaitingHours), w.oldestWaitingHours >= 72 ? 'alert' : '')}
+      ${tile('평균 대기', 'Average waiting', hrs(w.avgWaitingHours))}
+    </div></div>`;
+
+    h += `<div class="card"><h2>처리 속도 <small>Throughput</small></h2><div class="tiles">
+      ${tile('오늘 결정', 'Decided today', t.decidedToday)}
+      ${tile('7일 결정', 'Decided, 7 days', `${t.decided7d} <span class="sub">✓${t.approved7d} ✕${t.rejected7d}</span>`)}
+      ${tile('30일 결정', 'Decided, 30 days', `${t.decided30d} <span class="sub">✓${t.approved30d} ✕${t.rejected30d}</span>`)}
+      ${tile('30일 승인율', 'Approval rate, 30 days', rate(t.approvalRate30d))}
+      ${tile('평균 결정 시간 (7일)', 'Avg time to decision, 7 d', hrs(t.avgDecisionHours7d))}
+      ${tile('평균 결정 시간 (30일)', 'Avg time to decision, 30 d', hrs(t.avgDecisionHours30d))}
+      ${tile('고객 서류 재요청 (7일 / 30일)', 'Officer doc re-requests', `${t.documentsRequested7d} <span class="sub">/ ${t.documentsRequested30d}</span>`)}
+      ${tile('2회 이상 심사 라운드', 'Decided after 2+ rounds', `${t.multiRoundDecided} <span class="sub">avg ${t.avgRoundsDecided == null ? '–' : t.avgRoundsDecided.toFixed(1)}</span>`)}
+    </div></div>`;
+
+    h += `<div class="srow">
+      <div class="card"><h2>대기 시간 분포 <small>Waiting time of the queue</small></h2>${hbars([
+        { label: '24시간 미만', value: w.waitingUnder24h, color: 'var(--good)', tip: `24시간 미만 · under 24 h: ${w.waitingUnder24h}` },
+        { label: '1-3일', value: w.waiting1to3d, color: 'var(--warn)', tip: `1-3일 · 1-3 days: ${w.waiting1to3d}` },
+        { label: '3일 초과', value: w.waitingOver3d, color: 'var(--critical)', tip: `3일 초과 · over 3 days: ${w.waitingOver3d}` },
+      ], { left: 90, aria: 'Waiting time buckets' })}
+      <p class="sub" style="margin:8px 0 0">3일을 넘긴 건부터 처리하세요. <span class="sub">Start with anything over three days.</span></p></div>
+      <div class="card"><h2>등급별 대기 <small>Queue by AI risk grade</small></h2>${hbars(w.queueByGrade.map(g => ({ label: g.grade === 'NONE' ? g.labelKo : `${g.grade} ${g.labelKo}`, value: g.waiting, color: GRADE[g.grade]?.color || 'var(--text-3)', tip: `${g.grade} · ${g.label}: ${g.waiting}` })), { left: 100, aria: 'Queue by grade' })}</div>
+      <div class="card"><h2>국가별 대기 <small>Queue by country</small></h2><div class="scroll"><table><thead><tr><th>국가</th><th class="num">대기</th><th class="num">고위험</th><th class="num">최장 대기</th></tr></thead><tbody>
+        ${w.queueByCountry.map(c => `<tr><td>${countryCell(c.code)} ${esc(c.nameKo)}</td><td class="num">${c.waiting}</td><td class="num">${c.highRisk ? `<span class="bad">${c.highRisk}</span>` : '0'}</td><td class="num">${hrs(c.oldestWaitingHours)}</td></tr>`).join('')}
+      </tbody></table></div></div>
+    </div>`;
+
+    h += `<div class="srow">
+      <div class="card"><h2>일별 처리 추이 <small>Daily decisions (columns) vs new arrivals (line), last 14 days</small></h2>${dailyChart(d.daily)}
+        <div class="legend"><span><span class="sw" style="background:var(--good)"></span>승인 approved</span><span><span class="sw" style="background:var(--critical)"></span>거절 rejected</span><span><span class="sw" style="background:var(--text);height:2px;vertical-align:3px"></span>심사 대기 진입 ready for review</span></div>
+        <p class="sub" style="margin:8px 0 0">선이 기둥보다 계속 높으면 대기 건이 쌓이고 있는 것입니다. <span class="sub">If the line stays above the columns, the backlog is growing.</span></p></div>
+      <div class="card"><h2>심사자별 현황 <small>Per reviewer · from the audit trail</small></h2>${d.reviewers.length ? `<div class="scroll"><table><thead><tr><th>심사자</th><th class="num">승인</th><th class="num">거절</th><th class="num">서류 재요청</th><th class="num">딜러 재제출</th><th class="num">재평가</th><th class="num">메모</th><th class="num">7일 결정</th><th>최근 활동</th></tr></thead><tbody>
+        ${d.reviewers.map(r => `<tr><td><b>${esc(r.name)}</b></td><td class="num">${r.approved}</td><td class="num">${r.rejected}</td><td class="num">${r.documentsRequested}</td><td class="num">${r.resubmissionsRequested}</td><td class="num">${r.reassessments}</td><td class="num">${r.notes}</td><td class="num">${r.decisions7d}</td><td><span class="sub" title="${esc(fmtTime(r.lastActivityAt))}">${ago(r.lastActivityAt)} 전</span></td></tr>`).join('')}
+      </tbody></table></div>` : '<p class="empty">아직 심사자 이름으로 기록된 작업이 없습니다. 헤더에 심사자 이름을 입력하고 작업하면 여기에 집계됩니다. <span class="sub">No officer activity yet. Type a reviewer name in the header; actions are counted here.</span></p>'}</div>
+    </div>`;
+
+    const al = d.agentAlignment;
+    h += `<div class="srow">
+      <div class="card"><h2>대기 중 Risk Flag <small>Flags on the applications waiting now</small></h2>${d.queueFlags.length ? hbars(d.queueFlags.slice(0, 10).map(f => ({ label: (f.fraud ? '⚠ ' : '') + f.titleKo, value: f.count, color: f.fraud ? 'var(--critical)' : 'var(--seq)', tip: `${f.titleKo} · ${f.title} (${f.severity}): ${f.count}` })), { left: 200, aria: 'Flags in the queue' }) : '<p class="empty">대기 중인 건에 Risk Flag가 없습니다. <span class="sub">No flags in the queue.</span></p>'}</div>
+      <div class="card"><h2>등급별 결정 결과 <small>How decisions went per AI grade</small></h2><div class="scroll"><table><thead><tr><th>등급</th><th class="num">결정</th><th class="num">승인</th><th class="num">거절</th><th class="num">승인율</th></tr></thead><tbody>
+        ${d.gradeOutcomes.map(g => `<tr><td>${gradeCell(g.grade)}</td><td class="num">${g.decided}</td><td class="num">${g.approved}</td><td class="num">${g.rejected}</td><td class="num">${rate(g.approvalRate)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <h3>AI 에이전트 판단 vs 심사 결과 <span class="sub">agent "officer review required" vs final decision</span></h3>
+      <div class="scroll"><table><thead><tr><th>에이전트 판단</th><th class="num">결정</th><th class="num">승인</th><th class="num">거절</th></tr></thead><tbody>
+        <tr><td>담당자 검토 필요 <span class="sub">flagged</span></td><td class="num">${al.flaggedDecided}</td><td class="num">${al.flaggedApproved}</td><td class="num">${al.flaggedRejected}</td></tr>
+        <tr><td>플래그 없음 <span class="sub">not flagged</span></td><td class="num">${al.notFlaggedDecided}</td><td class="num">${al.notFlaggedApproved}</td><td class="num">${al.notFlaggedRejected}</td></tr>
+      </tbody></table></div>
+      <p class="sub" style="margin:8px 0 0">플래그된 건의 거절 비율이 높을수록 에이전트 판단이 심사 결과와 잘 맞는 것입니다. 스텁 모드에서는 플래그가 기록되지 않습니다. <span class="sub">A high rejection share among flagged cases means the agent's flags are useful. Stub mode records no flags.</span></p></div>
+    </div>`;
+
+    h += `<p class="status">생성 시각 ${fmtTime(d.generatedAt)}${d.demoApplications ? ` · 데모 데이터 ${d.demoApplications}건 포함 (demo seed)` : ''} · 60초마다 갱신</p>`;
+    statsPanel.innerHTML = h;
+    bindTips(statsPanel);
+  }
+
   /* ---------- wiring ---------- */
-  $('#load').addEventListener('click', loadQueue);
-  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadQueue(); });
+  $('#load').addEventListener('click', () => { loadQueue(); if (activeTab === 'stats') loadStats(); });
+  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') { loadQueue(); if (activeTab === 'stats') loadStats(); } });
   ['#f-scope', '#f-country', '#f-grade'].forEach(s => $(s).addEventListener('change', loadQueue));
   let t; $('#f-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadQueue, 300); });
   const wanted = new URLSearchParams(location.search).get('app');
-  if (keyInput.value) { loadQueue().then(() => { if (wanted) open(wanted, true); }); }
-  setInterval(() => { if (keyInput.value.trim() && !document.activeElement.closest('#detail')) loadQueue(); }, 60000);
+  if (wanted) activeTab = 'work';
+  showTab(activeTab);
+  if (keyInput.value) { loadQueue().then(() => { if (wanted) open(wanted, true); }); if (activeTab === 'stats') loadStats(); }
+  setInterval(() => { if (!keyInput.value.trim()) return; if (activeTab === 'stats') loadStats(); else if (!document.activeElement.closest('#detail')) loadQueue(); }, 60000);
 })();
 </script>
 </body>
