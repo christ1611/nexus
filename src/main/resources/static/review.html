@@ -556,7 +556,7 @@
       const r = await api('/admin/applications', { method: 'POST', body: JSON.stringify({ customerPhone: phone || null, customerName: name || null, dealerCode: $('#na-dealer').value || null, invite: $('#na-invite').checked, reviewer: reviewerInput.value.trim() || null }) });
       const n = r.application.applicationNumber;
       const invite = !r.customerInvited ? '<span class="sub">고객 번호 없음 · 고객이 아래 링크(또는 QR)로 시작합니다</span>'
-        : r.inviteSent === true ? '<span class="ok">✓ WhatsApp 초대 전송됨</span> <span class="sub">고객은 아무 메시지나 보내면 시작됩니다 (예: START)</span>'
+        : r.inviteSent === true ? '<span class="ok">✓ WhatsApp 초대 요청됨</span> <span class="sub">고객은 아무 메시지나 보내면 시작됩니다 (예: START). 24시간 창 밖이면 Meta가 나중에 "전송 실패"를 보내며 심사 이력에 기록됩니다 — 그때는 고객이 먼저 "hi"를 보내면 됩니다</span>'
         : r.inviteSent === false ? '<span class="bad">✗ WhatsApp 전송 실패</span> <span class="sub">고객이 먼저 이 번호로 메시지를 보내면(24시간 창) 자동으로 시작되고, QR을 스캔해도 됩니다</span>'
         : '<span class="sub">초대 메시지는 보내지 않음 · 고객이 아무 메시지나 보내면 시작됩니다</span>';
       const link = r.startLink || '';

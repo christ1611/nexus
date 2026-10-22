@@ -3,6 +3,7 @@ package com.nextasean.wawebhook.webhook
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.nextasean.wawebhook.conversation.IncomingMessageHandler
+import com.nextasean.wawebhook.dealer.normalizePhone
 import com.nextasean.wawebhook.whatsapp.BusinessPhoneHolder
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
@@ -14,6 +15,7 @@ class WebhookProcessor(
     private val store: ProcessedMessageStore,
     private val handler: IncomingMessageHandler,
     private val businessPhone: BusinessPhoneHolder,
+    private val deliveryFailures: DeliveryFailureListener,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -125,6 +127,7 @@ class WebhookProcessor(
                 status.id, status.status, status.recipientId, status.timestamp,
                 status.errors.joinToString("; ") { it.describe() },
             )
+            recordDeliveryFailure(status)
         } else {
             log.info(
                 "Status update | messageId={} | status={} | recipient={} | timestamp={}",
@@ -132,4 +135,25 @@ class WebhookProcessor(
             )
         }
     }
+
+    /**
+     * The Graph API accepts a message and reports delivery failures later through this webhook (e.g. 131047: the customer
+     * has not written to us in the last 24 hours). Hand it to the listener so it lands on the customer's timeline.
+     */
+    private fun recordDeliveryFailure(status: Status) {
+        if (status.status != "failed") return
+        val phone = status.recipientId?.let(::normalizePhone)?.takeIf { it.isNotBlank() } ?: return
+        val reason = status.errors.joinToString("; ") { e -> listOfNotNull(e.code?.let { "code $it" }, e.title, e.errorData?.details).distinct().joinToString(": ") }
+            .ifBlank { "no error details" }
+        try {
+            deliveryFailures.onFailed(phone, reason, status.errors.mapNotNull { it.code })
+        } catch (e: Exception) {
+            log.error("Delivery failure listener failed for recipient ***{}", phone.takeLast(4), e)
+        }
+    }
+}
+
+/** Told about outbound messages WhatsApp could not deliver (status "failed" in the webhook). */
+fun interface DeliveryFailureListener {
+    fun onFailed(recipientPhone: String, reason: String, errorCodes: List<Int>)
 }

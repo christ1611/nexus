@@ -16,7 +16,19 @@ class WebhookProcessorTest {
     private val mapper = jacksonObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     private val handled = mutableListOf<Triple<String, String?, Message>>()
     private val businessPhone = BusinessPhoneHolder(WhatsAppProperties("1", "t", "s", "v"))
-    private val processor = WebhookProcessor(mapper, ProcessedMessageStore(100), IncomingMessageHandler { from, name, m -> handled += Triple(from, name, m) }, businessPhone)
+    private val failures = mutableListOf<Triple<String, String, List<Int>>>()
+    private val onFailed = DeliveryFailureListener { phone, reason, codes -> failures += Triple(phone, reason, codes) }
+    private val processor = WebhookProcessor(mapper, ProcessedMessageStore(100), IncomingMessageHandler { from, name, m -> handled += Triple(from, name, m) }, businessPhone, onFailed)
+
+    @Test
+    fun `failed statuses reach the delivery failure listener, delivered ones do not`() {
+        processor.process(statusPayload("wamid.s1", "delivered").toByteArray())
+        processor.process(statusPayload("wamid.s2", "failed", withError = true).toByteArray())
+        val (phone, reason, codes) = failures.single()
+        assertEquals("6281200000000", phone)
+        assertEquals(listOf(131047), codes)
+        assertTrue(reason.contains("24 hours"), reason)
+    }
 
     @Test
     fun `routes text messages with sender and contact name`() {
@@ -63,7 +75,7 @@ class WebhookProcessorTest {
 
     @Test
     fun `a failing handler does not stop other messages`() {
-        val failing = WebhookProcessor(mapper, ProcessedMessageStore(100), IncomingMessageHandler { _, _, m -> if (m.id == "wamid.x") error("boom") else handled += Triple("", null, m) }, businessPhone)
+        val failing = WebhookProcessor(mapper, ProcessedMessageStore(100), IncomingMessageHandler { _, _, m -> if (m.id == "wamid.x") error("boom") else handled += Triple("", null, m) }, businessPhone, onFailed)
         failing.process(textMessagePayload("wamid.x", "6281234567890", "first").toByteArray())
         failing.process(textMessagePayload("wamid.y", "6281234567890", "second").toByteArray())
         assertEquals("wamid.y", handled.single().third.id)

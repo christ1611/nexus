@@ -16,6 +16,7 @@ import com.nextasean.wawebhook.webhook.WebhookProcessor
 import com.nextasean.wawebhook.webhook.bodyText
 import com.nextasean.wawebhook.webhook.imageMessagePayload
 import com.nextasean.wawebhook.webhook.interactivePayload
+import com.nextasean.wawebhook.webhook.statusPayload
 import com.nextasean.wawebhook.webhook.textMessagePayload
 import com.nextasean.wawebhook.whatsapp.OutboundMessage
 import org.hamcrest.Matchers.containsString
@@ -329,6 +330,35 @@ class ReviewBackOfficeTest @Autowired constructor(
         mockMvc.post("/admin/applications/$number/decision") {
             header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
             content = """{"decision":"APPROVED","reviewer":"Officer Demo"}"""
+        }.andExpect { status { isOk() } }
+    }
+
+    @Test
+    fun `a WhatsApp delivery failure reported by Meta lands on the invited customer's timeline`() {
+        val phone = "6281200000000" // recipient used by statusPayload()
+        val body = mockMvc.post("/admin/applications") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            content = """{"customerPhone":"$phone","customerName":"Rina","invite":true}"""
+        }.andExpect { status { isCreated() } }.andReturn().response.contentAsString
+        val number = Regex("APP-\\d{4}-\\d{6}").find(body)!!.value
+
+        processor.process(statusPayload("wamid.invite-1", "failed", withError = true).toByteArray())
+        mockMvc.get("/admin/applications/$number") { header("X-Admin-Key", KEY) }.andExpect {
+            status { isOk() }
+            jsonPath("$.events[-1].kind") { value(ReviewEventKind.MESSAGE_FAILED.name) }
+            jsonPath("$.events[-1].actor") { value("system") }
+            jsonPath("$.events[-1].detail") { value(containsString("131047")) }
+            jsonPath("$.events[-1].detail") { value(containsString("send any message")) }
+        }
+        // A delivered status adds nothing.
+        processor.process(statusPayload("wamid.invite-2", "delivered").toByteArray())
+        mockMvc.get("/admin/applications/$number") { header("X-Admin-Key", KEY) }.andExpect {
+            jsonPath("$.events[?(@.kind == '${ReviewEventKind.MESSAGE_FAILED.name}')]", hasSize<Any>(1))
+        }
+        // Clean up so the queue is as other tests expect.
+        mockMvc.post("/admin/applications/$number/decision") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            content = """{"decision":"REJECTED","reviewer":"Officer Demo"}"""
         }.andExpect { status { isOk() } }
     }
 

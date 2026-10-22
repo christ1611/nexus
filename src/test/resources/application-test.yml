@@ -3,6 +3,8 @@ spring:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
 
 whatsapp:
+  # Tests learn the business number from the webhook metadata (15550000000); never from a developer's wa.env.
+  business-phone: ""
   phone-number-id: "123456"
   access-token: test-access-token
   app-secret: test-app-secret
