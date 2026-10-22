@@ -30,6 +30,7 @@ import com.nextasean.wawebhook.trace.TraceKind
 import com.nextasean.wawebhook.trace.TraceStatus
 import com.nextasean.wawebhook.verification.VerificationService
 import com.nextasean.wawebhook.webhook.Message
+import com.nextasean.wawebhook.whatsapp.BusinessPhoneHolder
 import com.nextasean.wawebhook.whatsapp.OutboundMessage
 import com.nextasean.wawebhook.whatsapp.WhatsAppSender
 import org.slf4j.LoggerFactory
@@ -60,8 +61,33 @@ class CustomerConversationService(
     private val audit: ReviewAuditService,
     private val trace: AgentTraceService,
     private val reviewAgent: ReviewAgent?,
+    private val businessPhone: BusinessPhoneHolder,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    /** Outcome of the back office inviting a customer: [sent] is null when no message was requested. */
+    data class InviteResult(val application: DealerApplication, val sent: Boolean?)
+
+    /**
+     * Links a customer phone to a freshly created application and (optionally) sends the WhatsApp invitation. From then on
+     * any message from that phone starts the journey, so the demo does not need a dealer phone to forward a link.
+     */
+    fun invite(app: DealerApplication, phone: String, customerName: String?, sendMessage: Boolean): InviteResult {
+        val linked = applications.save(
+            app.copy(customerPhone = phone, customerName = customerName?.trim()?.take(80)?.ifBlank { null } ?: app.customerName, updatedAt = Instant.now()),
+        )
+        val sent = if (sendMessage) send(linked, phone, CustomerMessages.invitation(linked, linked.customerName, businessPhone.startLink(linked.applicationNumber))) else null
+        log.info("Customer invited | number={} | phone=***{} | messageSent={}", linked.applicationNumber, phone.takeLast(4), sent ?: "not requested")
+        return InviteResult(linked, sent)
+    }
+
+    /** The newest application prepared for this phone that is still waiting for the customer to begin (no active session). */
+    fun pendingInvitation(phone: String): DealerApplication? {
+        if (sessions.findActiveByPhone(phone) != null) return null
+        return applications.findByCustomerPhone(phone)
+            .filter { it.status.acceptsCustomerDocuments && !it.demoSeed }
+            .maxByOrNull { it.createdAt }
+    }
 
     /** Outcome of an officer asking the customer for documents again (Step 4). */
     sealed interface OfficerRequestResult {
@@ -125,9 +151,9 @@ class CustomerConversationService(
         return OfficerRequestResult.Sent(saved, notified)
     }
 
-    /** Handles "START <application number>" from any phone. */
+    /** Handles "START <application number>" from any phone; a bare START (or any first message) picks up a pending invitation. */
     fun start(phone: String, contactName: String?, applicationNumber: String?) {
-        val app = applicationNumber?.let { applications.findByApplicationNumber(it.uppercase()) }
+        val app = applicationNumber?.let { applications.findByApplicationNumber(it.uppercase()) } ?: if (applicationNumber == null) pendingInvitation(phone) else null
         if (app == null) {
             send(phone, CustomerMessages.unknownApplication(applicationNumber))
             return

@@ -17,9 +17,17 @@ object CustomerReplyIds {
 /** All customer-facing wording in one place. */
 object CustomerMessages {
 
+    /** Sent by the back office when it creates an application for a known customer phone (demo without a dealer phone). */
+    fun invitation(app: DealerApplication, customerName: String?, startLink: String?): OutboundMessage = Text(
+        "Hello${customerName?.let { " $it" } ?: ""}, this is NEXT ASEAN. Application *${app.applicationNumber}* has been prepared for you.\n\n" +
+            "Reply *START* to this message to begin. It takes about two minutes: a photo of your KTP and a selfie." +
+            (startLink?.let { "\n\nOr tap: $it" } ?: ""),
+        previewUrl = false,
+    )
+
     fun greetingAndConsent(app: DealerApplication, customerName: String?): OutboundMessage = Buttons(
         header = "NEXT ASEAN application",
-        body = "Hello${customerName?.let { " $it" } ?: ""}, welcome! Your dealer has started application *${app.applicationNumber}* for you.\n\n" +
+        body = "Hello${customerName?.let { " $it" } ?: ""}, welcome! Application *${app.applicationNumber}* has been prepared for you.\n\n" +
             "To continue we need to collect a photo of your KTP and a selfie, and verify your identity and credit record with " +
             "authorised providers. Your data is used only to process this application and is handled according to our privacy policy.\n\n" +
             "Do you agree?",
@@ -27,7 +35,7 @@ object CustomerMessages {
     )
 
     fun declined(): OutboundMessage = Text(
-        "No problem, we will not proceed with this application. If you change your mind, ask your dealer for a new link. Thank you.",
+        "No problem, we will not proceed with this application. If you change your mind, reply START or ask for a new link. Thank you.",
     )
 
     fun requestDocument(type: DocumentType, prefix: String? = null): OutboundMessage = Text(

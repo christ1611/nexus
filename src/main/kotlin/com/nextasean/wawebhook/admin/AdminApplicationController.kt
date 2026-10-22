@@ -11,6 +11,8 @@ import com.nextasean.wawebhook.customer.CustomerConversationService.OfficerReque
 import com.nextasean.wawebhook.customer.CustomerNotifier
 import com.nextasean.wawebhook.dealer.Dealer
 import com.nextasean.wawebhook.dealer.DealerRepository
+import com.nextasean.wawebhook.dealer.normalizePhone
+import com.nextasean.wawebhook.whatsapp.BusinessPhoneHolder
 import com.nextasean.wawebhook.documents.DocumentRecord
 import com.nextasean.wawebhook.documents.DocumentRepository
 import com.nextasean.wawebhook.documents.DocumentType
@@ -57,7 +59,53 @@ class AdminApplicationController(
     private val risk: RiskAssessmentService,
     private val audit: ReviewAuditService,
     private val trace: AgentTraceService,
+    private val businessPhone: BusinessPhoneHolder,
 ) {
+    /** Back-office creation: no dealer phone needed. With a customer phone the customer is invited over WhatsApp. */
+    data class CreateRequest(val dealerCode: String? = null, val customerPhone: String? = null, val customerName: String? = null, val invite: Boolean = true, val reviewer: String? = null)
+
+    data class CreatedView(
+        val application: ApplicationView,
+        /** One-time dealer form link, in case the dealer form is part of the demo. */
+        val formLink: String,
+        val formLinkExpiresAt: Instant,
+        /** wa.me link that pre-fills "START <number>"; null until the business number is known. */
+        val startLink: String?,
+        val startText: String,
+        val customerInvited: Boolean,
+        /** Null when no invitation message was requested; false when WhatsApp rejected it (e.g. outside the 24 h window). */
+        val inviteSent: Boolean?,
+    )
+
+    @PostMapping("/applications")
+    fun create(@RequestBody(required = false) body: CreateRequest?): ResponseEntity<Any> {
+        val req = body ?: CreateRequest()
+        val code = req.dealerCode?.trim()?.takeIf { it.isNotBlank() }
+        val dealer = if (code != null) {
+            dealers.findByDealerCode(code) ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "Unknown dealer $code"))
+        } else {
+            dealers.findAll().filter { it.active }.minByOrNull { it.dealerCode }
+                ?: return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "No active dealer configured; set DEMO_DEALER_1_PHONE in wa.env"))
+        }
+        val rawPhone = req.customerPhone?.trim().orEmpty()
+        val phone = normalizePhone(rawPhone).takeIf { it.isNotBlank() }
+        if (rawPhone.isNotBlank() && (phone == null || phone.length < 8 || phone.length > 15)) {
+            return ResponseEntity.badRequest().body(mapOf("error" to "customerPhone must be 8-15 digits including the country code, e.g. 628123456789"))
+        }
+        val issued = service.create(dealer)
+        var app = issued.application
+        val actor = req.reviewer?.trim()?.takeIf { it.isNotBlank() } ?: "back office"
+        audit.record(app, ReviewEventKind.CREATED, actor, "Dealer ${dealer.dealerCode}" + (phone?.let { ", customer ***${it.takeLast(4)}" } ?: ", no customer phone yet"))
+        var inviteSent: Boolean? = null
+        if (phone != null) {
+            val result = customerFlow.invite(app, phone, req.customerName, sendMessage = req.invite)
+            app = result.application
+            inviteSent = result.sent
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            CreatedView(detail(app), issued.url, issued.expiresAt, businessPhone.startLink(app.applicationNumber), "START ${app.applicationNumber}", phone != null, inviteSent),
+        )
+    }
 
     data class ResubmissionRequest(val reason: String, val reviewer: String? = null)
 

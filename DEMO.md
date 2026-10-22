@@ -96,7 +96,23 @@ back, you are ready. Keep Terminal 1 visible on the projector: the structured lo
 
 ---
 
-## 3. Act 1 - the dealer creates an application (2 minutes)
+## 3. Act 1 - start the application from the back office (1 minute, no dealer phone needed)
+
+Use this when only one WhatsApp phone is available and it plays the customer. The dealer flow in 3b still works; it is just not needed.
+
+| # | On the laptop (`/review`) | What happens | Say |
+| --- | --- | --- | --- |
+| 1 | paste the admin key, type a reviewer name, open **➕ 새 신청 만들기 · 고객 WhatsApp 초대** at the top of the queue | the form shows phone, name, dealer, "send invite" | "A back-office user prepares the application; the customer does everything else on WhatsApp." |
+| 2 | enter the customer phone (digits with country code), a name, keep **WhatsApp 초대 메시지 전송** ticked, press **신청 생성** | the application number appears with a **QR code** and the `wa.me` START link; the customer phone receives *"Application APP-... has been prepared for you. Reply START to begin"* | "The number is created under the demo dealer; the audit trail records who created it." |
+| 3 | on the customer phone reply **START** (or anything), or scan the QR code | the consent buttons arrive; continue with Act 2 | "Any first message from the invited number starts the journey." |
+
+If the invite shows **✗ WhatsApp 전송 실패**, the customer phone has not messaged the business number in the last 24 hours
+(Meta's free-form window). Send `hi` from the customer phone first; the invited number is recognised and the journey starts
+right away. The QR code / link works regardless.
+
+`curl` form: `POST /admin/applications` with `{"customerPhone":"628...","customerName":"Dewi","dealerCode":"DLR-001","invite":true}`.
+
+## 3b. Act 1 (alternative) - the dealer creates an application (2 minutes)
 
 | # | On the dealer phone | What comes back | Say |
 | --- | --- | --- | --- |

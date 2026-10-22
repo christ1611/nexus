@@ -15,7 +15,8 @@ import kotlin.concurrent.withLock
  * Decides which flow a message belongs to:
  * 1. `START <number>` always enters the customer flow (also for dealers testing with their own phone);
  * 2. a phone with an active customer session stays in the customer flow (`CANCEL` leaves it);
- * 3. everything else goes to the dealer flow, which rejects unregistered numbers.
+ * 3. a phone the back office invited (application prepared for it, no session yet) enters the customer flow with any message;
+ * 4. everything else goes to the dealer flow, which rejects unregistered numbers.
  * Messages from the same phone are handled one at a time.
  */
 @Component
@@ -55,6 +56,12 @@ class IncomingMessageRouter(
         }
 
         if (text != null && text.lowercase().startsWith("start") && dealers.findByPhone(from) == null) {
+            customerFlow.start(from, contactName, null)
+            return
+        }
+        // The back office prepared an application for this phone: whatever the customer sends first begins the journey.
+        customerFlow.pendingInvitation(from)?.let { invited ->
+            log.info("Routing | from={} | pending invitation {} | starting customer flow", from, invited.applicationNumber)
             customerFlow.start(from, contactName, null)
             return
         }

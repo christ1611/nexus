@@ -67,10 +67,14 @@ demo data in `demo-data.yml`.
   Stub NIKs are unique per application (serial = last three digits of the number); caption `dup` reuses the previous NIK. Demo seeder
   has `FORGERY` and `SHARED_ID` showcase scenarios. `AI_USAGE.md` documents where and how AI is used. 80 tests + 1 skipped.
 
+- **Back-office start without a dealer phone** (22 Oct 2026): `POST /admin/applications` creates an application under a dealer, links a
+  customer phone, sends the WhatsApp invitation (START link) and records a `CREATED` review event; the router starts the customer
+  flow on any first message from an invited phone; `/review` has a "new application" card with a QR code of the wa.me link.
+
 ## To do first next session (10 minutes)
 
 1. Fill `DEMO_DEALER_1_PHONE` / `DEMO_DEALER_2_PHONE` in `wa.env` (digits only, e.g. `62812xxxxxxx`).
-2. Start the app (`./gradlew bootRun`) and ngrok
+2. Start the app (`./gradlew bootRun`) and ngrok. With one phone only: create the application from `/review` ("➕ 새 신청 만들기") instead of the dealer flow.
    (`ngrok http --url=amaretto-tipoff-excess.ngrok-free.dev 8080`). The Meta webhook is already registered
    and verified; it only needs the tunnel to be up.
 3. Check the access token: the dashboard's temporary token expires after 24 h. If outgoing messages log

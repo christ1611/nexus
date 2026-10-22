@@ -24,9 +24,10 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 | Step 5b | **위변조·중복 제출 검증 강화** (2026-10-22): 비전 분석에 위조 증거 `tamper_signals`(글꼴 불일치·편집 흔적·사진 교체·레이아웃·보안 요소) 추가 → `FORGERY_SIGNS`; NIK 지역 코드 vs 카드 발급 지역 `ID_REGION_MISMATCH`; 셀피 얼굴 vs 카드 사진 `SELFIE_FACE_MISMATCH`; **동일 신분증 다수 제출** 교차 조회 `SHARED_ID_NUMBER` / `DUPLICATE_APPLICATION` / `PHONE_USED_WITH_OTHER_ID`(양쪽 신청 모두 재평가). 위조 의심은 재촬영 대신 담당자 검토. 스텁 NIK는 신청마다 고유, 캡션 `dup`으로 중복 시연. AI 활용 전체 설명은 **[AI_USAGE.md](AI_USAGE.md)** | ✅ 완료 (2026-10-22), 실 API 미검증 |
 | 운영 | 실 Meta 미디어 다운로드 검증, PostgreSQL + Flyway, 영속 중복 제거, 시크릿·문서 암호화, 관측성, ngrok 대신 고정 도메인 | ⬜ 미착수 |
 
-- 테스트: `./gradlew test` → **80개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
+- 테스트: `./gradlew test` → **81개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
 - Meta 웹훅은 ngrok 예약 도메인(`amaretto-tipoff-excess.ngrok-free.dev`)에 이미 등록·검증되어 있어 터널만 올리면 됩니다.
 - 데모 진행 순서는 `DEMO.md`, 남은 작업의 우선순위는 `NEXT_STEPS.md`, **AI를 어디에 어떻게 쓰는지**는 `AI_USAGE.md`에 정리되어 있습니다.
+- **딜러 폰 없이 데모 시작 (10-22)**: 심사 화면 `/review`의 "➕ 새 신청 만들기 · 고객 WhatsApp 초대" 카드에 고객 번호를 넣으면 신청이 생성되고 고객에게 초대 메시지(START 링크)가 가며, QR 코드도 표시됩니다. 초대받은 번호는 아무 메시지나 보내면 바로 동의 단계로 들어갑니다.
 
 ### 알려진 제약
 
@@ -260,6 +261,7 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 | 메서드 · 경로 | 설명 |
 | --- | --- |
 | `GET /admin/dealers` | 딜러 목록(국가·등급) |
+| `POST /admin/applications` | **백오피스에서 신청 생성** `{dealerCode?, customerPhone?, customerName?, invite=true, reviewer?}` → 신청 + 딜러 폼 링크 + `wa.me` START 링크 + 초대 전송 여부. 고객 번호를 주면 WhatsApp 초대를 보내고, 그 번호의 **첫 메시지가 무엇이든** 고객 여정이 시작됩니다(딜러 폰 불필요). 심사 화면 큐 위의 "➕ 새 신청 만들기" 카드가 QR 코드와 함께 이 API를 씁니다 |
 | `GET /admin/applications?status=&country=&grade=&q=&queue=true` | 신청 목록(최신순). `status`·`grade`는 쉼표로 여러 개, `queue=true`면 열린 건만 심사 우선순위로 정렬 |
 | `GET /admin/applications/{number}` | 상세: 추출 데이터, 조회 결과, `review`, `risk`, `documents[]`(id·`fileUrl`·검사 결과·분석 JSON·superseded), `events[]`(이력), `decidedBy/At` |
 | `GET /admin/applications/{number}/documents/{id}/file` | 저장된 서류 이미지(원본 MIME) |

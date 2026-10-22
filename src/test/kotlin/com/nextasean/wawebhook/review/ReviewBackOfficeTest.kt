@@ -285,6 +285,54 @@ class ReviewBackOfficeTest @Autowired constructor(
     }
 
     @Test
+    fun `back office creates an application and invites the customer, who then starts with any message`() {
+        sender.clear()
+        val customer = "6287000000021"
+        val body = mockMvc.post("/admin/applications") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            content = """{"customerPhone":"+62 870-0000-0021","customerName":"Dewi","reviewer":"Officer Demo"}"""
+        }.andExpect {
+            status { isCreated() }
+            jsonPath("$.application.customerPhone") { value(customer) }
+            jsonPath("$.application.customerName") { value("Dewi") }
+            jsonPath("$.application.status") { value("DRAFT") }
+            jsonPath("$.customerInvited") { value(true) }
+            jsonPath("$.inviteSent") { value(true) }
+            jsonPath("$.startLink") { value(containsString("wa.me/15550000000?text=START%20APP-")) }
+            jsonPath("$.formLink") { value(containsString("/apply/")) }
+            jsonPath("$.application.events[*].kind") { value(hasItem(ReviewEventKind.CREATED.name)) }
+        }.andReturn().response.contentAsString
+        val number = Regex("APP-\\d{4}-\\d{6}").find(body)!!.value
+        val invitation = lastTo(customer).bodyText
+        assertTrue(invitation.contains(number) && invitation.contains("START"), invitation)
+        assertTrue(sender.sent.none { it.first == DEALER }, "the dealer phone is not involved")
+
+        // Any first message from the invited phone starts the journey (no START <number> needed).
+        sender.clear()
+        text(customer, "hi")
+        assertTrue(lastTo(customer).bodyText.contains("Do you agree?"), lastTo(customer).bodyText)
+        assertEquals(number, applications.findById(sessions.findActiveByPhone(customer)!!.applicationId).get().applicationNumber)
+        button(customer, CustomerReplyIds.CONSENT_AGREE)
+        image(customer, "ktp-" + UUID.randomUUID())
+        image(customer, "selfie-" + UUID.randomUUID())
+        assertEquals(ApplicationStatus.READY_FOR_REVIEW, applications.findByApplicationNumber(number)!!.status)
+        assertTrue(lastTo(customer).bodyText.contains("Your documents are submitted"), lastTo(customer).bodyText)
+
+        // Validation and the unknown-dealer case.
+        mockMvc.post("/admin/applications") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"customerPhone":"12"}""" }
+            .andExpect { status { isBadRequest() } }
+        mockMvc.post("/admin/applications") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"dealerCode":"DLR-NOPE"}""" }
+            .andExpect { status { isNotFound() } }
+        mockMvc.post("/admin/applications").andExpect { status { isUnauthorized() } }
+
+        // Clean up: decide it so the queue is as other tests expect.
+        mockMvc.post("/admin/applications/$number/decision") {
+            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            content = """{"decision":"APPROVED","reviewer":"Officer Demo"}"""
+        }.andExpect { status { isOk() } }
+    }
+
+    @Test
     fun `reviewer statistics show the queue, the decision throughput and who did what`() {
         val waitingNumber = onboard("6287000000011")
         val decidedNumber = onboard("6287000000012")

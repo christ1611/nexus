@@ -167,11 +167,21 @@
   svg.chart .bar { cursor: default; } svg.chart .bar:hover { filter: brightness(0.9); }
   svg.chart .line { fill: none; stroke: var(--text); stroke-width: 1.5; }
   svg.chart .pt { fill: var(--surface); stroke: var(--text); stroke-width: 1.5; }
+  .newapp { border: 1px dashed var(--seq); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; background: var(--info-bg); }
+  .newapp summary { font-weight: 600; color: var(--text); font-size: 13px; }
+  .newapp label { display: block; font-size: 12px; color: var(--text-2); margin: 8px 0 2px; }
+  .newapp label.inline { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); margin-top: 8px; }
+  .newapp .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .newapp .result { margin-top: 12px; padding: 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); }
+  .newapp .qr { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-top: 8px; }
+  .newapp .qr svg, .newapp .qr img { width: 168px; height: 168px; background: #fff; padding: 6px; border-radius: 6px; border: 1px solid var(--border); }
+  .newapp .link { font-size: 12px; word-break: break-all; color: var(--text-2); }
   #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; z-index: 20; cursor: zoom-out; }
   #lightbox img { max-width: 96vw; max-height: 96vh; object-fit: contain; }
   #tip { position: fixed; pointer-events: none; background: var(--text); color: var(--surface); font-size: 12px; padding: 6px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s; z-index: 10; max-width: 280px; }
   @media (max-width: 600px) { .timeline li { grid-template-columns: 1fr; gap: 2px; } }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
 </head>
 <body>
 <header>
@@ -192,6 +202,18 @@
     <button type="button" role="tab" id="tab-stats" aria-controls="stats" aria-selected="false" data-tab="stats">심사 통계 <small>Reviewer statistics</small><span class="n" id="n-stats" hidden></span></button>
   </div>
   <section class="card" id="queue">
+    <details class="newapp" id="newapp">
+      <summary>➕ 새 신청 만들기 · 고객 WhatsApp 초대 <span class="sub">Start a demo without a dealer phone</span></summary>
+      <label>고객 전화번호 <span class="sub">digits with country code, e.g. 628123456789</span></label>
+      <input id="na-phone" type="text" inputmode="numeric" placeholder="628123456789" style="width:100%" autocomplete="off">
+      <label>고객 이름 <span class="sub">optional, used in the greeting</span></label>
+      <input id="na-name" type="text" style="width:100%" autocomplete="off">
+      <label>딜러 <span class="sub">the application is filed under this dealer</span></label>
+      <select id="na-dealer" style="width:100%"><option value="">(첫 번째 활성 딜러)</option></select>
+      <label class="inline"><input type="checkbox" id="na-invite" checked> WhatsApp 초대 메시지 전송 <span class="sub">send the START link to the customer</span></label>
+      <div class="btns"><button class="primary" id="na-create">신청 생성</button><span class="sub" id="na-status"></span></div>
+      <div id="na-result"></div>
+    </details>
     <h2>심사 큐 <small>Work queue</small></h2>
     <div class="filters">
       <select id="f-scope"><option value="open">열린 건 (open)</option><option value="all">전체 (all)</option><option value="READY_FOR_REVIEW">심사 대기만</option><option value="DOCUMENTS_REQUESTED">고객 서류 재요청</option><option value="APPROVED,REJECTED">결정 완료</option></select>
@@ -507,6 +529,52 @@
     $('#btn-note').addEventListener('click', e => { const note = $('#note-text').value.trim(); if (!note) { setStatus('메모를 입력하세요.', true); return; } run(e.target, async () => { await api('/admin/applications/' + n + '/note', { method: 'POST', body: JSON.stringify({ note, reviewer: reviewer() }) }); after('메모 추가 완료'); }); });
   }
 
+  /* ---------- new application (demo start without a dealer phone) ---------- */
+  let dealersLoaded = false;
+  async function loadDealers() {
+    if (dealersLoaded) return;
+    try {
+      const list = await api('/admin/dealers');
+      const sel = $('#na-dealer');
+      list.filter(d => d.active).forEach(d => { const o = document.createElement('option'); o.value = d.code; o.textContent = `${d.code} · ${d.name} (${d.country})`; sel.appendChild(o); });
+      dealersLoaded = true;
+    } catch (e) { /* the default dealer is used server-side */ }
+  }
+  function qrSvg(text) {
+    try {
+      if (typeof qrcode !== 'function') return '';
+      const q = qrcode(0, 'M'); q.addData(text); q.make();
+      return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+    } catch { return ''; }
+  }
+  $('#na-create').addEventListener('click', async e => {
+    const phone = $('#na-phone').value.trim(), name = $('#na-name').value.trim();
+    if (!keyInput.value.trim()) { setStatus('관리자 키를 입력하세요.', true); return; }
+    if (phone && !/^\d{8,15}$/.test(phone)) { $('#na-status').textContent = '전화번호는 국가코드 포함 숫자만 (8-15자리)'; return; }
+    e.target.disabled = true; $('#na-status').textContent = '생성 중…';
+    try {
+      const r = await api('/admin/applications', { method: 'POST', body: JSON.stringify({ customerPhone: phone || null, customerName: name || null, dealerCode: $('#na-dealer').value || null, invite: $('#na-invite').checked, reviewer: reviewerInput.value.trim() || null }) });
+      const n = r.application.applicationNumber;
+      const invite = !r.customerInvited ? '<span class="sub">고객 번호 없음 · 고객이 아래 링크(또는 QR)로 시작합니다</span>'
+        : r.inviteSent === true ? '<span class="ok">✓ WhatsApp 초대 전송됨</span> <span class="sub">고객은 아무 메시지나 보내면 시작됩니다 (예: START)</span>'
+        : r.inviteSent === false ? '<span class="bad">✗ WhatsApp 전송 실패</span> <span class="sub">고객이 먼저 이 번호로 메시지를 보내면(24시간 창) 자동으로 시작되고, QR을 스캔해도 됩니다</span>'
+        : '<span class="sub">초대 메시지는 보내지 않음 · 고객이 아무 메시지나 보내면 시작됩니다</span>';
+      const link = r.startLink || '';
+      $('#na-result').innerHTML = `<div class="result">
+        <div><b>${esc(n)}</b> 생성됨 · <a class="app" href="/review?app=${encodeURIComponent(n)}" data-open="${esc(n)}">상세 열기 →</a></div>
+        <div style="margin-top:4px">${invite}</div>
+        <div class="qr">${link ? qrSvg(link) : ''}<div>
+          <div class="sub">고객 폰으로 스캔하면 WhatsApp이 열리고 <b>${esc(r.startText)}</b>가 입력되어 있습니다.</div>
+          ${link ? `<div class="link" style="margin-top:6px">${esc(link)}</div><div class="btns"><button id="na-copy">링크 복사</button></div>` : '<div class="sub" style="margin-top:6px">비즈니스 번호를 아직 모릅니다 (첫 웹훅 수신 후 또는 WHATSAPP_BUSINESS_PHONE 설정). 고객에게 "' + esc(r.startText) + '" 전송을 안내하세요.</div>'}
+        </div></div></div>`;
+      $('#na-status').textContent = '';
+      $('#na-result').querySelector('[data-open]')?.addEventListener('click', ev => { ev.preventDefault(); open(n); });
+      $('#na-copy')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(link); $('#na-status').textContent = '복사됨'; } catch { $('#na-status').textContent = '복사 실패: 링크를 직접 선택하세요'; } });
+      loadQueue();
+    } catch (err) { $('#na-status').textContent = '오류: ' + err.message; }
+    finally { e.target.disabled = false; }
+  });
+
   /* ---------- statistics tab ---------- */
   const statsPanel = $('#stats'), queuePanel = $('#queue');
   let activeTab = 'work', statsLoadedAt = 0;
@@ -643,7 +711,8 @@
   }
 
   /* ---------- wiring ---------- */
-  $('#load').addEventListener('click', () => { loadQueue(); if (activeTab === 'stats') loadStats(); });
+  $('#load').addEventListener('click', () => { loadQueue(); loadDealers(); if (activeTab === 'stats') loadStats(); });
+  $('#newapp').addEventListener('toggle', () => { if ($('#newapp').open && keyInput.value.trim()) loadDealers(); });
   keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') { loadQueue(); if (activeTab === 'stats') loadStats(); } });
   ['#f-scope', '#f-country', '#f-grade'].forEach(s => $(s).addEventListener('change', loadQueue));
   let t; $('#f-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadQueue, 300); });

@@ -10,6 +10,7 @@ import java.time.Instant
 
 /** What happened to an application in the back office; shown as the timeline on the review page. */
 enum class ReviewEventKind(val label: String, val labelKo: String) {
+    CREATED("Application created in the back office", "백오피스에서 신청 생성"),
     DOCUMENTS_COMPLETE("Customer documents complete", "고객 서류 접수 완료"),
     RISK_ASSESSED("Risk assessed", "리스크 평가"),
     RISK_REASSESSED("Risk re-assessed by officer", "리스크 재평가"),
