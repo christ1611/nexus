@@ -253,6 +253,27 @@
   .newapp .link { font-size: 12px; word-break: break-all; color: var(--text-2); }
   #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; z-index: 20; cursor: zoom-out; }
   #lightbox img { max-width: 96vw; max-height: 96vh; object-fit: contain; }
+  /* customer report popup (opened from the queue and the decision card) */
+  #report { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: flex-start; justify-content: center; z-index: 30; overflow: auto; padding: 24px 12px; }
+  #report .sheet { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); width: min(920px, 100%); padding: 20px 24px 24px; position: relative; }
+  #report .sheet-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid var(--brand); margin-bottom: 14px; }
+  #report .sheet-head h2 { font-size: 20px; margin: 0; }
+  #report .sheet-tools { display: flex; gap: 8px; align-items: center; }
+  #report .sec { margin-top: 16px; }
+  #report .sec h3 { font-size: 14px; margin: 0 0 6px; color: var(--brand); display: flex; align-items: baseline; gap: 6px; }
+  #report .sec h3 small { font-size: 11px; font-weight: 400; color: var(--text-3); }
+  #report table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #report th, #report td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  #report th { color: var(--text-3); font-weight: 600; font-size: 12px; }
+  #report .foot { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; }
+  button.rp-mini { font-size: 11px; font-weight: 600; padding: 2px 9px; margin-left: 6px; vertical-align: middle; }
+  @media print {
+    body > *:not(#report) { display: none !important; }
+    #report { display: block !important; position: static; background: none; padding: 0; overflow: visible; }
+    #report .sheet { box-shadow: none; border: 0; width: 100%; padding: 0; }
+    #report .sheet-tools, #report .no-print { display: none !important; }
+    #report pre { max-height: none; }
+  }
   #tip { position: fixed; pointer-events: none; background: var(--brand-navy); color: #fff; font-size: 12px; padding: 6px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s; z-index: 10; max-width: 280px; }
   @media (max-width: 600px) { .timeline li { grid-template-columns: 1fr; gap: 2px; } }
 </style>
@@ -314,12 +335,13 @@
   <span>관리자 키는 이 브라우저 세션에만 저장됩니다 · Admin key stays in this browser session</span>
 </footer>
 <div id="lightbox"><img alt=""></div>
+<div id="report" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="sheet"></div></div>
 <div id="tip" role="tooltip"></div>
 
 <script>
 (function () {
   const $ = (s, el = document) => el.querySelector(s);
-  const list = $('#list'), detail = $('#detail'), status = $('#status'), keyInput = $('#key'), reviewerInput = $('#reviewer'), tip = $('#tip'), lightbox = $('#lightbox');
+  const list = $('#list'), detail = $('#detail'), status = $('#status'), keyInput = $('#key'), reviewerInput = $('#reviewer'), tip = $('#tip'), lightbox = $('#lightbox'), report = $('#report');
   const COUNTRY_COLOR = { ID: 'var(--c-id)', MM: 'var(--c-mm)', KH: 'var(--c-kh)' };
   const COUNTRY_KO = { ID: '인도네시아', MM: '미얀마', KH: '캄보디아' };
   const GRADE = {
@@ -539,13 +561,14 @@
     list.innerHTML = `<div class="scroll"><table><thead><tr><th>신청번호</th><th>상태</th><th>등급</th><th>대기</th></tr></thead><tbody>${apps.map(a => {
       const r = a.risk, waitingSince = a.risk?.assessedAt || a.verifiedAt || a.updatedAt;
       return `<tr class="row ${current && current.applicationNumber === a.applicationNumber ? 'selected' : ''}" data-n="${esc(a.applicationNumber)}">
-        <td><b>${esc(a.applicationNumber)}</b><br><span class="sub">${countryCell(a.country)} · ${esc(a.dealerCode || '–')} · ${esc(a.extracted?.name || a.customerName || '고객 미연결')}</span></td>
+        <td><b>${esc(a.applicationNumber)}</b><button type="button" class="rp-mini report-btn" data-n="${esc(a.applicationNumber)}" title="고객 리포트 보기 · customer report">📄 리포트</button><br><span class="sub">${countryCell(a.country)} · ${esc(a.dealerCode || '–')} · ${esc(a.extracted?.name || a.customerName || '고객 미연결')}</span></td>
         <td>${pill(a.status)}${a.review?.officerReviewRequired ? '<br><span class="chip warn">담당자 검토</span>' : ''}${a.progress && a.status !== 'APPROVED' && a.status !== 'REJECTED' ? `<br><span style="white-space:nowrap">${miniBar(a.progress)} <span class="sub">${esc(a.progress.currentKo)}</span></span>` : ''}</td>
         <td>${r ? gradeCell(r.grade, r.score) : '<span class="sub">–</span>'}${r && r.fraudWarnings ? `<br><span class="chip fraud">⚠ 위조 ${r.fraudWarnings}</span>` : ''}</td>
         <td class="num"><span class="sub" title="${esc(fmtTime(waitingSince))}">${a.status === 'READY_FOR_REVIEW' ? ago(waitingSince) : ago(a.updatedAt)}</span></td></tr>`; }).join('')}</tbody></table></div>
       <p class="sub" style="margin:8px 0 0">${apps.length}건 · 심사 대기 우선, 리스크 점수 높은 순 · 60초마다 갱신</p>`;
     const waitingCount = apps.filter(a => a.status === 'READY_FOR_REVIEW').length; $('#n-work').textContent = waitingCount; $('#n-work').hidden = !waitingCount;
     list.querySelectorAll('tr.row').forEach(tr => tr.addEventListener('click', () => open(tr.dataset.n)));
+    list.querySelectorAll('button.report-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); showReport(b.dataset.n); }));
   }
 
   /* ---------- detail ---------- */
@@ -594,7 +617,7 @@
     h += `<div class="card" id="trace-panel" style="margin-top:16px">${renderTrace(trace, liveTrace, prevLastId)}</div>`;
 
     // actions
-    h += `<div class="card" style="margin-top:16px"><h2>심사 결정 <small>Decisions · notifications go to the dealer and the customer on WhatsApp</small></h2>
+    h += `<div class="card" style="margin-top:16px"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between"><h2 style="margin:0">심사 결정 <small>Decisions · notifications go to the dealer and the customer on WhatsApp</small></h2><button type="button" id="btn-report" title="이 고객의 리포트를 팝업으로 봅니다">📄 고객 리포트</button></div>
       ${final ? '<p class="empty">결정이 완료된 신청입니다. 메모만 추가할 수 있습니다.</p>' : ''}
       <div class="actions">
         <div class="action"><h3>승인 / 거절 <span class="sub">Approve / reject</span></h3>
@@ -698,7 +721,63 @@
     }
   }
   lightbox.addEventListener('click', () => { lightbox.style.display = 'none'; });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') lightbox.style.display = 'none'; });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { lightbox.style.display = 'none'; closeReport(); } });
+
+  /* ---------- customer report popup ---------- */
+  const sheet = $('#report .sheet');
+  function closeReport() { report.style.display = 'none'; sheet.innerHTML = ''; }
+  report.addEventListener('click', e => { if (e.target === report) closeReport(); });
+
+  async function showReport(number) {
+    report.style.display = 'flex';
+    sheet.innerHTML = `<div class="sheet-head"><h2 id="report-title">${esc(number)} <small class="sub">고객 리포트 · Customer report</small></h2><div class="sheet-tools"><button type="button" class="rp-close">✕ 닫기</button></div></div><p class="empty">리포트를 불러오는 중… <span class="sub">Loading…</span></p>`;
+    sheet.querySelector('.rp-close').addEventListener('click', closeReport);
+    try {
+      const a = current && current.applicationNumber === number ? current : await api('/admin/applications/' + encodeURIComponent(number));
+      sheet.innerHTML = reportHtml(a);
+      sheet.querySelectorAll('.rp-close').forEach(b => b.addEventListener('click', closeReport));
+      sheet.querySelector('.rp-print').addEventListener('click', () => window.print());
+      sheet.querySelector('.rp-open').addEventListener('click', () => { closeReport(); showTab('work'); open(number); });
+      bindTips(sheet);
+    } catch (e) {
+      sheet.innerHTML = `<div class="sheet-head"><h2 id="report-title">${esc(number)}</h2><div class="sheet-tools"><button type="button" class="rp-close">✕ 닫기</button></div></div><p class="notice crit">리포트를 불러오지 못했습니다: ${esc(e.message)} <span class="sub">Could not load the report.</span></p>`;
+      sheet.querySelector('.rp-close').addEventListener('click', closeReport);
+    }
+  }
+
+  /* One-page report built from the application detail: who, risk, documents, checks, flags, agent summary, decision, history. */
+  function reportHtml(a) {
+    const r = a.risk, final = a.status === 'APPROVED' || a.status === 'REJECTED';
+    const docs = (a.documents || []).filter(d => !d.superseded), superseded = (a.documents || []).filter(d => d.superseded).length;
+    const g = GRADE[r?.grade] || { color: 'var(--text-3)' };
+    const sec = (ko, en, body) => `<div class="sec"><h3>${ko} <small>${en}</small></h3>${body}</div>`;
+    const none = (ko, en) => `<p class="empty" style="padding:4px 0">${ko} <span class="sub">${en}</span></p>`;
+    const docRow = d => {
+      let an = null; try { an = d.analysis ? JSON.parse(d.analysis) : null; } catch {}
+      const tamper = (an?.tamperSignals || []).length, issues = (an?.qualityIssues || []).length;
+      const check = d.checkPassed == null ? '<span class="mid">검사 중</span>' : d.checkPassed ? '<span class="ok">통과</span>' : `<span class="bad">실패</span>${d.checkReason ? ` <span class="sub">${esc(d.checkReason)}</span>` : ''}`;
+      return `<tr><td><b>${esc(DOC_KO[d.type] || d.typeLabel)}</b>${d.needsOfficerReview ? ' <span class="chip warn">담당자 검토</span>' : ''}</td><td>${check}</td><td>${an ? `${esc(an.documentType || '')} ${pct(an.documentTypeConfidence)}` : '<span class="sub">–</span>'}</td><td>${tamper ? `<span class="bad">⚠ 위조 의심 ${tamper}</span>` : issues ? `<span class="mid">품질 문제 ${issues}</span>` : '<span class="ok">없음</span>'}</td><td class="num"><span class="sub">${fmtTime(d.createdAt)}</span></td></tr>`;
+    };
+    const events = (a.events || []).slice(-10).reverse();
+    return `<div class="sheet-head">
+        <div><h2 id="report-title">${esc(a.applicationNumber)} ${pill(a.status)}</h2>
+          <div class="sub">고객 리포트 · Customer report · ${countryCell(a.country)} ${esc(COUNTRY_KO[a.country] || '')} · 딜러 ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''}</div></div>
+        <div class="sheet-tools no-print"><button type="button" class="rp-open">상세 열기</button><button type="button" class="rp-print">🖨 인쇄</button><button type="button" class="rp-close">✕ 닫기</button></div>
+      </div>
+      <div class="grid2">
+        <div>${sec('고객', 'Customer', `<dl class="kv"><dt>이름</dt><dd><b>${esc(a.extracted?.name || a.customerName || '고객 미연결')}</b></dd><dt>전화</dt><dd>${a.customerPhone ? '+' + esc(a.customerPhone) : '<span class="sub">아직 없음</span>'}</dd><dt>국가</dt><dd>${esc(COUNTRY_KO[a.country] || a.country)}</dd><dt>딜러</dt><dd>${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}</dd><dt>생성</dt><dd>${fmtTime(a.createdAt)}</dd><dt>최근 변경</dt><dd>${fmtTime(a.updatedAt)}</dd>${a.progress ? `<dt>진행 단계</dt><dd>${esc(a.progress.currentKo || '')} <span class="sub">${esc(a.progress.current || '')}</span></dd>` : ''}</dl>`)}</div>
+        <div>${sec('AI 리스크 등급', 'Risk grade', r ? `<div class="gradebox" style="border-color:${g.color}"><span class="big" style="color:${g.color}">${esc(r.grade)}</span><div><div><b>${esc(r.gradeLabelKo)}</b> <span class="sub">${esc(r.gradeLabel)}</span></div><div class="sub">점수 ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ 위조·사기 경고 ${r.fraudWarnings}</span>` : '위조 신호 없음'}</div><div class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')} · ${fmtTime(r.assessedAt)}</div></div></div>
+            <div style="margin-top:8px">${(r.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(b.labelKo)}</span>`).join('') || '<span class="sub">배지 없음</span>'}${a.review?.officerReviewRequired ? '<span class="chip warn">담당자 검토 필요</span>' : ''}</div>` : none('리스크 미평가 (서류 미완료)', 'Not assessed yet'))}</div>
+      </div>
+      ${sec('추출 데이터', 'Extracted from the ID document', a.extracted ? `<dl class="kv"><dt>이름</dt><dd>${esc(a.extracted.name || '–')}</dd><dt>NIK</dt><dd>${esc(a.extracted.nik || '–')}</dd><dt>생년월일</dt><dd>${esc(a.extracted.dob || '–')}</dd><dt>주소</dt><dd>${esc(a.extracted.address || '–')}</dd></dl>` : none('아직 추출된 데이터가 없습니다.', 'No extracted data yet.'))}
+      ${sec('신원·신용 조회', 'Identity & credit checks', a.idVerification || a.creditCheck ? `<dl class="kv"><dt>신원 조회</dt><dd>${outcome(a.idVerification)}</dd><dt>신용 조회</dt><dd>${outcome(a.creditCheck)}${a.creditCheck?.score != null ? ` · 점수 <b>${a.creditCheck.score}</b>` : ''}</dd><dt>조회 시각</dt><dd>${fmtTime(a.verifiedAt)}</dd></dl>` : none('아직 조회가 실행되지 않았습니다.', 'Not run yet.'))}
+      ${sec('서류', `Documents · ${docs.length} current${superseded ? ', ' + superseded + ' superseded' : ''}`, docs.length ? `<div class="scroll"><table><thead><tr><th>서류</th><th>검사</th><th>감지 유형</th><th>위조·품질</th><th class="num">접수</th></tr></thead><tbody>${docs.map(docRow).join('')}</tbody></table></div>` : none('아직 접수된 서류가 없습니다.', 'No documents yet.'))}
+      ${sec('Risk Flag · 근거', 'Risk flags with evidence', !r ? none('리스크 평가 전입니다.', 'Not assessed yet.') : !r.flags.length ? '<p class="notice ok" style="margin:0">경고 없음 · No warnings</p>' : r.flags.map(f => `<div class="flag"><span class="sev" style="color:${SEV[f.severity].color}">${SEV[f.severity].icon}</span><div><div class="t">${f.fraud ? '<span class="bad">⚠</span> ' : ''}${esc(f.titleKo)} <span class="sub">${esc(f.title)} · ${esc(f.sourceKo)} · 심각도 ${esc(f.severityKo)}</span></div><div class="d">${esc(f.detail)}</div></div></div>`).join(''))}
+      ${a.review ? sec('자동 리뷰 요약', `Review agent summary · ${esc(a.review.decision || '')} · rounds ${a.review.rounds}`, a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : none('요약이 아직 없습니다.', 'No summary yet.')) : ''}
+      ${sec('심사 결정', 'Decision', final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin:0"><b>${esc(STATUS_KO[a.status])}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : `<p class="empty" style="padding:4px 0">아직 결정되지 않았습니다 · 현재 상태 ${esc(STATUS_KO[a.status] || a.status)}${a.resubmissionReason ? `<br><span class="sub">${esc(a.resubmissionReason)}</span>` : ''}</p>`)}
+      ${sec('최근 이력', `Recent history · last ${events.length} of ${(a.events || []).length}`, events.length ? `<ul class="timeline">${events.map(e => `<li><time>${fmtTime(e.createdAt)}</time><div><b>${esc(e.labelKo)}</b> <span class="sub">${esc(e.label)}${e.actor ? ' · ' + esc(e.actor) : ''}</span>${e.detail ? '<br>' + esc(e.detail) : ''}</div></li>`).join('')}</ul>` : none('아직 이력이 없습니다.', 'No history yet.'))}
+      <div class="foot"><span>NEXUS ASEAN · 심사 백오피스 리포트</span><span>생성 ${fmtTime(new Date().toISOString())}${reviewerInput.value.trim() ? ' · ' + esc(reviewerInput.value.trim()) : ''}</span></div>`;
+  }
 
   function bindActions(a, final) {
     const n = encodeURIComponent(a.applicationNumber), reviewer = () => reviewerInput.value.trim() || null;
@@ -723,6 +802,7 @@
       });
     }
     $('#btn-reassess').addEventListener('click', e => run(e.target, async () => { await api('/admin/applications/' + n + '/assess-risk' + (reviewer() ? '?reviewer=' + encodeURIComponent(reviewer()) : ''), { method: 'POST' }); after('리스크 재평가 완료'); }));
+    $('#btn-report').addEventListener('click', () => showReport(a.applicationNumber));
     $('#btn-note').addEventListener('click', e => { const note = $('#note-text').value.trim(); if (!note) { setStatus('메모를 입력하세요.', true); return; } run(e.target, async () => { await api('/admin/applications/' + n + '/note', { method: 'POST', body: JSON.stringify({ note, reviewer: reviewer() }) }); after('메모 추가 완료'); }); });
   }
 
