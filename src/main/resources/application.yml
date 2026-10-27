@@ -32,7 +32,8 @@ spring:
       mode: always
 
 server:
-  port: 8080
+  # The hosting platform injects PORT; 8080 stays the local default.
+  port: ${PORT:8080}
 
 app:
   # Base URL dealers open one-time links on (your ngrok domain).

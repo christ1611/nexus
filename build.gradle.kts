@@ -49,3 +49,8 @@ tasks.withType<JavaCompile> {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+// Only produce the executable boot jar so `build/libs/*.jar` resolves to a single file in the container image.
+tasks.named<Jar>("jar") {
+    enabled = false
+}
