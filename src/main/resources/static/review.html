@@ -544,7 +544,11 @@
   reviewerInput.addEventListener('change', () => { try { localStorage.setItem('reviewerName', reviewerInput.value.trim()); } catch {} });
 
   const headers = () => ({ 'X-Admin-Key': keyInput.value.trim(), 'Content-Type': 'application/json' });
+  // A pasted sentence or a Korean character in the key field would make fetch() throw a cryptic header error.
+  const badKey = () => /[^\x21-\x7e]/.test(keyInput.value.trim());
+  const BAD_KEY_MSG = () => t('관리자 키에 영문·숫자 외 문자가 들어 있습니다. 키만 다시 붙여 넣어 주세요.', 'The admin key contains characters other than letters and digits. Paste only the key.');
   async function api(path, opts = {}) {
+    if (badKey()) throw new Error(BAD_KEY_MSG());
     const res = await fetch(path, { ...opts, headers: headers() });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
@@ -574,6 +578,7 @@
   }
   async function loadQueue() {
     if (!keyInput.value.trim()) { needKey(); return; }
+    if (badKey()) { setStatus(BAD_KEY_MSG(), true); return; }
     try { sessionStorage.setItem('adminKey', keyInput.value.trim()); } catch {}
     setStatus(t('불러오는 중…', 'Loading…'));
     try {

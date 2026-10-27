@@ -447,6 +447,7 @@
   async function load() {
     const key = keyInput.value.trim();
     if (!key) { status.textContent = t('관리자 키를 입력하세요.', 'Enter the admin key.'); status.className = 'status err'; return; }
+    if (/[^\x21-\x7e]/.test(key)) { status.textContent = t('관리자 키에 영문·숫자 외 문자가 들어 있습니다. 키만 다시 붙여 넣어 주세요.', 'The admin key contains characters other than letters and digits. Paste only the key.'); status.className = 'status err'; return; }
     try { sessionStorage.setItem('adminKey', key); } catch {}
     status.textContent = t('불러오는 중…', 'Loading…'); status.className = 'status';
     try {
