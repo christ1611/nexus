@@ -1,0 +1,37 @@
+version: axhub/v1
+name: nexus
+
+runtime:
+  port: 8080
+  health_path: /healthz
+  healthcheck:
+    start_period: 120s
+
+build:
+  deploy_method: docker
+  dockerfile: Dockerfile
+
+env:
+  required:
+    - name: WHATSAPP_PHONE_NUMBER_ID
+    - name: WHATSAPP_ACCESS_TOKEN
+    - name: WHATSAPP_APP_SECRET
+    - name: WHATSAPP_VERIFY_TOKEN
+  optional:
+    - name: ADMIN_API_KEY
+    - name: APP_PUBLIC_BASE_URL
+    - name: WHATSAPP_BUSINESS_ACCOUNT_ID
+    - name: WHATSAPP_BUSINESS_PHONE
+    - name: DOCUMENT_CHECK
+    - name: ANTHROPIC_API_KEY
+    - name: CLAUDE_MODEL
+    - name: DEMO_SEED_APPLICATIONS
+    - name: DEMO_SEED_COUNT
+    - name: DEMO_DEALER_1_PHONE
+    - name: DEMO_DEALER_1_NAME
+    - name: DEMO_DEALER_2_PHONE
+    - name: DEMO_DEALER_2_NAME
+    - name: DEMO_DEALER_3_PHONE
+    - name: DEMO_DEALER_3_NAME
+    - name: DEMO_DEALER_4_PHONE
+    - name: DEMO_DEALER_4_NAME
