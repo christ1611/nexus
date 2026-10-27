@@ -5,7 +5,8 @@ COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle ./gradle
 RUN chmod +x gradlew && ./gradlew --no-daemon --version
 COPY src ./src
-RUN ./gradlew --no-daemon bootJar -x test
+# Compile in-process and drop daemon leftovers: the image snapshot fails on vanished Kotlin daemon run files otherwise.
+RUN ./gradlew --no-daemon -Pkotlin.compiler.execution.strategy=in-process bootJar -x test && rm -rf /root/.kotlin
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
