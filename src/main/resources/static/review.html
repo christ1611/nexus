@@ -686,6 +686,9 @@
     else h += r.flags.map(flagRow).join('');
     h += `<details style="margin-top:8px"><summary>${t('등급 산정 기준', 'How the grade is computed')}</summary><p class="sub" style="margin:6px 0 0">${t("점수 = 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A 0-14 · B 15-39 · C 40-69 · D 70+. 심각도 '높음'의 위조 신호가 하나라도 있으면 최소 C. 등급은 코드의 규칙이 계산하며 모델이 직접 정하지 않습니다.", 'Score = sum of flag severities (LOW 10 · MEDIUM 20 · HIGH 35, capped at 100). A 0-14 · B 15-39 · C 40-69 · D 70+. Any HIGH fraud signal floors the grade at C. The grade is computed by code rules, not by the model.')}</p></details></div>`;
 
+    // fraud network: filled in asynchronously when this application is tied to others
+    h += '<div id="fraud-links"></div>';
+
     // review summary
     if (a.review) h += `<div class="card" style="margin-top:16px"><h2>${t('자동 리뷰 요약', 'Review agent summary')} <small>${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}${a.review.reviewedAt ? ' · ' + fmtTime(a.review.reviewedAt) : ''}</small></h2>${a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : `<p class="empty">${t('요약이 아직 없습니다.', 'No summary yet.')}</p>`}</div>`;
 
@@ -697,6 +700,7 @@
     bindActions(a, final);
     bindCopilot(a);
     loadImages(a);
+    loadFraudLinks(a);
     if (liveTrace) startTracePolling(a.applicationNumber); else stopTracePolling();
   }
 
@@ -735,6 +739,30 @@
         <div class="sub" style="margin-top:4px">model: ${esc(an.model || '')}</div></details>`;
     }
     return h + '</div>';
+  }
+
+  /* Fraud network: the ring this application belongs to (same ID number, phone or name on other applications). The
+     network is computed for all applications, so it is fetched once a minute and shared between detail views. */
+  const LINK_LABEL = { SAME_ID: ['같은 신분증 번호', 'same ID number'], SAME_PHONE: ['같은 전화번호', 'same phone'], DUPLICATE: ['중복 신청', 'duplicate application'], SAME_NAME: ['같은 이름·생년월일', 'same name & DOB'] };
+  let networkCache = null, networkAt = 0;
+  async function loadFraudLinks(a) {
+    const slot = $('#fraud-links'); if (!slot) return;
+    try {
+      if (!networkCache || Date.now() - networkAt > 60000) { networkCache = await api('/admin/fraud-network'); networkAt = Date.now(); }
+      if (!current || current.applicationNumber !== a.applicationNumber || !detail.contains(slot)) return;
+      const cluster = networkCache.clusters.find(c => c.applications.includes(a.applicationNumber));
+      if (!cluster) return;
+      const me = networkCache.nodes.find(x => x.type === 'application' && x.number === a.applicationNumber);
+      const byId = Object.fromEntries(networkCache.nodes.map(x => [x.id, x]));
+      const ties = networkCache.links.filter(l => l.kind !== 'DEALER' && (l.source === me?.id || l.target === me?.id)).map(l => ({ other: byId[l.source === me.id ? l.target : l.source], kind: l.kind, detail: l.detail }));
+      const others = cluster.applications.filter(n => n !== a.applicationNumber);
+      slot.innerHTML = `<div class="card" style="margin-top:16px;border-color:${cluster.severity === 'HIGH' ? 'var(--critical)' : 'var(--warn)'}"><h2>${t('사기 연결망', 'Fraud network')} <small>${t(`이 신청은 다른 신청 ${others.length}건과 묶여 있어요`, `this application is tied to ${others.length} other application(s)`)}</small> <span class="chip ${cluster.severity === 'HIGH' ? 'fraud' : 'warn'}">${t('묶음', 'ring')} ${cluster.id} · ${cluster.severity === 'HIGH' ? t('높음', 'high') : t('중간', 'medium')}</span></h2>
+        <div class="sub" style="margin-bottom:6px">${esc(LANG.lang === 'en' ? cluster.summary : cluster.summaryKo)}</div>
+        ${ties.length ? `<ul class="timeline" style="margin-bottom:8px">${ties.map(x => `<li><time>${pair(LINK_LABEL, x.kind)}</time><div><a class="app" href="/review?app=${encodeURIComponent(x.other.number)}" data-open="${esc(x.other.number)}" style="color:var(--brand);font-weight:600;text-decoration:none">${esc(x.other.number)}</a> <span class="sub">${esc(x.other.name || '')} · ${statusName(x.other.status)}${x.other.grade ? ` · ${t('등급', 'grade')} ${x.other.grade}` : ''} · ${t('딜러', 'dealer')} ${esc(x.other.dealerCode || '–')}${x.detail ? ' · ' + esc(x.detail) : ''}</span></div></li>`).join('')}</ul>` : ''}
+        ${others.some(n => !ties.find(x => x.other.number === n)) ? `<div class="sub" style="margin-bottom:6px">${t('같은 묶음의 다른 신청', 'Also in this ring')}: ${others.filter(n => !ties.find(x => x.other.number === n)).map(n => `<a class="app" href="/review?app=${encodeURIComponent(n)}" data-open="${esc(n)}" style="color:var(--brand);font-weight:600;text-decoration:none">${esc(n)}</a>`).join(' · ')}</div>` : ''}
+        <a class="sub" href="/dashboard#risk" target="_blank" rel="noopener">${t('대시보드에서 연결망 그림 보기 →', 'See the network graph on the dashboard →')}</a></div>`;
+      slot.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); open(el.dataset.open); }));
+    } catch (e) { /* the detail is complete without it */ }
   }
 
   async function loadImages(a) {

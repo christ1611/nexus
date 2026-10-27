@@ -75,6 +75,11 @@
   .tile.alert .v { color: var(--critical); }
   .tile.good .v { color: var(--good); }
   #panel-dealers th { white-space: nowrap; }
+  .action { border: 1px solid var(--border); border-radius: 12px; }
+  .chip.fraud { border-color: var(--critical); color: var(--critical); }
+  .notice { padding: 8px 12px; border-radius: 10px; font-size: 13px; margin-bottom: 10px; }
+  .notice.ok { background: var(--good-bg); color: var(--good); }
+  @media (max-width: 760px) { .netgrid { grid-template-columns: 1fr !important; } }
   .key { display: flex; gap: 8px; align-items: center; }
   input[type=password], input[type=text] { font: inherit; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); min-width: 220px; }
   button { font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
@@ -225,6 +230,7 @@
   const AUTO_MS = 15000;
   let seenStepKeys = null;   // activity-feed keys already shown, to highlight what is new on each refresh
   let lastData = null;       // last payload, redrawn as is when the language changes
+  let lastNetwork = null;    // fraud network, loaded alongside the stats
 
   try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
 
@@ -330,6 +336,76 @@
     return s;
   }
 
+  /* Fraud network: applications tied by a shared ID number, phone or name + date of birth, with the dealers they came
+     through. A small force layout (deterministic, so the picture stays put across refreshes) drawn as SVG. */
+  const LINK_STYLE = {
+    SAME_ID: { color: 'var(--critical)', width: 2.5, dash: '', ko: '같은 신분증 번호', en: 'same ID number' },
+    SAME_PHONE: { color: 'var(--serious)', width: 2, dash: '', ko: '같은 전화번호', en: 'same phone' },
+    DUPLICATE: { color: 'var(--text-3)', width: 1.5, dash: '4 3', ko: '중복 신청', en: 'duplicate application' },
+    SAME_NAME: { color: 'var(--warn)', width: 1.5, dash: '2 3', ko: '같은 이름·생년월일', en: 'same name & DOB' },
+    DEALER: { color: 'var(--border)', width: 1, dash: '', ko: '접수 딜러', en: 'filed by dealer' },
+  };
+  function layoutNetwork(nodes, links, W, H) {
+    let seed = 20261027; const rnd = () => { seed = (seed + 0x6D2B79F5) | 0; let x = Math.imul(seed ^ (seed >>> 15), 1 | seed); x ^= x + Math.imul(x ^ (x >>> 7), 61 | x); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+    const idx = new Map(nodes.map((x, i) => [x.id, i])), n = nodes.length;
+    const px = new Float64Array(n), py = new Float64Array(n), vx = new Float64Array(n), vy = new Float64Array(n);
+    const clusters = [...new Set(nodes.map(x => x.cluster).filter(x => x != null))];
+    const clusterOfDealer = id => nodes.find(a => a.type === 'application' && links.some(l => l.kind === 'DEALER' && l.source === a.id && l.target === id))?.cluster;
+    nodes.forEach((x, i) => {
+      const c = clusters.indexOf(x.cluster ?? clusterOfDealer(x.id));
+      const ang = ((c >= 0 ? c : i) / Math.max(clusters.length, 1)) * Math.PI * 2;
+      px[i] = W / 2 + Math.cos(ang) * W / 3.2 + (rnd() - .5) * 50; py[i] = H / 2 + Math.sin(ang) * H / 3.2 + (rnd() - .5) * 50;
+    });
+    const L = links.map(l => [idx.get(l.source), idx.get(l.target), l.kind === 'DEALER' ? 80 : 50, l.kind === 'DEALER' ? 0.03 : 0.08]).filter(l => l[0] != null && l[1] != null);
+    for (let it = 0; it < 320; it++) {
+      const alpha = 1 - it / 320;
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+        const dx = px[j] - px[i], dy = py[j] - py[i], d2 = Math.max(dx * dx + dy * dy, 1), d = Math.sqrt(d2), f = 2200 / d2;
+        vx[i] -= dx / d * f; vy[i] -= dy / d * f; vx[j] += dx / d * f; vy[j] += dy / d * f;
+      }
+      for (const [a, b, len, k] of L) {
+        const dx = px[b] - px[a], dy = py[b] - py[a], d = Math.max(Math.sqrt(dx * dx + dy * dy), 1), f = (d - len) * k;
+        vx[a] += dx / d * f; vy[a] += dy / d * f; vx[b] -= dx / d * f; vy[b] -= dy / d * f;
+      }
+      for (let i = 0; i < n; i++) {
+        vx[i] += (W / 2 - px[i]) * 0.012; vy[i] += (H / 2 - py[i]) * 0.012;
+        px[i] = Math.max(24, Math.min(W - 24, px[i] + vx[i] * alpha * 0.5)); py[i] = Math.max(20, Math.min(H - 20, py[i] + vy[i] * alpha * 0.5));
+        vx[i] *= 0.55; vy[i] *= 0.55;
+      }
+    }
+    return nodes.map((x, i) => ({ x: px[i], y: py[i] }));
+  }
+  function fraudNetworkCard(net) {
+    const title = `<h2>${t('사기 연결망 탐지', 'Fraud network detection')} <small>${t('같은 신분증 번호 · 같은 전화번호 · 같은 이름을 선으로 이어 의심 묶음을 보여줘요', 'applications tied by the same ID number, phone or name, with the dealers they came through')}</small></h2>`;
+    if (!net) return `<section class="card">${title}<p class="empty">${t('연결망을 불러오지 못했어요.', 'The network could not be loaded.')}</p></section>`;
+    if (!net.clusters.length) return `<section class="card">${title}<p class="notice ok">${t(`신청 ${net.scanned}건을 대조했지만 신분증 번호·전화번호·이름이 겹치는 묶음이 없어요.`, `${net.scanned} applications compared; no shared ID numbers, phones or names.`)}</p></section>`;
+    const W = 660, H = 440, pos = layoutNetwork(net.nodes, net.links, W, H), at = Object.fromEntries(net.nodes.map((x, i) => [x.id, pos[i]]));
+    const label = x => x.type === 'dealer' ? x.label : x.label.replace(/^APP-\d{4}-/, '');
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fraud network" style="max-height:460px">`;
+    [...net.links].sort((a, b) => (a.kind === 'DEALER' ? 0 : 1) - (b.kind === 'DEALER' ? 0 : 1)).forEach(l => {
+      const a = at[l.source], b = at[l.target], st = LINK_STYLE[l.kind] || LINK_STYLE.DEALER; if (!a || !b) return;
+      s += `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="${st.color}" stroke-width="${st.width}"${st.dash ? ` stroke-dasharray="${st.dash}"` : ''} stroke-linecap="round" data-tip="${esc(t(st.ko, st.en) + (l.detail ? ' · ' + l.detail : ''))}"/>`;
+    });
+    net.nodes.forEach(x => {
+      const p = at[x.id];
+      if (x.type === 'dealer') {
+        s += `<g data-tip="${esc(`${x.label} · ${x.name} · ${x.tier === 'EXCELLENT' ? t('우수 딜러', 'excellent dealer') : t('일반 딜러', 'standard dealer')} · ${t(`연결 신청 ${x.applications}건`, `${x.applications} linked applications`)}`)}"><rect x="${(p.x - 9).toFixed(1)}" y="${(p.y - 9).toFixed(1)}" width="18" height="18" rx="4" fill="var(--surface)" stroke="${x.tier === 'EXCELLENT' ? 'var(--good)' : 'var(--text-2)'}" stroke-width="2"/><text x="${p.x.toFixed(1)}" y="${(p.y + 22).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:10px">${esc(label(x))}</text></g>`;
+      } else {
+        const g = GRADE[x.grade], fill = g ? g.color : 'var(--text-3)';
+        s += `<a href="/review?app=${encodeURIComponent(x.number)}"><g data-tip="${esc(`${x.number} · ${x.name || t('고객 미연결', 'no customer')} · ${x.country} · ${statusName(x.status)}${x.grade ? ` · ${t('등급', 'grade')} ${x.grade} ${x.score ?? ''}` : ''} · ID ${x.idMasked || '–'} · ${t('전화', 'phone')} ${x.phoneMasked || '–'} · ${t('딜러', 'dealer')} ${x.dealerCode || '–'}`)}"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${x.highRisk ? 11 : 9}" fill="${fill}" stroke="var(--surface)" stroke-width="2"${x.highRisk ? ' style="filter:drop-shadow(0 0 4px var(--critical))"' : ''}/><text x="${p.x.toFixed(1)}" y="${(p.y + 22).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:10px">${esc(label(x))}</text></g></a>`;
+      }
+    });
+    s += '</svg>';
+    const legend = `<div class="legend">${['SAME_ID', 'SAME_PHONE', 'DUPLICATE', 'SAME_NAME', 'DEALER'].map(k => { const st = LINK_STYLE[k]; return `<span><span style="display:inline-block;width:18px;border-top:${st.width}px ${st.dash ? 'dashed' : 'solid'} ${st.color};vertical-align:middle;margin-right:4px"></span>${t(st.ko, st.en)}</span>`; }).join('')}<span><span class="dot" style="background:var(--critical)"></span>${t('원 = 신청 (색은 등급)', 'circle = application (colour = grade)')}</span><span><span style="display:inline-block;width:10px;height:10px;border:2px solid var(--text-2);border-radius:2px;vertical-align:-1px;margin-right:4px"></span>${t('사각형 = 딜러', 'square = dealer')}</span></div>`;
+    const clusters = net.clusters.map(c => `<div class="action" style="border-left:3px solid ${c.severity === 'HIGH' ? 'var(--critical)' : 'var(--warn)'};padding:8px 10px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b>${t('묶음', 'Ring')} ${c.id}</b><span class="chip ${c.severity === 'HIGH' ? 'fraud' : ''}">${c.severity === 'HIGH' ? t('높음', 'high') : t('중간', 'medium')}</span>${c.singleDealer ? `<span class="chip">${t('단일 딜러', 'single dealer')}</span>` : ''}</div><div class="sub" style="display:block;margin-top:2px">${esc(LANG.lang === 'en' ? c.summary : c.summaryKo)}</div><div style="margin-top:4px">${c.applications.map(n => appLink(n)).join(' · ')}</div></div>`).join('');
+    const high = net.clusters.filter(c => c.severity === 'HIGH').length;
+    return `<section class="card">${title}
+      <div class="tiles" style="margin:6px 0 10px"><div class="tile ${high ? 'alert' : ''}"><div class="k">${t('의심 묶음', 'Suspicious rings')}</div><div class="v">${net.clusters.length} <span class="sub" style="display:inline;font-size:14px">${t('높음', 'high')} ${high}</span></div></div><div class="tile"><div class="k">${t('연결된 신청', 'Linked applications')} <small>${t(`대조 ${net.scanned}건 중`, `of ${net.scanned} compared`)}</small></div><div class="v">${net.linkedApplications}</div></div><div class="tile"><div class="k">${t('신분증 번호 공유', 'Shared ID numbers')}</div><div class="v">${net.clusters.reduce((a, c) => a + c.sharedIds, 0)}</div></div><div class="tile"><div class="k">${t('전화번호 공유', 'Shared phones')}</div><div class="v">${net.clusters.reduce((a, c) => a + c.sharedPhones, 0)}</div></div></div>
+      <div style="display:grid;gap:14px;grid-template-columns:minmax(0,1fr) minmax(260px,320px)" class="netgrid"><div>${s}${legend}</div><div style="max-height:520px;overflow-y:auto">${clusters}</div></div>
+      <p class="sub" style="display:block;margin:8px 0 0">${t('리스크 규칙은 나중에 들어온 신청에만 "동일 신분증 번호" 플래그를 올려요. 이 그림은 먼저 들어온 신청까지 묶어 사람이 한 건씩 볼 때는 놓치는 연결을 보여줘요. 원을 누르면 심사 화면이 열려요.', 'The risk rules flag only the later application of a pair. This picture ties the earlier ones in too, so a ring an officer would miss case by case becomes visible. Click a circle to open the review page.')}</p>
+    </section>`;
+  }
+
   function gradeCell(g) { const m = GRADE[g] || { color: 'var(--text-3)', icon: '○', ko: '미평가', en: 'n/a' }; return `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g || '–')} <span class="sub" style="display:inline">${t(m.ko, m.en)}</span></span>`; }
 
   const TABS = [
@@ -383,6 +459,7 @@
 
     P.overview = h; h = '';
 
+    h += fraudNetworkCard(lastNetwork);
     h += `<div class="row">
       <section class="card"><h2>${t('고객 리스크 등급 분포', 'AI risk grade distribution')} <small>${t(`평가 ${esc(d.totals.assessed)}건`, `${esc(d.totals.assessed)} assessed`)}</small></h2>
         ${hbars(d.riskGrades.map(g => ({ label: `${g.grade} ${L(g)}`, value: g.count, color: GRADE[g.grade].color, tip: `${g.grade} · ${L(g)}: ${g.count}` })), { left: 90, aria: 'Risk grade distribution' })}
@@ -501,8 +578,9 @@
     try { sessionStorage.setItem('adminKey', key); } catch {}
     status.textContent = t('불러오는 중…', 'Loading…'); status.className = 'status';
     try {
-      const res = await fetch('/admin/dashboard/stats', { headers: { 'X-Admin-Key': key } });
+      const [res, netRes] = await Promise.all([fetch('/admin/dashboard/stats', { headers: { 'X-Admin-Key': key } }), fetch('/admin/fraud-network', { headers: { 'X-Admin-Key': key } }).catch(() => null)]);
       if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.error || ('HTTP ' + res.status)); }
+      lastNetwork = netRes && netRes.ok ? await netRes.json().catch(() => null) : null;
       render(await res.json());
       status.textContent = t('업데이트 ', 'Updated ') + new Date().toLocaleTimeString(LANG.locale, { hour12: false });
       $('#auto').hidden = false;

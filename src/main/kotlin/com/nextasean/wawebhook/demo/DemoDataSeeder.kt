@@ -84,11 +84,14 @@ class DemoDataSeeder(
 
     data class SeedResult(val created: Int, val removed: Int, val total: Int)
 
-    private enum class Scenario { CLEAN, MEDIUM, IDENTITY_MISMATCH, NOT_FOUND, TIMEOUT, SCREEN_PHOTO, INVALID_NIK, SELFIE_MISMATCH, FORGERY, SHARED_ID, IN_PROGRESS, DRAFT }
+    private enum class Scenario { CLEAN, MEDIUM, IDENTITY_MISMATCH, NOT_FOUND, TIMEOUT, SCREEN_PHOTO, INVALID_NIK, SELFIE_MISMATCH, FORGERY, SHARED_ID, SHARED_PHONE, IN_PROGRESS, DRAFT }
 
     /** NIK of the last clean Indonesian application seeded in this run; [Scenario.SHARED_ID] submits it again under another name. */
     private var lastSeededNik: String? = null
     private var lastSeededName: String? = null
+    /** Phone and dealer of that application; [Scenario.SHARED_PHONE] reuses the phone, and both shared scenarios usually come through the same dealer. */
+    private var lastSeededPhone: String? = null
+    private var lastSeededDealerId: Long? = null
 
     private class Persona(val name: String, val dob: LocalDate, val gender: String, val address: String, val phone: String)
 
@@ -98,6 +101,8 @@ class DemoDataSeeder(
         val removed = if (reset) clear() else 0
         lastSeededNik = null
         lastSeededName = null
+        lastSeededPhone = null
+        lastSeededDealerId = null
         val random = Random(seed + applications.findByDemoSeedTrue().size)
         val dealersByCountry = ensureDealers()
         val now = Instant.now()
@@ -118,7 +123,8 @@ class DemoDataSeeder(
             val pool = dealersByCountry.getValue(country)
             val weighted = pool.flatMap { d -> List(if (d.tier == DealerTier.EXCELLENT) 2 else 1) { d } }
             val standard = pool.filter { it.tier != DealerTier.EXCELLENT }
-            val dealer = if (fixed && scenario in RISKY && standard.isNotEmpty()) standard[random.nextInt(standard.size)] else weighted[random.nextInt(weighted.size)]
+            val ringDealer = if (scenario in SHARED) lastSeededDealerId?.let { id -> pool.firstOrNull { it.id == id } }?.takeIf { random.nextDouble() < 0.7 } else null
+            val dealer = ringDealer ?: if (fixed && scenario in RISKY && standard.isNotEmpty()) standard[random.nextInt(standard.size)] else weighted[random.nextInt(weighted.size)]
             if (!fixed && dealer.tier == DealerTier.EXCELLENT && scenario in RISKY && random.nextDouble() < 0.6) scenario = Scenario.CLEAN
             val daysAgo = when {
                 fixed -> SHOWCASE[i].second
@@ -179,6 +185,12 @@ class DemoDataSeeder(
     fun rosterComplete(): Boolean = DEMO_DEALERS.all { dealers.findByDealerCode("$DEMO_DEALER_PREFIX${it.first}") != null }
 
     private fun scenarioFor(random: Random, country: String): Scenario {
+        // Fraud rings: now and then an Indonesian application reuses the last clean customer's ID number or phone.
+        if (country == "ID" && lastSeededNik != null) {
+            val ring = random.nextDouble()
+            if (ring < 0.05) return Scenario.SHARED_ID
+            if (ring < 0.10) return Scenario.SHARED_PHONE
+        }
         val r = random.nextDouble()
         return when {
             r < 0.42 -> Scenario.CLEAN
@@ -197,9 +209,10 @@ class DemoDataSeeder(
 
     private fun createOne(random: Random, country: String, dealer: Dealer, scenario: Scenario, createdAt: Instant, now: Instant, index: Int) {
         var persona = persona(random, country, index)
-        // A shared ID must come from a different person: never reuse the previous customer's name.
+        // A shared ID or phone must come from a different person: never reuse the previous customer's name.
         var tries = 0
-        while (scenario == Scenario.SHARED_ID && persona.name == lastSeededName && tries++ < 10) persona = persona(random, country, index)
+        while (scenario in SHARED && persona.name == lastSeededName && tries++ < 10) persona = persona(random, country, index)
+        if (scenario == Scenario.SHARED_PHONE && lastSeededPhone != null) persona = Persona(persona.name, persona.dob, persona.gender, persona.address, lastSeededPhone!!)
         val number = nextNumber(createdAt)
         var app = applications.save(
             DealerApplication(applicationNumber = number, dealerId = dealer.id!!, status = ApplicationStatus.DRAFT, country = country, demoSeed = true, createdAt = createdAt, updatedAt = createdAt),
@@ -243,7 +256,7 @@ class DemoDataSeeder(
             else -> random.nextInt(0, 7)
         }
         val idNumber = reusedNik ?: idNumber(random, country, persona, lastDigit, encodeWrongDob = scenario == Scenario.INVALID_NIK)
-        if (country == "ID" && scenario in setOf(Scenario.CLEAN, Scenario.MEDIUM)) { lastSeededNik = idNumber; lastSeededName = persona.name }
+        if (country == "ID" && scenario in setOf(Scenario.CLEAN, Scenario.MEDIUM)) { lastSeededNik = idNumber; lastSeededName = persona.name; lastSeededPhone = persona.phone; lastSeededDealerId = dealer.id }
         sessions.save(CustomerSession(phone = persona.phone, customerName = app.customerName, applicationId = app.id!!, state = CustomerSessionState.COMPLETED, consentAt = consentAt, createdAt = startAt, updatedAt = consentAt.plus(Duration.ofMinutes(12))))
         var t = consentAt.plus(Duration.ofMinutes(random.nextLong(1, 6)))
         var round = 0
@@ -525,12 +538,14 @@ class DemoDataSeeder(
             Triple("KH-1", "Phnom Penh Auto", DealerTier.EXCELLENT), Triple("KH-2", "Angkor Motor", DealerTier.STANDARD), Triple("KH-3", "Mekong Cars", DealerTier.STANDARD),
         )
         /** Scenarios that end in a fraud signal or a failed lookup; excellent dealers draw them less often. */
-        private val RISKY = setOf(Scenario.IDENTITY_MISMATCH, Scenario.NOT_FOUND, Scenario.SCREEN_PHOTO, Scenario.INVALID_NIK, Scenario.SELFIE_MISMATCH, Scenario.FORGERY, Scenario.SHARED_ID)
+        private val RISKY = setOf(Scenario.IDENTITY_MISMATCH, Scenario.NOT_FOUND, Scenario.SCREEN_PHOTO, Scenario.INVALID_NIK, Scenario.SELFIE_MISMATCH, Scenario.FORGERY)
+        /** Cross-application scenarios that build a fraud ring with the last clean customer. */
+        private val SHARED = setOf(Scenario.SHARED_ID, Scenario.SHARED_PHONE)
         const val MODEL = "claude-opus-5-5"
         /** Scenario and age in days of the first applications of every seed run. */
         private val SHOWCASE = listOf(
             Scenario.CLEAN to 0.08, Scenario.SCREEN_PHOTO to 0.4, Scenario.INVALID_NIK to 0.6, Scenario.IDENTITY_MISMATCH to 0.9, Scenario.MEDIUM to 1.2,
-            Scenario.SHARED_ID to 1.1, Scenario.FORGERY to 0.3,
+            Scenario.SHARED_ID to 1.1, Scenario.FORGERY to 0.3, Scenario.SHARED_PHONE to 0.7,
             Scenario.SELFIE_MISMATCH to 1.6, Scenario.NOT_FOUND to 2.5, Scenario.IN_PROGRESS to 0.05, Scenario.TIMEOUT to 3.5, Scenario.CLEAN to 5.0,
         )
         val PROVINCES = listOf("31", "32", "33", "35", "51", "12", "73")
