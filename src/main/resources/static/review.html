@@ -7,17 +7,11 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css">
 <title>JB금융그룹 NEXT ASEAN 심사 (Review)</title>
 <style>
-  /* JB-style header: white bar, deep-blue top rule, monogram + group name, pill navigation */
+  /* JB-style header: white bar, deep-blue top rule, monogram + group name */
   .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
   .brand .mark { flex: none; width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%); color: #fff; font-weight: 800; font-size: 15px; letter-spacing: -0.03em; display: grid; place-items: center; }
   .brand .group { font-size: 12px; font-weight: 700; color: var(--brand); letter-spacing: .01em; line-height: 1.2; }
   .brand .group .svc { color: var(--text-3); font-weight: 500; margin-left: 6px; }
-  header nav { display: flex; gap: 4px; flex-wrap: wrap; }
-  header nav a { color: var(--text-2); text-decoration: none; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 999px; white-space: nowrap; }
-  header nav a .en { color: var(--text-3); font-weight: 400; margin-left: 4px; }
-  header nav a:hover { background: var(--surface-2); color: var(--text); }
-  header nav a.active { background: var(--brand-tint); color: var(--brand); font-weight: 700; }
-  header nav a.active .en { color: var(--brand); opacity: .75; }
   footer { max-width: 1400px; margin: 0 auto; padding: 20px 24px 28px; display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: space-between; font-size: 12px; color: var(--text-3); }
   footer b { color: var(--brand); font-weight: 700; }
   input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-tint); }
@@ -299,7 +293,6 @@
       <h1>심사 <small>Reviewer back office · documents, evidence, decisions</small></h1>
     </div>
   </div>
-  <nav aria-label="Back office pages"><a href="/dashboard">대시보드 <span class="en">Dashboard</span></a><a href="/review" class="active">심사 <span class="en">Review</span></a></nav>
   <div class="key">
     <input id="reviewer" type="text" placeholder="심사자 이름 (reviewer)" autocomplete="off" title="Recorded on decisions and the timeline">
     <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">
