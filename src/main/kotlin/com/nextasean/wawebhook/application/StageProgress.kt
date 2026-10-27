@@ -30,7 +30,7 @@ enum class OnboardingStage(val label: String, val labelKo: String) {
 /** DONE and SKIPPED count as passed; CURRENT is the stage being worked; WARN needs attention; FAIL ended the stage badly. */
 enum class StageState { DONE, CURRENT, PENDING, WARN, FAIL, SKIPPED }
 
-data class StageView(val code: String, val label: String, val labelKo: String, val state: StageState, val at: Instant?, val note: String?)
+data class StageView(val code: String, val label: String, val labelKo: String, val state: StageState, val at: Instant?, val note: String?, val noteEn: String? = null)
 
 data class StageProgress(
     val stages: List<StageView>,
@@ -71,11 +71,11 @@ class StageProgressService(
             val accepted = docs.lastOrNull { it.type == type && !it.superseded && it.checkPassed == true }
             val latest = docs.lastOrNull { it.type == type }
             return when {
-                accepted != null && !requested -> stage.view(StageState.DONE, accepted.createdAt, if (accepted.needsOfficerReview == true) "담당자 확인 필요" else null)
-                accepted != null && requested -> stage.view(StageState.WARN, accepted.createdAt, "심사자가 재요청 · 고객 재제출 대기")
-                latest != null && latest.checkPassed == false -> stage.view(StageState.WARN, latest.createdAt, "재촬영 요청: " + (latest.checkReason ?: "품질 미달"))
-                latest != null && latest.superseded -> stage.view(StageState.WARN, latest.createdAt, "재제출 대기")
-                latest != null -> stage.view(StageState.CURRENT, latest.createdAt, "검사 중")
+                accepted != null && !requested -> stage.view(StageState.DONE, accepted.createdAt, if (accepted.needsOfficerReview == true) "담당자 확인 필요" to "officer check needed" else null)
+                accepted != null && requested -> stage.view(StageState.WARN, accepted.createdAt, "심사자가 재요청 · 고객 재제출 대기" to "re-requested by the officer · waiting for the customer")
+                latest != null && latest.checkPassed == false -> stage.view(StageState.WARN, latest.createdAt, ("재촬영 요청: " + (latest.checkReason ?: "품질 미달")) to ("retake requested: " + (latest.checkReason ?: "quality too low")))
+                latest != null && latest.superseded -> stage.view(StageState.WARN, latest.createdAt, "재제출 대기" to "waiting for a resend")
+                latest != null -> stage.view(StageState.CURRENT, latest.createdAt, "검사 중" to "checking")
                 else -> stage.view(StageState.PENDING, null, null)
             }
         }
@@ -83,37 +83,37 @@ class StageProgressService(
         val created = OnboardingStage.CREATED.view(
             StageState.DONE, app.createdAt,
             when (status) {
-                ApplicationStatus.RESUBMISSION_REQUESTED -> "딜러 폼 재제출 요청 중"
-                ApplicationStatus.DRAFT -> if (app.linkTokenHash != null) "딜러 폼 미제출" else null
+                ApplicationStatus.RESUBMISSION_REQUESTED -> "딜러 폼 재제출 요청 중" to "dealer asked to resubmit the form"
+                ApplicationStatus.DRAFT -> if (app.linkTokenHash != null) "딜러 폼 미제출" to "dealer form not submitted" else null
                 else -> null
             },
         )
         val linked = if (app.customerPhone != null) OnboardingStage.CUSTOMER_LINKED.view(StageState.DONE, session?.createdAt, null)
-        else OnboardingStage.CUSTOMER_LINKED.view(StageState.PENDING, null, "고객이 START 링크를 아직 열지 않음")
+        else OnboardingStage.CUSTOMER_LINKED.view(StageState.PENDING, null, "고객이 START 링크를 아직 열지 않음" to "customer has not opened the START link")
         val consent = when {
             session?.consentAt != null -> OnboardingStage.CONSENT.view(StageState.DONE, session.consentAt, null)
-            session?.state == CustomerSessionState.DECLINED -> OnboardingStage.CONSENT.view(StageState.FAIL, session.declinedAt, "고객이 동의를 거부")
-            session?.state == CustomerSessionState.CANCELLED -> OnboardingStage.CONSENT.view(StageState.WARN, session.updatedAt, "세션 취소됨")
+            session?.state == CustomerSessionState.DECLINED -> OnboardingStage.CONSENT.view(StageState.FAIL, session.declinedAt, "고객이 동의를 거부" to "customer declined consent")
+            session?.state == CustomerSessionState.CANCELLED -> OnboardingStage.CONSENT.view(StageState.WARN, session.updatedAt, "세션 취소됨" to "session cancelled")
             else -> OnboardingStage.CONSENT.view(StageState.PENDING, null, null)
         }
         val ktp = document(DocumentType.KTP, OnboardingStage.KTP)
         val selfie = document(DocumentType.SELFIE_KTP, OnboardingStage.SELFIE)
         val verification = when {
-            app.verifiedAt != null -> OnboardingStage.VERIFICATION.view(StageState.DONE, app.verifiedAt, listOfNotNull(app.idVerificationStatus?.let { "신원 " + it.label }, app.creditCheckStatus?.let { "신용 " + it.label }).joinToString(" · ").ifBlank { null })
-            app.riskAssessedAt != null -> OnboardingStage.VERIFICATION.view(StageState.SKIPPED, app.riskAssessedAt, "조회 생략 · 담당자 확인")
+            app.verifiedAt != null -> OnboardingStage.VERIFICATION.view(StageState.DONE, app.verifiedAt, listOfNotNull(app.idVerificationStatus?.let { "신원 " + it.label }, app.creditCheckStatus?.let { "신용 " + it.label }).joinToString(" · ").ifBlank { null }?.let { it to listOfNotNull(app.idVerificationStatus?.let { "identity " + it.label }, app.creditCheckStatus?.let { "credit " + it.label }).joinToString(" · ") })
+            app.riskAssessedAt != null -> OnboardingStage.VERIFICATION.view(StageState.SKIPPED, app.riskAssessedAt, "조회 생략 · 담당자 확인" to "lookups skipped · officer check")
             else -> OnboardingStage.VERIFICATION.view(StageState.PENDING, null, null)
         }
-        val risk = if (app.riskAssessedAt != null) OnboardingStage.RISK.view(StageState.DONE, app.riskAssessedAt, app.riskGrade?.let { "등급 $it" + (app.riskScore?.let { s -> " · ${s}점" } ?: "") })
+        val risk = if (app.riskAssessedAt != null) OnboardingStage.RISK.view(StageState.DONE, app.riskAssessedAt, app.riskGrade?.let { ("등급 $it" + (app.riskScore?.let { s -> " · ${s}점" } ?: "")) to ("grade $it" + (app.riskScore?.let { s -> " · $s pts" } ?: "")) })
         else OnboardingStage.RISK.view(StageState.PENDING, null, null)
         val review = when {
-            final -> OnboardingStage.REVIEW.view(StageState.DONE, app.decidedAt, app.decidedBy?.let { "심사자 $it" })
-            status == ApplicationStatus.READY_FOR_REVIEW -> OnboardingStage.REVIEW.view(StageState.CURRENT, app.riskAssessedAt ?: app.verifiedAt ?: app.updatedAt, if (app.officerReviewRequired == true) "담당자 검토 필요" else "심사 대기")
-            requested -> OnboardingStage.REVIEW.view(StageState.PENDING, null, "고객 서류 재요청 중")
+            final -> OnboardingStage.REVIEW.view(StageState.DONE, app.decidedAt, app.decidedBy?.let { "심사자 $it" to "officer $it" })
+            status == ApplicationStatus.READY_FOR_REVIEW -> OnboardingStage.REVIEW.view(StageState.CURRENT, app.riskAssessedAt ?: app.verifiedAt ?: app.updatedAt, if (app.officerReviewRequired == true) "담당자 검토 필요" to "officer review required" else "심사 대기" to "waiting for an officer")
+            requested -> OnboardingStage.REVIEW.view(StageState.PENDING, null, "고객 서류 재요청 중" to "documents requested from the customer")
             else -> OnboardingStage.REVIEW.view(StageState.PENDING, null, null)
         }
         val decision = when (status) {
-            ApplicationStatus.APPROVED -> OnboardingStage.DECISION.view(StageState.DONE, app.decidedAt, "승인")
-            ApplicationStatus.REJECTED -> OnboardingStage.DECISION.view(StageState.FAIL, app.decidedAt, "거절")
+            ApplicationStatus.APPROVED -> OnboardingStage.DECISION.view(StageState.DONE, app.decidedAt, "승인" to "approved")
+            ApplicationStatus.REJECTED -> OnboardingStage.DECISION.view(StageState.FAIL, app.decidedAt, "거절" to "rejected")
             else -> OnboardingStage.DECISION.view(StageState.PENDING, null, null)
         }
 
@@ -136,5 +136,6 @@ class StageProgressService(
         )
     }
 
-    private fun OnboardingStage.view(state: StageState, at: Instant?, note: String?) = StageView(name, label, labelKo, state, at, note)
+    /** Notes are (Korean, English) pairs; the back office shows one of them depending on the reviewer's language. */
+    private fun OnboardingStage.view(state: StageState, at: Instant?, note: Pair<String, String>?) = StageView(name, label, labelKo, state, at, note?.first, note?.second)
 }

@@ -175,6 +175,7 @@ class DashboardController(
         val percent: Int,
         val stageStates: List<String>,
         val note: String?,
+        val noteEn: String?,
         val idleHours: Double?,
         val updatedAt: Instant,
     )
@@ -309,7 +310,7 @@ class DashboardController(
             val current = p.stages.first { it.code == p.current }
             ProgressRow(
                 app.applicationNumber, app.country, dealerById[app.dealerId]?.dealerCode, app.extractedName ?: app.customerName, app.status.name,
-                p.current, p.currentKo, p.done, p.total, p.percent, p.stages.map { it.state.name }, current.note, p.idleHours, app.updatedAt,
+                p.current, p.currentKo, p.done, p.total, p.percent, p.stages.map { it.state.name }, current.note, current.noteEn, p.idleHours, app.updatedAt,
             )
         }
         val appById = apps.associateBy { it.id }

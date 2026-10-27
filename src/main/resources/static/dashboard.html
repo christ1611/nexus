@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a31a8">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css">
-<title>JB금융그룹 NEXT ASEAN 온보딩 대시보드</title>
+<title data-ko="JB금융그룹 NEXT ASEAN 온보딩 대시보드" data-en="JB Financial Group NEXT ASEAN Onboarding Dashboard">JB금융그룹 NEXT ASEAN 온보딩 대시보드</title>
+<script src="/lang.js"></script>
 <style>
   /* JB-style header: white bar, deep-blue top rule, monogram + group name */
   .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
@@ -171,30 +172,31 @@
   <div class="brand">
     <span class="mark" aria-hidden="true">JB</span>
     <div>
-      <div class="group">JB금융그룹 <span class="svc">NEXT ASEAN</span></div>
-      <h1>온보딩 대시보드 <small>WhatsApp onboarding dashboard · Indonesia / Myanmar / Cambodia</small></h1>
+      <div class="group"><span data-ko="JB금융그룹" data-en="JB Financial Group">JB금융그룹</span> <span class="svc">NEXT ASEAN</span></div>
+      <h1><span data-ko="온보딩 대시보드" data-en="Onboarding dashboard">온보딩 대시보드</span> <small data-ko="WhatsApp 온보딩 현황 · 인도네시아 / 미얀마 / 캄보디아" data-en="WhatsApp onboarding · Indonesia / Myanmar / Cambodia">WhatsApp 온보딩 현황 · 인도네시아 / 미얀마 / 캄보디아</small></h1>
     </div>
   </div>
   <div class="key">
     <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">
-    <button class="primary" id="load">불러오기</button>
-    <button id="refresh" title="Refresh">새로고침</button>
-    <span class="auto" id="auto" hidden><span class="pulse"></span>15초마다 자동 갱신</span>
+    <button class="primary" id="load" data-ko="불러오기" data-en="Load">불러오기</button>
+    <button id="refresh" data-ko="새로고침" data-en="Refresh">새로고침</button>
+    <span class="auto" id="auto" hidden><span class="pulse"></span><span data-ko="15초마다 자동 갱신" data-en="refreshes every 15s">15초마다 자동 갱신</span></span>
     <span class="status" id="status"></span>
   </div>
 </header>
 <main id="main">
-  <p class="empty">관리자 키를 입력하고 <b>불러오기</b>를 누르세요. 키는 이 브라우저 세션에만 저장됩니다. <br><span class="sub">Enter the admin key and press Load. The key stays in this browser session only.</span></p>
+  <p class="empty" data-ko="관리자 키를 입력하고 <b>불러오기</b>를 누르세요. 키는 이 브라우저 세션에만 저장됩니다." data-en="Enter the admin key and press <b>Load</b>. The key stays in this browser session only.">관리자 키를 입력하고 <b>불러오기</b>를 누르세요. 키는 이 브라우저 세션에만 저장됩니다.</p>
 </main>
 <footer>
-  <span><b>JB금융그룹</b> · NEXT ASEAN 온보딩 백오피스 <span class="sub" style="display:inline">Internal demo · Indonesia / Myanmar / Cambodia</span></span>
-  <span>관리자 키는 이 브라우저 세션에만 저장됩니다 · Admin key stays in this browser session</span>
+  <span data-ko="<b>JB금융그룹</b> · NEXT ASEAN 온보딩 백오피스 <span class=&quot;sub&quot; style=&quot;display:inline&quot;>내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span>" data-en="<b>JB Financial Group</b> · NEXT ASEAN onboarding back office <span class=&quot;sub&quot; style=&quot;display:inline&quot;>Internal demo · Indonesia / Myanmar / Cambodia</span>"><b>JB금융그룹</b> · NEXT ASEAN 온보딩 백오피스 <span class="sub" style="display:inline">내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span></span>
+  <span data-ko="관리자 키는 이 브라우저 세션에만 저장됩니다" data-en="The admin key stays in this browser session">관리자 키는 이 브라우저 세션에만 저장됩니다</span>
 </footer>
 <div id="tip" role="tooltip"></div>
 
 <script>
 (function () {
   const $ = (s, el = document) => el.querySelector(s);
+  const { t, L } = LANG;                        // t(ko, en) picks the current language; L(obj) picks label / labelKo
   const main = $('#main'), status = $('#status'), keyInput = $('#key'), tip = $('#tip');
   const COUNTRY_COLOR = { ID: 'var(--c-id)', MM: 'var(--c-mm)', KH: 'var(--c-kh)' };
   const GRADE = {
@@ -203,19 +205,24 @@
     C: { color: 'var(--serious)', icon: '◆', ko: '고위험', en: 'High' },
     D: { color: 'var(--critical)', icon: '■', ko: '위험 고객', en: 'Critical' },
   };
-  const STATUS_KO = { DRAFT: '작성 중', SUBMITTED: '폼 제출됨', RESUBMISSION_REQUESTED: '폼 재제출 요청', READY_FOR_REVIEW: '심사 대기', DOCUMENTS_REQUESTED: '고객 서류 재요청', APPROVED: '승인', REJECTED: '거절' };
-  const appLink = n => `<a class="app" href="/review?app=${encodeURIComponent(n)}" title="심사 화면에서 열기 · open in review">${esc(n)}</a>`;
-  const pill = s => `<span class="pill ${esc(s)}">${esc(STATUS_KO[s] || s)}</span>`;
-  const hrs = h => h == null ? '–' : h < 1 ? Math.round(h * 60) + '분' : h < 48 ? h.toFixed(1) + 'h' : (h / 24).toFixed(1) + 'd';
+  const STATUS = { DRAFT: ['작성 중', 'Draft'], SUBMITTED: ['폼 제출됨', 'Form submitted'], RESUBMISSION_REQUESTED: ['폼 재제출 요청', 'Form resubmission requested'], READY_FOR_REVIEW: ['심사 대기', 'Ready for review'], DOCUMENTS_REQUESTED: ['고객 서류 재요청', 'Documents requested'], APPROVED: ['승인', 'Approved'], REJECTED: ['거절', 'Rejected'] };
+  const statusName = s => { const m = STATUS[s]; return m ? t(m[0], m[1]) : s; };
+  const appLink = n => `<a class="app" href="/review?app=${encodeURIComponent(n)}" title="${t('심사 화면에서 열기', 'Open in the review page')}">${esc(n)}</a>`;
+  const pill = s => `<span class="pill ${esc(s)}">${esc(statusName(s))}</span>`;
+  const hrs = h => h == null ? '–' : h < 1 ? Math.round(h * 60) + t('분', 'm') : h < 48 ? h.toFixed(1) + 'h' : (h / 24).toFixed(1) + 'd';
+  const agoText = h => h == null ? '–' : t(hrs(h) + ' 전', hrs(h) + ' ago');
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
   const num = v => v == null ? '–' : (Number.isInteger(v) ? v : v.toFixed(0));
-  const fmtTime = iso => { try { return new Date(iso).toLocaleString('ko-KR', { hour12: false }); } catch { return iso; } };
-  const fmtClock = iso => { try { return new Date(iso).toLocaleTimeString('ko-KR', { hour12: false }); } catch { return iso; } };
+  const fmtTime = iso => { try { return new Date(iso).toLocaleString(LANG.locale, { hour12: false }); } catch { return iso; } };
   const fmtShort = iso => { try { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; } catch { return iso; } };
+  let pipelineStages = [];   // stage code -> labels, from the last payload (progress rows carry only the code and the Korean label)
+  const curStage = r => LANG.lang === 'en' ? (pipelineStages.find(s => s.code === r.current)?.label || r.current) : r.currentKo;
+  const noteOf = r => (LANG.lang === 'en' ? (r.noteEn ?? r.note) : r.note) || '';
   const STAGE_COLORS = ['#9bb6ff', '#7da2ff', '#598aff', '#3b6ef0', '#1c56ff', '#1446d6', '#0a31a8', '#0d2d77', '#17a673'];
   const AUTO_MS = 15000;
   let seenStepKeys = null;   // activity-feed keys already shown, to highlight what is new on each refresh
+  let lastData = null;       // last payload, redrawn as is when the language changes
 
   try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
 
@@ -250,10 +257,10 @@
   /* Grouped bars per country for one measure set: groups = countries, series = statuses (sequential steps of one hue). */
   function countryStacked(byCountry) {
     const series = [
-      { key: 'inProgress', ko: '진행 중', en: 'In progress', color: 'var(--seq-light)' },
-      { key: 'readyForReview', ko: '심사 대기', en: 'Ready for review', color: 'var(--seq)' },
-      { key: 'approved', ko: '승인', en: 'Approved', color: 'var(--good)' },
-      { key: 'rejected', ko: '거절', en: 'Rejected', color: 'var(--critical)' },
+      { key: 'inProgress', label: t('진행 중', 'In progress'), color: 'var(--seq-light)' },
+      { key: 'readyForReview', label: t('심사 대기', 'Ready for review'), color: 'var(--seq)' },
+      { key: 'approved', label: t('승인', 'Approved'), color: 'var(--good)' },
+      { key: 'rejected', label: t('거절', 'Rejected'), color: 'var(--critical)' },
     ];
     const W = 520, rowH = 34, left = 110, right = 40, top = 4, H = top + byCountry.length * rowH + 4;
     const max = Math.max(1, ...byCountry.map(c => c.applications));
@@ -261,17 +268,17 @@
     let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Applications by country and status">`;
     byCountry.forEach((c, i) => {
       const y = top + i * rowH + 7, h = rowH - 14;
-      s += `<text x="${left - 8}" y="${y + h / 2 + 4}" text-anchor="end" class="lbl">${esc(c.nameKo)} ${esc(c.code)}</text>`;
+      s += `<text x="${left - 8}" y="${y + h / 2 + 4}" text-anchor="end" class="lbl">${esc(L(c, 'name'))} ${esc(c.code)}</text>`;
       let x = left;
       series.forEach(sr => {
         const v = c[sr.key]; if (!v) return;
         const w = Math.max(3, scale(v)) - 2;
-        s += `<rect class="bar" x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${sr.color}" data-tip="${esc(c.nameKo + ' · ' + sr.ko + ' (' + sr.en + '): ' + v)}"/>`;
+        s += `<rect class="bar" x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${sr.color}" data-tip="${esc(L(c, 'name') + ' · ' + sr.label + ': ' + v)}"/>`;
         x += w + 2;
       });
       s += `<text x="${x + 6}" y="${y + h / 2 + 4}">${c.applications}</text>`;
     });
-    s += '</svg><div class="legend">' + series.map(sr => `<span><span class="dot" style="background:${sr.color}"></span>${sr.ko} <span class="sub" style="display:inline">${sr.en}</span></span>`).join('') + '</div>';
+    s += '</svg><div class="legend">' + series.map(sr => `<span><span class="dot" style="background:${sr.color}"></span>${sr.label}</span>`).join('') + '</div>';
     return s;
   }
 
@@ -289,18 +296,18 @@
       ['ID', 'MM', 'KH'].forEach(c => {
         const v = w.createdByCountry[c] || 0; if (!v) return;
         const y1 = y(acc + v), h = y(acc) - y1;
-        s += `<rect class="bar" x="${x}" y="${y1}" width="${barW}" height="${Math.max(h - 1, 1)}" rx="2" fill="${COUNTRY_COLOR[c]}" data-tip="${esc(w.label + ' 주 · ' + c + ': ' + v + '건 신청')}"/>`;
+        s += `<rect class="bar" x="${x}" y="${y1}" width="${barW}" height="${Math.max(h - 1, 1)}" rx="2" fill="${COUNTRY_COLOR[c]}" data-tip="${esc(t(`${w.label} 주 · ${c}: ${v}건 신청`, `week ${w.label} · ${c}: ${v} applications`))}"/>`;
         acc += v;
       });
       if (w.created) s += `<text x="${cx}" y="${y(acc) - 4}" text-anchor="middle">${w.created}</text>`;
-      if (w.highRisk) s += `<text x="${cx}" y="${top - 8}" text-anchor="middle" fill="var(--critical)" style="fill:var(--critical);font-weight:600" data-tip="${esc(w.label + ' 주 · 고위험 ' + w.highRisk + '건, 위조 경고 ' + w.fraudWarnings + '건')}">⚠${w.highRisk}</text>`;
+      if (w.highRisk) s += `<text x="${cx}" y="${top - 8}" text-anchor="middle" fill="var(--critical)" style="fill:var(--critical);font-weight:600" data-tip="${esc(t(`${w.label} 주 · 고위험 ${w.highRisk}건, 위조 경고 ${w.fraudWarnings}건`, `week ${w.label} · ${w.highRisk} high-risk, ${w.fraudWarnings} fraud warnings`))}">⚠${w.highRisk}</text>`;
       s += `<text x="${cx}" y="${H - 8}" text-anchor="middle" class="lbl">${esc(w.label)}</text>`;
     });
-    s += `</svg><div class="legend">${['ID', 'MM', 'KH'].map(c => `<span><span class="dot" style="background:${COUNTRY_COLOR[c]}"></span>${c}</span>`).join('')}<span><span style="color:var(--critical);font-weight:600">⚠n</span> 그 주에 서류가 완료된 고위험(C·D) 건수 · high-risk completed that week</span></div>`;
+    s += `</svg><div class="legend">${['ID', 'MM', 'KH'].map(c => `<span><span class="dot" style="background:${COUNTRY_COLOR[c]}"></span>${c}</span>`).join('')}<span><span style="color:var(--critical);font-weight:600">⚠n</span> ${t('그 주에 서류가 완료된 고위험(C·D) 건수', 'high-risk (C·D) applications completed that week')}</span></div>`;
     return s;
   }
 
-  function gradeCell(g) { const m = GRADE[g] || { color: 'var(--text-3)', icon: '○', ko: '미평가', en: 'n/a' }; return `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g || '–')} <span class="sub" style="display:inline">${m.ko}</span></span>`; }
+  function gradeCell(g) { const m = GRADE[g] || { color: 'var(--text-3)', icon: '○', ko: '미평가', en: 'n/a' }; return `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g || '–')} <span class="sub" style="display:inline">${t(m.ko, m.en)}</span></span>`; }
 
   const TABS = [
     ['overview', '개요', 'Overview'], ['risk', '리스크·사기', 'Risk & fraud'], ['country', '국가·딜러', 'Countries & dealers'],
@@ -311,109 +318,110 @@
   if (location.hash.length > 1 && TABS.some(x => x[0] === location.hash.slice(1))) activeTab = location.hash.slice(1);
 
   function render(d) {
-    const t = d.totals;
+    lastData = d; pipelineStages = d.pipeline || [];
+    const tt = d.totals;
     const tiles = [
-      ['총 신청', 'Applications', t.applications], ['진행 중', 'In progress', t.inProgress], ['심사 대기', 'Ready for review', t.readyForReview],
-      ['승인', 'Approved', t.approved], ['거절', 'Rejected', t.rejected],
-      ['고위험 고객 (C·D)', 'High-risk customers', t.highRisk, true], ['위조·사기 경고', 'Fraud / forgery warnings', t.fraudWarnings, true],
-      ['담당자 검토 필요', 'Officer review required', t.officerReviewRequired], ['고객 서류 재요청 중', 'Documents requested', t.documentsRequested],
-      ['최장 대기', 'Oldest waiting', hrs(t.oldestWaitingHours)], ['평균 결정 시간', 'Avg time to decision', hrs(t.avgDecisionHours)],
-      ['진행 정체 (24h+)', 'Stalled in progress', (d.inProgress || []).filter(r => r.status !== 'READY_FOR_REVIEW' && r.idleHours != null && r.idleHours >= 24).length, true],
+      [t('총 신청', 'Applications'), tt.applications], [t('진행 중', 'In progress'), tt.inProgress], [t('심사 대기', 'Ready for review'), tt.readyForReview],
+      [t('승인', 'Approved'), tt.approved], [t('거절', 'Rejected'), tt.rejected],
+      [t('고위험 고객 (C·D)', 'High-risk customers (C·D)'), tt.highRisk, true], [t('위조·사기 경고', 'Fraud / forgery warnings'), tt.fraudWarnings, true],
+      [t('담당자 검토 필요', 'Officer review required'), tt.officerReviewRequired], [t('고객 서류 재요청 중', 'Documents requested'), tt.documentsRequested],
+      [t('최장 대기', 'Oldest waiting'), hrs(tt.oldestWaitingHours)], [t('평균 결정 시간', 'Avg time to decision'), hrs(tt.avgDecisionHours)],
+      [t('진행 정체 (24h+)', 'Stalled in progress (24h+)'), (d.inProgress || []).filter(r => r.status !== 'READY_FOR_REVIEW' && r.idleHours != null && r.idleHours >= 24).length, true],
     ];
     const P = {};
     let h = '';
-    h += `<section class="card"><div class="tiles">${tiles.map(([ko, en, v, alert]) =>
-      `<div class="tile ${alert && v > 0 ? 'alert' : ''}"><div class="k">${ko} <small>${en}</small></div><div class="v">${v}</div></div>`).join('')}</div></section>`;
+    h += `<section class="card"><div class="tiles">${tiles.map(([label, v, alert]) =>
+      `<div class="tile ${alert && v > 0 ? 'alert' : ''}"><div class="k">${label}</div><div class="v">${v}</div></div>`).join('')}</div></section>`;
 
     // live pipeline board: where every open application is right now
     const pipe = d.pipeline || [], openTotal = pipe.reduce((s, x) => s + x.count, 0);
-    h += `<section class="card"><h2>온보딩 진행 현황 <small>Pipeline · ${openTotal} open applications by current stage · live</small></h2>
-      <div class="segbar" role="img" aria-label="Open applications by stage">${pipe.map((s, i) => s.count ? `<i style="width:${(s.count / Math.max(openTotal, 1)) * 100}%;background:${STAGE_COLORS[i]}" data-tip="${esc(s.labelKo + ' · ' + s.label + ': ' + s.count)}"></i>` : '').join('')}</div>
-      <div class="stages">${pipe.map((s, i) => `<div class="s ${s.count ? '' : 'zero'}" style="border-left-color:${s.count ? STAGE_COLORS[i] : ''}"><div class="n">${s.count}</div><div class="k">${esc(s.labelKo)}<small>${esc(s.label)}</small></div></div>`).join('')}</div>`;
+    h += `<section class="card"><h2>${t('온보딩 진행 현황', 'Pipeline')} <small>${t(`열린 신청 ${openTotal}건의 현재 단계 · 실시간`, `${openTotal} open applications by current stage · live`)}</small></h2>
+      <div class="segbar" role="img" aria-label="Open applications by stage">${pipe.map((s, i) => s.count ? `<i style="width:${(s.count / Math.max(openTotal, 1)) * 100}%;background:${STAGE_COLORS[i]}" data-tip="${esc(L(s) + ': ' + s.count)}"></i>` : '').join('')}</div>
+      <div class="stages">${pipe.map((s, i) => `<div class="s ${s.count ? '' : 'zero'}" style="border-left-color:${s.count ? STAGE_COLORS[i] : ''}"><div class="n">${s.count}</div><div class="k">${esc(L(s))}</div></div>`).join('')}</div>`;
     const rows = (d.inProgress || []).filter(r => r.status !== 'READY_FOR_REVIEW');
-    h += `<h3 style="margin:16px 0 6px;font-size:13px;color:var(--text-2)">진행 중인 신청 <span class="sub" style="display:inline">In progress (not yet waiting for an officer) · ${rows.length}건 · 최근 활동순</span></h3>`;
-    if (!rows.length) h += `<p class="empty">진행 중인 신청이 없습니다. <span class="sub">Nothing in progress.</span></p>`;
-    else h += `<div class="scroll"><table><thead><tr><th>신청번호</th><th>국가</th><th>딜러</th><th>고객</th><th>상태</th><th>진행<br><span class="sub">Progress</span></th><th>현재 단계<br><span class="sub">Current stage</span></th><th class="num">마지막 활동<br><span class="sub">Last activity</span></th></tr></thead><tbody>${
-      rows.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td><span class="dots" title="${r.done}/${r.total}">${r.stageStates.map(s => `<i class="${esc(s)}"></i>`).join('')}</span> <span class="sub">${r.done}/${r.total}</span></td><td><b>${esc(r.currentKo)}</b>${r.note ? `<br><span class="sub">${esc(r.note)}</span>` : ''}</td><td class="num" title="${esc(fmtTime(r.updatedAt))}">${r.idleHours != null && r.idleHours >= 24 ? `<span style="color:var(--serious);font-weight:600">${hrs(r.idleHours)} 전</span>` : `<span class="sub">${hrs(r.idleHours)} 전</span>`}</td></tr>`).join('')
+    h += `<h3 style="margin:16px 0 6px;font-size:13px;color:var(--text-2)">${t('진행 중인 신청', 'In progress')} <span class="sub" style="display:inline">${t(`아직 심사 대기 전 · ${rows.length}건 · 최근 활동순`, `not yet waiting for an officer · ${rows.length} · most recent activity first`)}</span></h3>`;
+    if (!rows.length) h += `<p class="empty">${t('진행 중인 신청이 없습니다.', 'Nothing in progress.')}</p>`;
+    else h += `<div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('국가', 'Country')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('고객', 'Customer')}</th><th>${t('상태', 'Status')}</th><th>${t('진행', 'Progress')}</th><th>${t('현재 단계', 'Current stage')}</th><th class="num">${t('마지막 활동', 'Last activity')}</th></tr></thead><tbody>${
+      rows.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td><span class="dots" title="${r.done}/${r.total}">${r.stageStates.map(s => `<i class="${esc(s)}"></i>`).join('')}</span> <span class="sub">${r.done}/${r.total}</span></td><td><b>${esc(curStage(r))}</b>${noteOf(r) ? `<br><span class="sub">${esc(noteOf(r))}</span>` : ''}</td><td class="num" title="${esc(fmtTime(r.updatedAt))}">${r.idleHours != null && r.idleHours >= 24 ? `<span style="color:var(--serious);font-weight:600">${agoText(r.idleHours)}</span>` : `<span class="sub">${agoText(r.idleHours)}</span>`}</td></tr>`).join('')
     }</tbody></table></div>`;
     h += `</section>`;
 
-    h += `<section class="card"><h2>심사 대기 큐 <small>Review queue · highest risk first · <a class="app" href="/review">심사 화면 열기 →</a></small></h2>`;
-    if (!d.reviewQueue.length) h += `<p class="empty">심사 대기 중인 신청이 없습니다. <span class="sub">Nothing waiting for an officer.</span></p>`;
-    else h += `<div class="scroll"><table><thead><tr><th>신청번호<br><span class="sub">Application</span></th><th>국가</th><th>딜러</th><th>고객</th><th>AI 리스크 등급</th><th class="num">위조 경고</th><th>담당자 검토</th><th class="num">대기 시간<br><span class="sub">Waiting</span></th></tr></thead><tbody>${
-      d.reviewQueue.map(q => `<tr><td>${appLink(q.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[q.country] || 'var(--text-3)'}"></span>${esc(q.country)}</td><td>${esc(q.dealerCode || '–')}</td><td>${esc(q.customerName || '–')}</td><td>${gradeCell(q.grade)}${q.score != null ? ` <span class="sub">${q.score}</span>` : ''}</td><td class="num">${q.fraudWarnings ? `<span style="color:var(--critical);font-weight:600">⚠ ${q.fraudWarnings}</span>` : '–'}</td><td>${q.officerReviewRequired ? '<span class="chip">필요</span>' : '–'}</td><td class="num" title="${esc(fmtTime(q.waitingSince))}">${hrs(q.waitingHours)}</td></tr>`).join('')
+    h += `<section class="card"><h2>${t('심사 대기 큐', 'Review queue')} <small>${t('리스크 높은 순', 'highest risk first')} · <a class="app" href="/review">${t('심사 화면 열기 →', 'Open the review page →')}</a></small></h2>`;
+    if (!d.reviewQueue.length) h += `<p class="empty">${t('심사 대기 중인 신청이 없습니다.', 'Nothing waiting for an officer.')}</p>`;
+    else h += `<div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('국가', 'Country')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('고객', 'Customer')}</th><th>${t('AI 리스크 등급', 'AI risk grade')}</th><th class="num">${t('위조 경고', 'Fraud')}</th><th>${t('담당자 검토', 'Officer review')}</th><th class="num">${t('대기 시간', 'Waiting')}</th></tr></thead><tbody>${
+      d.reviewQueue.map(q => `<tr><td>${appLink(q.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[q.country] || 'var(--text-3)'}"></span>${esc(q.country)}</td><td>${esc(q.dealerCode || '–')}</td><td>${esc(q.customerName || '–')}</td><td>${gradeCell(q.grade)}${q.score != null ? ` <span class="sub">${q.score}</span>` : ''}</td><td class="num">${q.fraudWarnings ? `<span style="color:var(--critical);font-weight:600">⚠ ${q.fraudWarnings}</span>` : '–'}</td><td>${q.officerReviewRequired ? `<span class="chip">${t('필요', 'required')}</span>` : '–'}</td><td class="num" title="${esc(fmtTime(q.waitingSince))}">${hrs(q.waitingHours)}</td></tr>`).join('')
     }</tbody></table></div>`;
     h += `</section>`;
 
     h += `<div class="row">
-      <section class="card"><h2>주간 추이 <small>Weekly trend · applications created per ISO week (last 8 weeks)</small></h2>${trendChart(d.trend)}</section>
-      <section class="card"><h2>국가별 신청 현황 <small>Applications by country and status</small></h2>${countryStacked(d.byCountry)}</section>
+      <section class="card"><h2>${t('주간 추이', 'Weekly trend')} <small>${t('ISO 주별 신청 생성 (최근 8주)', 'applications created per ISO week (last 8 weeks)')}</small></h2>${trendChart(d.trend)}</section>
+      <section class="card"><h2>${t('국가별 신청 현황', 'Applications by country')} <small>${t('상태별', 'by status')}</small></h2>${countryStacked(d.byCountry)}</section>
     </div>`;
 
     P.overview = h; h = '';
 
     h += `<div class="row">
-      <section class="card"><h2>고객 리스크 등급 분포 <small>AI risk grade distribution (${esc(d.totals.assessed)} assessed)</small></h2>
-        ${hbars(d.riskGrades.map(g => ({ label: `${g.grade} ${g.labelKo}`, value: g.count, color: GRADE[g.grade].color, tip: `${g.grade} · ${g.labelKo} (${g.label}): ${g.count}` })), { left: 90, aria: 'Risk grade distribution' })}
-        <div class="legend">${d.riskGrades.map(g => `<span><span class="ic grade" style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${GRADE[g.grade].color}"></span> ${g.grade} = ${g.labelKo} · ${g.label}</span>`).join('')}</div>
+      <section class="card"><h2>${t('고객 리스크 등급 분포', 'AI risk grade distribution')} <small>${t(`평가 ${esc(d.totals.assessed)}건`, `${esc(d.totals.assessed)} assessed`)}</small></h2>
+        ${hbars(d.riskGrades.map(g => ({ label: `${g.grade} ${L(g)}`, value: g.count, color: GRADE[g.grade].color, tip: `${g.grade} · ${L(g)}: ${g.count}` })), { left: 90, aria: 'Risk grade distribution' })}
+        <div class="legend">${d.riskGrades.map(g => `<span><span class="ic grade" style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${GRADE[g.grade].color}"></span> ${g.grade} = ${L(g)}</span>`).join('')}</div>
       </section>
-      <section class="card"><h2>Risk Flag 발생 건수 <small>Flag counts (⚠ = fraud / forgery signal)</small></h2>${d.flagCounts.length ? hbars(d.flagCounts.slice(0, 10).map(f => ({ label: (f.fraud ? '⚠ ' : '') + f.titleKo, value: f.count, color: f.fraud ? 'var(--critical)' : 'var(--seq)', tip: `${f.titleKo} · ${f.title} (${f.severity}): ${f.count}` })), { left: 200, aria: 'Risk flag counts' }) : '<p class="empty">아직 발생한 Risk Flag가 없습니다. <span class="sub">No flags yet.</span></p>'}</section>
+      <section class="card"><h2>${t('Risk Flag 발생 건수', 'Risk flag counts')} <small>${t('⚠ = 위조·사기 신호', '⚠ = fraud / forgery signal')}</small></h2>${d.flagCounts.length ? hbars(d.flagCounts.slice(0, 10).map(f => ({ label: (f.fraud ? '⚠ ' : '') + L(f, 'title'), value: f.count, color: f.fraud ? 'var(--critical)' : 'var(--seq)', tip: `${L(f, 'title')} (${f.severity}): ${f.count}` })), { left: 200, aria: 'Risk flag counts' }) : `<p class="empty">${t('아직 발생한 Risk Flag가 없습니다.', 'No flags yet.')}</p>`}</section>
     </div>`;
 
-    h += `<section class="card"><h2>Risk Flag · 위조/사기 감지 경고 <small>Fraud / forgery warnings and high-risk customers (grade C or D)</small></h2>`;
-    if (!d.highRiskApplications.length) h += `<p class="empty">현재 고위험(C·D) 고객이 없습니다. <span class="sub">No high-risk customers right now.</span></p>`;
-    else h += `<div class="scroll"><table><thead><tr><th>신청번호<br><span class="sub">Application</span></th><th>국가</th><th>딜러</th><th>고객<br><span class="sub">Customer</span></th><th>상태</th><th>AI 리스크 등급<br><span class="sub">Grade · score</span></th><th>Risk Flags</th><th>배지<br><span class="sub">Badges</span></th><th>평가 방식<br><span class="sub">Method</span></th></tr></thead><tbody>${
-      d.highRiskApplications.map(r => `<tr><td>${appLink(r.applicationNumber)}<br><span class="sub">${fmtTime(r.assessedAt)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)} <span class="sub">score ${r.score}${r.fraudWarnings ? ` · ⚠ 위조 경고 ${r.fraudWarnings}` : ''}</span></td><td>${r.flags.map(f => `<span class="chip ${f.fraud ? 'fraud' : ''}" data-tip="${esc(f.title + ' — ' + f.detail)}">${f.fraud ? '⚠ ' : ''}${esc(f.titleKo)} · ${esc(f.severity)}</span>`).join('')}</td><td>${r.badgesKo.map(b => `<span class="chip badge">✓ ${esc(b)}</span>`).join('') || '–'}</td><td><span class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')}</span></td></tr>`).join('')
+    h += `<section class="card"><h2>${t('Risk Flag · 위조/사기 감지 경고', 'Fraud / forgery warnings')} <small>${t('고위험 고객 (등급 C·D)', 'high-risk customers (grade C or D)')}</small></h2>`;
+    if (!d.highRiskApplications.length) h += `<p class="empty">${t('현재 고위험(C·D) 고객이 없습니다.', 'No high-risk customers right now.')}</p>`;
+    else h += `<div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('국가', 'Country')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('고객', 'Customer')}</th><th>${t('상태', 'Status')}</th><th>${t('AI 리스크 등급', 'AI risk grade')}</th><th>Risk Flags</th><th>${t('배지', 'Badges')}</th><th>${t('평가 방식', 'Method')}</th></tr></thead><tbody>${
+      d.highRiskApplications.map(r => `<tr><td>${appLink(r.applicationNumber)}<br><span class="sub">${fmtTime(r.assessedAt)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)} <span class="sub">${t('점수', 'score')} ${r.score}${r.fraudWarnings ? ` · ⚠ ${t('위조 경고', 'fraud')} ${r.fraudWarnings}` : ''}</span></td><td>${r.flags.map(f => `<span class="chip ${f.fraud ? 'fraud' : ''}" data-tip="${esc(L(f, 'title') + ' — ' + f.detail)}">${f.fraud ? '⚠ ' : ''}${esc(L(f, 'title'))} · ${esc(f.severity)}</span>`).join('')}</td><td>${(LANG.lang === 'en' ? (r.badges || r.badgesKo) : r.badgesKo).map(b => `<span class="chip badge">✓ ${esc(b)}</span>`).join('') || '–'}</td><td><span class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? t('Claude 비전 + 규칙', 'Claude vision + rules') : t('규칙 (스텁)', 'rules (stub)'))}</span></td></tr>`).join('')
     }</tbody></table></div>`;
     h += `</section>`;
 
     h += `<div class="row">
-      <section class="card"><h2>고객 배지 요약 <small>Customer badges</small></h2><div class="tiles">${d.badges.map(b => `<div class="tile"><div class="k">${esc(b.labelKo)} <small>${esc(b.label)}</small></div><div class="v">${b.count}</div></div>`).join('')}</div></section>
-      <section class="card"><h2>등급 산정 기준 <small>How the AI risk grade is computed</small></h2>
-      <details style="margin-top:4px"><summary>자세히 보기 · Show details</summary><p class="sub" style="display:block;margin:8px 0 0">점수 = Risk Flag 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A: 0-14, B: 15-39, C: 40-69, D: 70+. 심각도 '높음'의 위조·사기 신호가 하나라도 있으면 최소 C. 근거: Claude 비전 분석(화면 재촬영·변조·서류 종류·NIK 구조·셀피 불일치), 신원 조회, 신용 조회, 고객 행동(재요청·실패 업로드·연령). 스텁 모드에서는 조회 결과와 행동 규칙만 적용됩니다.<br>Score = sum of flag severities (LOW 10, MEDIUM 20, HIGH 35, capped at 100). A 0-14, B 15-39, C 40-69, D 70+. Any HIGH fraud signal floors the grade at C.</p></details>
+      <section class="card"><h2>${t('고객 배지 요약', 'Customer badges')}</h2><div class="tiles">${d.badges.map(b => `<div class="tile"><div class="k">${esc(L(b))}</div><div class="v">${b.count}</div></div>`).join('')}</div></section>
+      <section class="card"><h2>${t('등급 산정 기준', 'How the AI risk grade is computed')}</h2>
+      <details style="margin-top:4px"><summary>${t('자세히 보기', 'Show details')}</summary><p class="sub" style="display:block;margin:8px 0 0">${t("점수 = Risk Flag 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A: 0-14, B: 15-39, C: 40-69, D: 70+. 심각도 '높음'의 위조·사기 신호가 하나라도 있으면 최소 C. 근거: Claude 비전 분석(화면 재촬영·변조·서류 종류·NIK 구조·셀피 불일치), 신원 조회, 신용 조회, 고객 행동(재요청·실패 업로드·연령). 스텁 모드에서는 조회 결과와 행동 규칙만 적용됩니다.", 'Score = sum of flag severities (LOW 10, MEDIUM 20, HIGH 35, capped at 100). A 0-14, B 15-39, C 40-69, D 70+. Any HIGH fraud signal floors the grade at C. Evidence: Claude vision analysis (screen recapture, tampering, document type, NIK structure, selfie mismatch), identity lookup, credit lookup, customer behaviour (re-requests, failed uploads, age). Stub mode applies only the lookup and behaviour rules.')}</p></details>
     </section>
     </div>`;
     P.risk = h; h = '';
 
-    h += `<section class="card"><h2>국가별 통계 <small>Per-country statistics (Indonesia · Myanmar · Cambodia)</small></h2><div class="scroll"><table>
-      <thead><tr><th>국가<br><span class="sub">Country</span></th><th>신분증<br><span class="sub">ID doc</span></th><th class="num">딜러<br><span class="sub">Dealers</span></th><th class="num">신청<br><span class="sub">Apps</span></th><th class="num">진행 중</th><th class="num">심사 대기</th><th class="num">승인</th><th class="num">거절</th><th class="num">고위험<br><span class="sub">C·D</span></th><th class="num">위조 경고<br><span class="sub">Fraud</span></th><th class="num">신원 일치율<br><span class="sub">ID match</span></th><th class="num">평균 신용점수<br><span class="sub">Avg score</span></th><th>등급 A/B/C/D</th><th class="num">우수 재무<br><span class="sub">Fin. badge</span></th><th class="num">우수 딜러 유입<br><span class="sub">Dealer badge</span></th></tr></thead>
-      <tbody>${d.byCountry.map(c => `<tr><td><span class="dot" style="background:${COUNTRY_COLOR[c.code]}"></span>${esc(c.nameKo)} <span class="sub" style="display:inline">${esc(c.name)}</span></td><td>${esc(c.idDocument)}</td><td class="num">${c.dealers}</td><td class="num">${c.applications}</td><td class="num">${c.inProgress}</td><td class="num">${c.readyForReview}</td><td class="num">${c.approved}</td><td class="num">${c.rejected}</td><td class="num">${c.highRisk}</td><td class="num">${c.fraudWarnings}</td><td class="num">${pct(c.identityMatchRate)}</td><td class="num">${num(c.avgCreditScore)}</td><td>${['A','B','C','D'].map(g => `<span title="${g}">${g}:${c.grades[g] || 0}</span>`).join(' ')}</td><td class="num">${c.badges.FINANCIAL_STABILITY || 0}</td><td class="num">${c.badges.EXCELLENT_DEALER_REFERRAL || 0}</td></tr>`).join('')}</tbody>
+    h += `<section class="card"><h2>${t('국가별 통계', 'Per-country statistics')} <small>${t('인도네시아 · 미얀마 · 캄보디아', 'Indonesia · Myanmar · Cambodia')}</small></h2><div class="scroll"><table>
+      <thead><tr><th>${t('국가', 'Country')}</th><th>${t('신분증', 'ID doc')}</th><th class="num">${t('딜러', 'Dealers')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('진행 중', 'In progress')}</th><th class="num">${t('심사 대기', 'Ready')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('거절', 'Rejected')}</th><th class="num">${t('고위험', 'High risk')}</th><th class="num">${t('위조 경고', 'Fraud')}</th><th class="num">${t('신원 일치율', 'ID match')}</th><th class="num">${t('평균 신용점수', 'Avg credit score')}</th><th>${t('등급 A/B/C/D', 'Grades A/B/C/D')}</th><th class="num">${t('우수 재무', 'Fin. badge')}</th><th class="num">${t('우수 딜러 유입', 'Dealer badge')}</th></tr></thead>
+      <tbody>${d.byCountry.map(c => `<tr><td><span class="dot" style="background:${COUNTRY_COLOR[c.code]}"></span>${esc(L(c, 'name'))} <span class="sub" style="display:inline">${esc(c.code)}</span></td><td>${esc(c.idDocument)}</td><td class="num">${c.dealers}</td><td class="num">${c.applications}</td><td class="num">${c.inProgress}</td><td class="num">${c.readyForReview}</td><td class="num">${c.approved}</td><td class="num">${c.rejected}</td><td class="num">${c.highRisk}</td><td class="num">${c.fraudWarnings}</td><td class="num">${pct(c.identityMatchRate)}</td><td class="num">${num(c.avgCreditScore)}</td><td>${['A','B','C','D'].map(g => `<span title="${g}">${g}:${c.grades[g] || 0}</span>`).join(' ')}</td><td class="num">${c.badges.FINANCIAL_STABILITY || 0}</td><td class="num">${c.badges.EXCELLENT_DEALER_REFERRAL || 0}</td></tr>`).join('')}</tbody>
     </table></div></section>`;
 
     h += `<div class="row">
-      <section class="card"><h2>온보딩 퍼널 <small>Onboarding funnel</small></h2>${hbars(d.funnel.map((f, i) => ({ label: f.stageKo, value: f.count, color: 'var(--seq)', tip: `${f.stageKo} · ${f.stage}: ${f.count}` })), { left: 110, aria: 'Onboarding funnel' })}</section>
-      <section class="card"><h2>딜러별 현황 <small>Per dealer</small></h2><div class="scroll"><table><thead><tr><th>코드</th><th>딜러</th><th>국가</th><th>등급<br><span class="sub">Tier</span></th><th class="num">신청</th><th class="num">승인</th><th class="num">고위험</th></tr></thead><tbody>${d.dealers.map(x => `<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${x.tier === 'EXCELLENT' ? '★ 우수 딜러' : '일반'}</td><td class="num">${x.applications}</td><td class="num">${x.approved}</td><td class="num">${x.highRisk}</td></tr>`).join('')}</tbody></table></div></section>
+      <section class="card"><h2>${t('온보딩 퍼널', 'Onboarding funnel')}</h2>${hbars(d.funnel.map(f => ({ label: L(f, 'stage'), value: f.count, color: 'var(--seq)', tip: `${L(f, 'stage')}: ${f.count}` })), { left: 110, aria: 'Onboarding funnel' })}</section>
+      <section class="card"><h2>${t('딜러별 현황', 'Per dealer')}</h2><div class="scroll"><table><thead><tr><th>${t('코드', 'Code')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('국가', 'Country')}</th><th>${t('등급', 'Tier')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('고위험', 'High risk')}</th></tr></thead><tbody>${d.dealers.map(x => `<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${x.tier === 'EXCELLENT' ? '★ ' + t('우수 딜러', 'Excellent') : t('일반', 'Standard')}</td><td class="num">${x.applications}</td><td class="num">${x.approved}</td><td class="num">${x.highRisk}</td></tr>`).join('')}</tbody></table></div></section>
     </div>`;
 
     P.country = h; h = '';
 
     const ag = d.agent;
-    h += `<section class="card"><h2>AI 에이전트 활동 <small>Agent activity · what the pipeline and the review agent did across all applications (${ag.steps} steps)</small></h2><div class="tiles">${[
-      ['Claude 비전 분석', 'Vision analyses' + (ag.avgVisionMs != null ? ' · avg ' + (ag.avgVisionMs / 1000).toFixed(1) + 's' : ''), ag.visionAnalyses],
-      ['에이전트 턴', 'Agent turns (model calls)', ag.agentTurns], ['도구 호출', 'Tool calls', ag.toolCalls],
-      ['에이전트 서류 재요청', 'Docs requested by agent', ag.documentsRequestedByAgent], ['요약 작성', 'Summaries written', ag.summariesWritten],
-      ['코드 가드레일 개입', 'Guardrail overrides', ag.guardrails], ['규칙 폴백', 'Rule-based fallbacks', ag.fallbacks],
-      ['고객 재촬영 안내', 'Customer retake prompts', ag.customerRetakes], ['신원·신용 조회', 'Provider lookups', ag.providerLookups],
-    ].map(([ko, en, v]) => `<div class="tile"><div class="k">${ko} <small>${esc(en)}</small></div><div class="v">${v}</div></div>`).join('')}</div>
-    <p class="sub" style="margin:8px 0 0">각 신청의 단계별 판단 과정은 심사 화면의 <a class="app" href="/review">AI Agent 판단 타임라인</a>에서 실시간으로 볼 수 있습니다. 스텁 모드에서는 비전 분석·에이전트 턴이 0으로 남고 규칙·조회 단계만 기록됩니다.</p></section>`;
+    h += `<section class="card"><h2>${t('AI 에이전트 활동', 'AI agent activity')} <small>${t(`파이프라인과 리뷰 에이전트가 전체 신청에서 한 일 (${ag.steps}단계)`, `what the pipeline and the review agent did across all applications (${ag.steps} steps)`)}</small></h2><div class="tiles">${[
+      [t('Claude 비전 분석', 'Vision analyses') + (ag.avgVisionMs != null ? ' · avg ' + (ag.avgVisionMs / 1000).toFixed(1) + 's' : ''), ag.visionAnalyses],
+      [t('에이전트 턴', 'Agent turns (model calls)'), ag.agentTurns], [t('도구 호출', 'Tool calls'), ag.toolCalls],
+      [t('에이전트 서류 재요청', 'Docs requested by the agent'), ag.documentsRequestedByAgent], [t('요약 작성', 'Summaries written'), ag.summariesWritten],
+      [t('코드 가드레일 개입', 'Guardrail overrides'), ag.guardrails], [t('규칙 폴백', 'Rule-based fallbacks'), ag.fallbacks],
+      [t('고객 재촬영 안내', 'Customer retake prompts'), ag.customerRetakes], [t('신원·신용 조회', 'Provider lookups'), ag.providerLookups],
+    ].map(([label, v]) => `<div class="tile"><div class="k">${esc(label)}</div><div class="v">${v}</div></div>`).join('')}</div>
+    <p class="sub" style="margin:8px 0 0">${t('각 신청의 단계별 판단 과정은 심사 화면의', "Each application's step-by-step reasoning is shown live in the review page's")} <a class="app" href="/review">${t('AI Agent 판단 타임라인', 'AI agent timeline')}</a>${t('에서 실시간으로 볼 수 있습니다. 스텁 모드에서는 비전 분석·에이전트 턴이 0으로 남고 규칙·조회 단계만 기록됩니다.', '. In stub mode vision analyses and agent turns stay at 0; only rule and lookup steps are recorded.')}</p></section>`;
 
     const steps = d.recentSteps || [], keys = new Set(steps.map(s => s.applicationNumber + '#' + s.createdAt + '#' + s.kind));
-    h += `<section class="card"><h2>최근 AI 에이전트 활동 <small>Live activity feed · latest ${steps.length} steps across all applications · ${AUTO_MS / 1000}초마다 갱신</small></h2>`;
-    h += steps.length ? `<ul class="feed">${steps.map(s => `<li class="${seenStepKeys && !seenStepKeys.has(s.applicationNumber + '#' + s.createdAt + '#' + s.kind) ? 'new' : ''}"><time title="${esc(fmtTime(s.createdAt))}">${fmtShort(s.createdAt)}</time><span class="node ${esc(s.phase)}" title="${esc(s.phase)}"></span><div>${appLink(s.applicationNumber)} <span class="dot" style="background:${COUNTRY_COLOR[s.country] || 'var(--text-3)'};margin:0 2px 0 4px"></span><b>${esc(s.labelKo)}</b> <span class="sub" style="display:inline">${esc(s.label)}</span><span class="st ${esc(s.status)}">${esc(s.status)}</span><div class="t">${esc(s.title)}</div></div></li>`).join('')}</ul>` : '<p class="empty">기록된 단계가 없습니다.</p>';
+    h += `<section class="card"><h2>${t('최근 AI 에이전트 활동', 'Recent AI agent activity')} <small>${t(`전체 신청의 최근 ${steps.length}단계 · ${AUTO_MS / 1000}초마다 갱신`, `latest ${steps.length} steps across all applications · refreshes every ${AUTO_MS / 1000}s`)}</small></h2>`;
+    h += steps.length ? `<ul class="feed">${steps.map(s => `<li class="${seenStepKeys && !seenStepKeys.has(s.applicationNumber + '#' + s.createdAt + '#' + s.kind) ? 'new' : ''}"><time title="${esc(fmtTime(s.createdAt))}">${fmtShort(s.createdAt)}</time><span class="node ${esc(s.phase)}" title="${esc(s.phase)}"></span><div>${appLink(s.applicationNumber)} <span class="dot" style="background:${COUNTRY_COLOR[s.country] || 'var(--text-3)'};margin:0 2px 0 4px"></span><b>${esc(L(s))}</b><span class="st ${esc(s.status)}">${esc(s.status)}</span><div class="t">${esc(s.title)}</div></div></li>`).join('')}</ul>` : `<p class="empty">${t('기록된 단계가 없습니다.', 'No steps recorded.')}</p>`;
     h += `</section>`;
     seenStepKeys = keys;
 
     P.agent = h; h = '';
 
-    h += `<section class="card"><h2>최근 신청 <small>Recent applications</small></h2><div class="scroll"><table><thead><tr><th>신청번호</th><th>국가</th><th>딜러</th><th>상태</th><th>등급</th><th>생성</th></tr></thead><tbody>${d.recent.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">아직 신청이 없습니다.</td></tr>'}</tbody></table></div>
+    h += `<section class="card"><h2>${t('최근 신청', 'Recent applications')}</h2><div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('국가', 'Country')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('상태', 'Status')}</th><th>${t('등급', 'Grade')}</th><th>${t('생성', 'Created')}</th></tr></thead><tbody>${d.recent.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join('') || `<tr><td colspan="6" class="empty">${t('아직 신청이 없습니다.', 'No applications yet.')}</td></tr>`}</tbody></table></div>
     </section>`;
     P.recent = h; h = '';
 
-    const footer = `<p class="status">생성 시각 ${fmtTime(d.generatedAt)} · generated ${fmtTime(d.generatedAt)}${t.demoApplications ? ` · 데모 데이터 ${t.demoApplications}건 포함 (demo seed; DELETE /admin/demo/seed 로 제거)` : ''}</p>`;
-    const counts = { overview: openTotal, risk: t.highRisk, agent: ag.steps };
+    const footer = `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${tt.demoApplications ? ` · ${t(`데모 데이터 ${tt.demoApplications}건 포함 (DELETE /admin/demo/seed 로 제거)`, `includes ${tt.demoApplications} demo applications (remove with DELETE /admin/demo/seed)`)}` : ''}</p>`;
+    const counts = { overview: openTotal, risk: tt.highRisk, agent: ag.steps };
     const wasOpen = new Set([...main.querySelectorAll('details[open] > summary')].map(s => s.textContent.trim()));
     main.innerHTML = `<div class="tabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([id, ko, en]) =>
-      `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}">${ko} <small>${en}</small>${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
+      `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}">${t(ko, en)}${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
       + TABS.map(([id]) => `<div class="panel" role="tabpanel" id="panel-${id}" aria-labelledby="tab-${id}" data-panel="${id}"${id === activeTab ? '' : ' hidden'}>${P[id]}</div>`).join('')
       + footer;
     main.querySelectorAll('details > summary').forEach(s => { if (wasOpen.has(s.textContent.trim())) s.parentElement.open = true; });
@@ -438,22 +446,24 @@
 
   async function load() {
     const key = keyInput.value.trim();
-    if (!key) { status.textContent = '관리자 키를 입력하세요.'; status.className = 'status err'; return; }
+    if (!key) { status.textContent = t('관리자 키를 입력하세요.', 'Enter the admin key.'); status.className = 'status err'; return; }
     try { sessionStorage.setItem('adminKey', key); } catch {}
-    status.textContent = '불러오는 중…'; status.className = 'status';
+    status.textContent = t('불러오는 중…', 'Loading…'); status.className = 'status';
     try {
       const res = await fetch('/admin/dashboard/stats', { headers: { 'X-Admin-Key': key } });
       if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.error || ('HTTP ' + res.status)); }
       render(await res.json());
-      status.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour12: false });
+      status.textContent = t('업데이트 ', 'Updated ') + new Date().toLocaleTimeString(LANG.locale, { hour12: false });
       $('#auto').hidden = false;
     } catch (e) {
-      status.textContent = '오류: ' + e.message; status.className = 'status err';
+      status.textContent = t('오류: ', 'Error: ') + e.message; status.className = 'status err';
     }
   }
   $('#load').addEventListener('click', load);
   $('#refresh').addEventListener('click', load);
   keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+  // Language switch: redraw the last payload; the static markup is swapped by lang.js itself.
+  LANG.onChange(() => { if (lastData) render(lastData); });
   if (keyInput.value) load();
   setInterval(() => { if (keyInput.value.trim() && !document.hidden) load(); }, AUTO_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && keyInput.value.trim()) load(); });

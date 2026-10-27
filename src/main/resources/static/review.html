@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a31a8">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css">
-<title>JB금융그룹 NEXT ASEAN 심사 (Review)</title>
+<title data-ko="JB금융그룹 NEXT ASEAN 심사" data-en="JB Financial Group NEXT ASEAN Review">JB금융그룹 NEXT ASEAN 심사</title>
+<script src="/lang.js"></script>
 <style>
   /* JB-style header: white bar, deep-blue top rule, monogram + group name */
   .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
@@ -165,7 +166,8 @@
   .trace-details > summary h2 { margin: 0; }
   .trace-details .chev { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--brand); font-size: 12px; line-height: 1; transition: transform .15s; }
   .trace-details[open] .chev { transform: rotate(90deg); }
-  .trace-details .hint::after { content: "펼치기 · expand"; } .trace-details[open] .hint::after { content: "접기 · collapse"; }
+  .trace-details .hint::after { content: "펼치기"; } .trace-details[open] .hint::after { content: "접기"; }
+  html[lang="en"] .trace-details .hint::after { content: "expand"; } html[lang="en"] .trace-details[open] .hint::after { content: "collapse"; }
   .trace-details .hint { margin-left: auto; }
   #trace-panel { margin-top: 10px; }
   /* Onboarding stage stepper (review detail) and the mini progress bar (queue rows, dashboard) */
@@ -289,54 +291,54 @@
   <div class="brand">
     <span class="mark" aria-hidden="true">JB</span>
     <div>
-      <div class="group">JB금융그룹 <span class="svc">NEXT ASEAN</span></div>
-      <h1>심사 <small>Reviewer back office · documents, evidence, decisions</small></h1>
+      <div class="group"><span data-ko="JB금융그룹" data-en="JB Financial Group">JB금융그룹</span> <span class="svc">NEXT ASEAN</span></div>
+      <h1><span data-ko="심사" data-en="Review">심사</span> <small data-ko="심사 백오피스 · 서류, 근거, 결정" data-en="Reviewer back office · documents, evidence, decisions">심사 백오피스 · 서류, 근거, 결정</small></h1>
     </div>
   </div>
   <div class="key">
-    <input id="reviewer" type="text" placeholder="심사자 이름 (reviewer)" autocomplete="off" title="Recorded on decisions and the timeline">
+    <input id="reviewer" type="text" data-ko-placeholder="심사자 이름" data-en-placeholder="Reviewer name" placeholder="심사자 이름" autocomplete="off" data-ko-title="결정과 이력에 기록됩니다" data-en-title="Recorded on decisions and the timeline" title="결정과 이력에 기록됩니다">
     <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">
-    <button class="primary" id="load">불러오기</button>
+    <button class="primary" id="load" data-ko="불러오기" data-en="Load">불러오기</button>
     <span class="status" id="status"></span>
   </div>
 </header>
 <main>
   <div class="tabs" role="tablist" aria-label="Review sections">
-    <button type="button" role="tab" id="tab-work" aria-controls="queue" aria-selected="true" data-tab="work">심사 작업 <small>Work queue &amp; decisions</small><span class="n" id="n-work" hidden></span></button>
-    <button type="button" role="tab" id="tab-stats" aria-controls="stats" aria-selected="false" data-tab="stats">심사 통계 <small>Reviewer statistics</small><span class="n" id="n-stats" hidden></span></button>
+    <button type="button" role="tab" id="tab-work" aria-controls="queue" aria-selected="true" data-tab="work"><span data-ko="심사 작업" data-en="Work queue">심사 작업</span> <small data-ko="큐 · 결정" data-en="queue &amp; decisions">큐 · 결정</small><span class="n" id="n-work" hidden></span></button>
+    <button type="button" role="tab" id="tab-stats" aria-controls="stats" aria-selected="false" data-tab="stats"><span data-ko="심사 통계" data-en="Statistics">심사 통계</span> <small data-ko="심사자 현황" data-en="reviewer figures">심사자 현황</small><span class="n" id="n-stats" hidden></span></button>
   </div>
   <section class="card" id="queue">
     <details class="newapp" id="newapp">
-      <summary>➕ 새 신청 만들기 · 고객 WhatsApp 초대 <span class="sub">Start a demo without a dealer phone</span></summary>
-      <label>고객 전화번호 <span class="sub">digits with country code, e.g. 628123456789</span></label>
+      <summary><span data-ko="➕ 새 신청 만들기 · 고객 WhatsApp 초대" data-en="➕ New application · invite the customer on WhatsApp">➕ 새 신청 만들기 · 고객 WhatsApp 초대</span> <span class="sub" data-ko="딜러 전화 없이 데모 시작" data-en="Start a demo without a dealer phone">딜러 전화 없이 데모 시작</span></summary>
+      <label data-ko="고객 전화번호 <span class=&quot;sub&quot;>국가코드 포함 숫자만, 예: 628123456789</span>" data-en="Customer phone <span class=&quot;sub&quot;>digits with country code, e.g. 628123456789</span>">고객 전화번호 <span class="sub">국가코드 포함 숫자만, 예: 628123456789</span></label>
       <input id="na-phone" type="text" inputmode="numeric" placeholder="628123456789" style="width:100%" autocomplete="off">
-      <label>고객 이름 <span class="sub">optional, used in the greeting</span></label>
+      <label data-ko="고객 이름 <span class=&quot;sub&quot;>선택, 인사말에 사용</span>" data-en="Customer name <span class=&quot;sub&quot;>optional, used in the greeting</span>">고객 이름 <span class="sub">선택, 인사말에 사용</span></label>
       <input id="na-name" type="text" style="width:100%" autocomplete="off">
-      <label>딜러 <span class="sub">the application is filed under this dealer</span></label>
-      <select id="na-dealer" style="width:100%"><option value="">(첫 번째 활성 딜러)</option></select>
-      <label class="inline"><input type="checkbox" id="na-invite" checked> WhatsApp 초대 메시지 전송 <span class="sub">send the START link to the customer</span></label>
-      <div class="btns"><button class="primary" id="na-create">신청 생성</button><span class="sub" id="na-status"></span></div>
+      <label data-ko="딜러 <span class=&quot;sub&quot;>이 딜러 소속으로 신청이 생성됩니다</span>" data-en="Dealer <span class=&quot;sub&quot;>the application is filed under this dealer</span>">딜러 <span class="sub">이 딜러 소속으로 신청이 생성됩니다</span></label>
+      <select id="na-dealer" style="width:100%"><option value="" data-ko="(첫 번째 활성 딜러)" data-en="(first active dealer)">(첫 번째 활성 딜러)</option></select>
+      <label class="inline"><input type="checkbox" id="na-invite" checked> <span data-ko="WhatsApp 초대 메시지 전송 <span class=&quot;sub&quot;>고객에게 START 링크를 보냅니다</span>" data-en="Send the WhatsApp invitation <span class=&quot;sub&quot;>the START link goes to the customer</span>">WhatsApp 초대 메시지 전송 <span class="sub">고객에게 START 링크를 보냅니다</span></span></label>
+      <div class="btns"><button class="primary" id="na-create" data-ko="신청 생성" data-en="Create application">신청 생성</button><span class="sub" id="na-status"></span></div>
       <div id="na-result"></div>
     </details>
-    <h2>심사 큐 <small>Work queue</small></h2>
+    <h2 data-ko="심사 큐" data-en="Work queue">심사 큐</h2>
     <div class="filters">
-      <select id="f-scope"><option value="open">열린 건 (open)</option><option value="all">전체 (all)</option><option value="READY_FOR_REVIEW">심사 대기만</option><option value="DOCUMENTS_REQUESTED">고객 서류 재요청</option><option value="APPROVED,REJECTED">결정 완료</option></select>
-      <select id="f-country"><option value="">모든 국가</option><option value="ID">인도네시아 ID</option><option value="MM">미얀마 MM</option><option value="KH">캄보디아 KH</option></select>
-      <select id="f-grade"><option value="">모든 등급</option><option value="C,D">고위험 C·D</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
-      <input id="f-q" type="text" placeholder="신청번호 · 고객 · 딜러 검색" style="min-width:120px">
+      <select id="f-scope"><option value="open" data-ko="열린 건" data-en="Open">열린 건</option><option value="all" data-ko="전체" data-en="All">전체</option><option value="READY_FOR_REVIEW" data-ko="심사 대기만" data-en="Ready for review only">심사 대기만</option><option value="DOCUMENTS_REQUESTED" data-ko="고객 서류 재요청" data-en="Documents requested">고객 서류 재요청</option><option value="APPROVED,REJECTED" data-ko="결정 완료" data-en="Decided">결정 완료</option></select>
+      <select id="f-country"><option value="" data-ko="모든 국가" data-en="All countries">모든 국가</option><option value="ID" data-ko="인도네시아 ID" data-en="Indonesia ID">인도네시아 ID</option><option value="MM" data-ko="미얀마 MM" data-en="Myanmar MM">미얀마 MM</option><option value="KH" data-ko="캄보디아 KH" data-en="Cambodia KH">캄보디아 KH</option></select>
+      <select id="f-grade"><option value="" data-ko="모든 등급" data-en="All grades">모든 등급</option><option value="C,D" data-ko="고위험 C·D" data-en="High risk C·D">고위험 C·D</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+      <input id="f-q" type="text" data-ko-placeholder="신청번호 · 고객 · 딜러 검색" data-en-placeholder="Search number · customer · dealer" placeholder="신청번호 · 고객 · 딜러 검색" style="min-width:120px">
     </div>
-    <div id="list"><p class="empty">관리자 키를 입력하고 <b>불러오기</b>를 누르세요. <span class="sub">Enter the admin key and press Load.</span></p></div>
+    <div id="list"><p class="empty" data-ko="관리자 키를 입력하고 <b>불러오기</b>를 누르세요." data-en="Enter the admin key and press <b>Load</b>.">관리자 키를 입력하고 <b>불러오기</b>를 누르세요.</p></div>
   </section>
   <section id="detail">
-    <div class="card"><p class="empty">왼쪽 큐에서 신청을 선택하면 서류·추출 데이터·조회 결과·Risk Flag 근거와 결정 버튼이 여기에 표시됩니다.<br><span class="sub">Pick an application from the queue to see its documents, extracted data, provider results, risk evidence and the decision buttons.</span></p></div>
+    <div class="card"><p class="empty" data-ko="왼쪽 큐에서 신청을 선택하면 서류·추출 데이터·조회 결과·Risk Flag 근거와 결정 버튼이 여기에 표시됩니다." data-en="Pick an application from the queue to see its documents, extracted data, provider results, risk evidence and the decision buttons.">왼쪽 큐에서 신청을 선택하면 서류·추출 데이터·조회 결과·Risk Flag 근거와 결정 버튼이 여기에 표시됩니다.</p></div>
   </section>
   <section id="stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
-    <div class="card"><p class="empty">관리자 키를 입력하고 <b>불러오기</b>를 누르면 심사 대기·처리 속도·심사자별 현황이 표시됩니다. <span class="sub">Enter the admin key and press Load to see the queue, throughput and per-reviewer figures.</span></p></div>
+    <div class="card"><p class="empty" data-ko="관리자 키를 입력하고 <b>불러오기</b>를 누르면 심사 대기·처리 속도·심사자별 현황이 표시됩니다." data-en="Enter the admin key and press <b>Load</b> to see the queue, throughput and per-reviewer figures.">관리자 키를 입력하고 <b>불러오기</b>를 누르면 심사 대기·처리 속도·심사자별 현황이 표시됩니다.</p></div>
   </section>
 </main>
 <footer>
-  <span><b>JB금융그룹</b> · NEXT ASEAN 온보딩 백오피스 <span class="sub" style="display:inline">Internal demo · Indonesia / Myanmar / Cambodia</span></span>
-  <span>관리자 키는 이 브라우저 세션에만 저장됩니다 · Admin key stays in this browser session</span>
+  <span data-ko="<b>JB금융그룹</b> · NEXT ASEAN 온보딩 백오피스 <span class=&quot;sub&quot; style=&quot;display:inline&quot;>내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span>" data-en="<b>JB Financial Group</b> · NEXT ASEAN onboarding back office <span class=&quot;sub&quot; style=&quot;display:inline&quot;>Internal demo · Indonesia / Myanmar / Cambodia</span>"><b>JB금융그룹</b> · NEXT ASEAN 온보딩 백오피스 <span class="sub" style="display:inline">내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span></span>
+  <span data-ko="관리자 키는 이 브라우저 세션에만 저장됩니다" data-en="The admin key stays in this browser session">관리자 키는 이 브라우저 세션에만 저장됩니다</span>
 </footer>
 <div id="lightbox"><img alt=""></div>
 <div id="report" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="sheet"></div></div>
@@ -345,46 +347,57 @@
 <script>
 (function () {
   const $ = (s, el = document) => el.querySelector(s);
+  const { t, L } = LANG;                        // t(ko, en) picks the current language; L(obj) picks label / labelKo
   const list = $('#list'), detail = $('#detail'), status = $('#status'), keyInput = $('#key'), reviewerInput = $('#reviewer'), tip = $('#tip'), lightbox = $('#lightbox'), report = $('#report');
   const COUNTRY_COLOR = { ID: 'var(--c-id)', MM: 'var(--c-mm)', KH: 'var(--c-kh)' };
-  const COUNTRY_KO = { ID: '인도네시아', MM: '미얀마', KH: '캄보디아' };
+  const COUNTRY = { ID: ['인도네시아', 'Indonesia'], MM: ['미얀마', 'Myanmar'], KH: ['캄보디아', 'Cambodia'] };
   const GRADE = {
     A: { color: 'var(--good)', icon: '●', ko: '저위험', en: 'Low risk' },
     B: { color: 'var(--warn)', icon: '▲', ko: '중위험', en: 'Medium risk' },
     C: { color: 'var(--serious)', icon: '◆', ko: '고위험', en: 'High risk' },
     D: { color: 'var(--critical)', icon: '■', ko: '위험 고객', en: 'Critical risk' },
   };
-  const STATUS_KO = { DRAFT: '작성 중', SUBMITTED: '폼 제출됨', RESUBMISSION_REQUESTED: '폼 재제출 요청', READY_FOR_REVIEW: '심사 대기', DOCUMENTS_REQUESTED: '고객 서류 재요청', APPROVED: '승인', REJECTED: '거절' };
-  const SEV = { HIGH: { icon: '■', color: 'var(--critical)', ko: '높음' }, MEDIUM: { icon: '◆', color: 'var(--serious)', ko: '중간' }, LOW: { icon: '▲', color: 'var(--warn)', ko: '낮음' } };
-  const OUTCOME_KO = { MATCH: '일치', MISMATCH: '불일치', NOT_FOUND: '미발견', TIMEOUT: '시간 초과', ERROR: '오류' };
-  const DOC_KO = { KTP: '신분증 (KTP)', SELFIE_KTP: '셀피 + 신분증' };
-  const TAMPER_KO = { FONT_MISMATCH: '글꼴·인쇄 불일치', TEXT_MISALIGNED: '텍스트 정렬 어긋남', DIGITAL_EDITING: '디지털 편집 흔적', PHOTO_REPLACED: '증명사진 교체', LAYOUT_MISMATCH: '레이아웃·색상 다름', SECURITY_FEATURE_MISSING: '보안 요소 누락', FIELD_INCONSISTENT: '항목 간 모순', OTHER: '기타 위조 의심' };
+  const STATUS = { DRAFT: ['작성 중', 'Draft'], SUBMITTED: ['폼 제출됨', 'Form submitted'], RESUBMISSION_REQUESTED: ['폼 재제출 요청', 'Form resubmission requested'], READY_FOR_REVIEW: ['심사 대기', 'Ready for review'], DOCUMENTS_REQUESTED: ['고객 서류 재요청', 'Documents requested'], APPROVED: ['승인', 'Approved'], REJECTED: ['거절', 'Rejected'] };
+  const SEV = { HIGH: { icon: '■', color: 'var(--critical)', ko: '높음', en: 'High' }, MEDIUM: { icon: '◆', color: 'var(--serious)', ko: '중간', en: 'Medium' }, LOW: { icon: '▲', color: 'var(--warn)', ko: '낮음', en: 'Low' } };
+  const OUTCOME = { MATCH: ['일치', 'Match'], MISMATCH: ['불일치', 'Mismatch'], NOT_FOUND: ['미발견', 'Not found'], TIMEOUT: ['시간 초과', 'Timeout'], ERROR: ['오류', 'Error'] };
+  const DOC = { KTP: ['신분증 (KTP)', 'ID card (KTP)'], SELFIE_KTP: ['셀피 + 신분증', 'Selfie + ID card'] };
+  const TAMPER = { FONT_MISMATCH: ['글꼴·인쇄 불일치', 'Font / print mismatch'], TEXT_MISALIGNED: ['텍스트 정렬 어긋남', 'Misaligned text'], DIGITAL_EDITING: ['디지털 편집 흔적', 'Digital editing traces'], PHOTO_REPLACED: ['증명사진 교체', 'Portrait replaced'], LAYOUT_MISMATCH: ['레이아웃·색상 다름', 'Layout / colour mismatch'], SECURITY_FEATURE_MISSING: ['보안 요소 누락', 'Security feature missing'], FIELD_INCONSISTENT: ['항목 간 모순', 'Inconsistent fields'], OTHER: ['기타 위조 의심', 'Other forgery suspicion'] };
+  const STEP_STATUS = { OK: ['통과', 'passed'], FAIL: ['실패', 'failed'], WARN: ['주의', 'warning'], DECISION: ['결정', 'decision'], INFO: ['정보', 'info'] };
+  const pair = (map, k) => { const m = map[k]; return m ? t(m[0], m[1]) : (k || ''); };
+  const statusName = s => pair(STATUS, s);
+  const countryName = c => pair(COUNTRY, c);
+  const gradeName = g => { const m = GRADE[g]; return m ? t(m.ko, m.en) : t('미평가', 'not assessed'); };
+  const methodName = m => m === 'CLAUDE_VISION_RULES' ? t('Claude 비전 + 규칙', 'Claude vision + rules') : t('규칙 (스텁)', 'rules (stub)');
+  const customerName = a => a.extracted?.name || a.customerName || t('고객 미연결', 'customer not linked');
+  const curStage = p => p ? (LANG.lang === 'en' ? (p.stages.find(s => s.code === p.current)?.label || p.current) : p.currentKo) : '';
+  const noteOf = s => (LANG.lang === 'en' ? (s.noteEn ?? s.note) : s.note) || '';
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const fmtTime = iso => { if (!iso) return '–'; try { return new Date(iso).toLocaleString('ko-KR', { hour12: false }); } catch { return iso; } };
-  const ago = iso => { if (!iso) return ''; const h = (Date.now() - new Date(iso).getTime()) / 36e5; return h < 1 ? Math.round(h * 60) + '분' : h < 48 ? h.toFixed(1) + '시간' : Math.round(h / 24) + '일'; };
+  const fmtTime = iso => { if (!iso) return '–'; try { return new Date(iso).toLocaleString(LANG.locale, { hour12: false }); } catch { return iso; } };
+  const nowClock = () => new Date().toLocaleTimeString(LANG.locale, { hour12: false });
+  const ago = iso => { if (!iso) return ''; const h = (Date.now() - new Date(iso).getTime()) / 36e5; return h < 1 ? Math.round(h * 60) + t('분', ' min') : h < 48 ? h.toFixed(1) + t('시간', ' h') : Math.round(h / 24) + t('일', ' d'); };
+  const agoText = iso => { const a = ago(iso); return a ? t(a + ' 전', a + ' ago') : ''; };
   const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
-  let apps = [], current = null, blobs = new Map(), tracePoll = null, traceLastId = 0, traceSeenUpdatedAt = null;
+  let apps = [], queueLoaded = false, current = null, blobs = new Map(), tracePoll = null, traceLastId = 0, traceSeenUpdatedAt = null;
   let traceOpen = false;                       // AI timeline fold: closed by default, the officer's choice survives re-renders
   const openSteps = new Set();                  // step ids whose "데이터" details are expanded; survives re-renders
   const MILESTONE_PHASES = new Set(['DOCUMENT', 'VERIFICATION', 'RISK', 'OUTCOME', 'OFFICER']); // steps that change other panels too
   const TRACE_POLL_MS = 2000;
   const STATUS_ICON = { OK: '✓', FAIL: '✗', WARN: '⚠', DECISION: '→', INFO: '·' };
-  const STATUS_KO_STEP = { OK: '통과', FAIL: '실패', WARN: '주의', DECISION: '결정', INFO: '정보' };
   const FLOW_HIDDEN = new Set(['AGENT_TURN', 'AGENT_TOOL_CALL', 'AGENT_RETRY']);
   function actorChip(actor) {
     const [kind, rest] = actor.split(/:(.+)/);
-    const m = { claude: ['Claude ' + (rest || ''), 'claude'], rules: ['코드 규칙', ''], stub: ['스텁 (데모)', ''], provider: [rest || 'provider', ''], customer: ['고객', ''], officer: ['심사자 ' + (rest || ''), ''], system: ['시스템', ''] }[kind] || [actor, ''];
+    const m = { claude: ['Claude ' + (rest || ''), 'claude'], rules: [t('코드 규칙', 'code rules'), ''], stub: [t('스텁 (데모)', 'stub (demo)'), ''], provider: [rest || 'provider', ''], customer: [t('고객', 'customer'), ''], officer: [t('심사자 ', 'officer ') + (rest || ''), ''], system: [t('시스템', 'system'), ''] }[kind] || [actor, ''];
     return `<span class="actor ${m[1]}">${esc(m[0])}</span>`;
   }
-  const fmtClock = iso => { try { return new Date(iso).toLocaleTimeString('ko-KR', { hour12: false }); } catch { return iso; } };
+  const fmtClock = iso => { try { return new Date(iso).toLocaleTimeString(LANG.locale, { hour12: false }); } catch { return iso; } };
   const fmtMs = ms => ms == null ? '' : ms >= 1000 ? (ms / 1000).toFixed(1) + 's' : ms + 'ms';
 
   /* Reviewer copilot: per-application chat kept in memory, so re-renders and milestone reloads keep the conversation. */
   const copilotLog = new Map();   // application number -> [{ role, content, mode, model, ms, err }]
   const copilotBusy = new Set();
   const COPILOT_PROMPTS = [
-    ['이 등급·점수가 나온 이유를 설명해줘', 'Why this score'], ['위조·사기 경고의 근거는?', 'Fraud evidence'],
-    ['승인해도 될까? 조건은?', 'Approve or not'], ['고객에게 추가로 요청할 서류는?', 'What to request'], ['신원·신용 조회 결과를 해석해줘', 'Lookups'],
+    ['이 등급·점수가 나온 이유를 설명해줘', 'Explain why this grade and score came out'], ['위조·사기 경고의 근거는?', 'What is the evidence behind the fraud warnings?'],
+    ['승인해도 될까? 조건은?', 'Can this be approved? Under what conditions?'], ['고객에게 추가로 요청할 서류는?', 'What should we ask the customer for?'], ['신원·신용 조회 결과를 해석해줘', 'Interpret the identity and credit lookups'],
   ];
   const md = text => {
     const lines = esc(text).split(/\r?\n/); let h = '', list = false;
@@ -400,16 +413,16 @@
   function renderCopilot(a) {
     const n = a.applicationNumber, log = copilotLog.get(n) || [], busy = copilotBusy.has(n);
     const last = [...log].reverse().find(m => m.role === 'assistant' && !m.err);
-    const mode = last ? (last.mode === 'claude' ? `<span class="mode">Claude ${esc(last.model || '')}</span>` : '<span class="mode rules">규칙 기반 · API 키 없음</span>') : '';
-    return `<h2>AI 심사 코파일럿 <small>Ask about this application's score, flags and evidence · the officer decides</small>${mode}</h2>
-      <div class="chips">${COPILOT_PROMPTS.map(([ko, en]) => `<button type="button" data-q="${esc(ko)}" title="${esc(en)}">${esc(ko)}</button>`).join('')}${log.length ? '<button type="button" data-clear="1" title="Clear this conversation">대화 지우기</button>' : ''}</div>
+    const mode = last ? (last.mode === 'claude' ? `<span class="mode">Claude ${esc(last.model || '')}</span>` : `<span class="mode rules">${t('규칙 기반 · API 키 없음', 'rule-based · no API key')}</span>`) : '';
+    return `<h2>${t('AI 심사 코파일럿', 'AI review copilot')} <small>${t('이 신청의 점수·Flag·근거에 대해 물어보세요 · 결정은 심사원이 합니다', "Ask about this application's score, flags and evidence · the officer decides")}</small>${mode}</h2>
+      <div class="chips">${COPILOT_PROMPTS.map(([ko, en]) => `<button type="button" data-q="${esc(t(ko, en))}">${esc(t(ko, en))}</button>`).join('')}${log.length ? `<button type="button" data-clear="1" title="${t('이 대화를 지웁니다', 'Clear this conversation')}">${t('대화 지우기', 'Clear chat')}</button>` : ''}</div>
       <div class="log" id="copilot-log">${log.length ? log.map(m => m.role === 'user'
         ? `<div class="msg user">${esc(m.content)}</div>`
-        : `<div class="msg ai ${m.err ? 'err' : ''}">${m.err ? esc(m.content) : md(m.content)}${m.ms != null ? `<span class="meta">${m.mode === 'claude' ? esc(m.model || 'Claude') : '규칙 기반'} · ${(m.ms / 1000).toFixed(1)}s${m.inputTokens != null ? ` · in ${m.inputTokens.toLocaleString()} · out ${m.outputTokens.toLocaleString()}` : ''}</span>` : ''}</div>`).join('')
-        : `<p class="empty" style="padding:4px 0">${esc(a.risk ? `등급 ${a.risk.grade} · ${a.risk.score}점의 근거, Risk Flag의 의미, 추가 확인 사항을 물어보세요.` : '리스크 평가 전에도 서류·진행 상황에 대해 물어볼 수 있습니다.')} <span class="sub">Suggested questions above, or type your own.</span></p>`}
-        ${busy ? '<div class="thinking"><i></i><i></i><i></i> 생각 중 · thinking</div>' : ''}</div>
-      <div class="ask"><textarea id="copilot-q" placeholder="질문 입력 · Enter 전송, Shift+Enter 줄바꿈" ${busy ? 'disabled' : ''}></textarea><button class="primary" id="copilot-send" ${busy ? 'disabled' : ''}>질문</button></div>
-      <div class="foot">답변은 이 신청의 저장된 서류 분석·조회 결과·Risk Flag·타임라인만 근거로 합니다. 최종 결정은 심사원이 합니다.</div>`;
+        : `<div class="msg ai ${m.err ? 'err' : ''}">${m.err ? esc(m.content) : md(m.content)}${m.ms != null ? `<span class="meta">${m.mode === 'claude' ? esc(m.model || 'Claude') : t('규칙 기반', 'rule-based')} · ${(m.ms / 1000).toFixed(1)}s${m.inputTokens != null ? ` · in ${m.inputTokens.toLocaleString()} · out ${m.outputTokens.toLocaleString()}` : ''}</span>` : ''}</div>`).join('')
+        : `<p class="empty" style="padding:4px 0">${esc(a.risk ? t(`등급 ${a.risk.grade} · ${a.risk.score}점의 근거, Risk Flag의 의미, 추가 확인 사항을 물어보세요.`, `Ask why grade ${a.risk.grade} with ${a.risk.score} points, what the risk flags mean, or what to check next.`) : t('리스크 평가 전에도 서류·진행 상황에 대해 물어볼 수 있습니다.', 'Before the risk assessment you can still ask about the documents and the progress.'))} <span class="sub">${t('위의 추천 질문을 누르거나 직접 입력하세요.', 'Use a suggested question above, or type your own.')}</span></p>`}
+        ${busy ? `<div class="thinking"><i></i><i></i><i></i> ${t('생각 중', 'thinking')}</div>` : ''}</div>
+      <div class="ask"><textarea id="copilot-q" placeholder="${t('질문 입력 · Enter 전송, Shift+Enter 줄바꿈', 'Type a question · Enter to send, Shift+Enter for a new line')}" ${busy ? 'disabled' : ''}></textarea><button class="primary" id="copilot-send" ${busy ? 'disabled' : ''}>${t('질문', 'Ask')}</button></div>
+      <div class="foot">${t('답변은 이 신청의 저장된 서류 분석·조회 결과·Risk Flag·타임라인만 근거로 합니다. 최종 결정은 심사원이 합니다.', "Answers are grounded only in this application's stored document analysis, lookups, risk flags and timeline. The officer makes the final decision.")}</div>`;
   }
   function bindCopilot(a) {
     const root = $('#copilot'); if (!root) return;
@@ -433,7 +446,7 @@
       const r = await api('/admin/applications/' + encodeURIComponent(n) + '/copilot', { method: 'POST', body: JSON.stringify({ question, history, reviewer: reviewerInput.value.trim() || null }) });
       log.push({ role: 'assistant', content: r.answer, mode: r.mode, model: r.model, ms: r.durationMs, inputTokens: r.inputTokens, outputTokens: r.outputTokens });
     } catch (e) {
-      log.push({ role: 'assistant', content: '오류: ' + e.message, err: true });
+      log.push({ role: 'assistant', content: t('오류: ', 'Error: ') + e.message, err: true });
     } finally { copilotBusy.delete(n); repaintCopilot(n); }
   }
 
@@ -445,35 +458,35 @@
     if (!p) return '';
     lastProgressJson = JSON.stringify(p);
     const cur = p.stages.find(s => s.code === p.current) || {};
-    return `<div class="progress-head"><h2 style="margin:0">온보딩 진행 단계 <small>Onboarding progress</small></h2><span class="pct">${p.done}/${p.total}</span><span class="sub">현재 단계 · now: <b style="color:var(--brand)">${esc(p.currentKo)}</b>${cur.note ? ' · ' + esc(cur.note) : ''}${p.idleHours != null && p.idleHours >= 24 ? ` · <span class="bad">마지막 변경 후 ${(p.idleHours / 24).toFixed(1)}일 경과</span>` : ''}</span></div>
-      <ol class="stepper" aria-label="Onboarding stages">${p.stages.map((s, i) => `<li class="${esc(s.state)}" title="${esc(s.label)}${s.note ? ' — ' + esc(s.note) : ''}"><span class="dot">${STAGE_ICON[s.state] || (i + 1)}</span><span class="lb">${esc(s.labelKo)}<small>${esc(s.label)}</small></span>${s.note ? `<span class="note">${esc(s.note)}</span>` : ''}${s.at ? `<time title="${esc(fmtTime(s.at))}">${fmtShort(s.at)}</time>` : ''}</li>`).join('')}</ol>`;
+    return `<div class="progress-head"><h2 style="margin:0">${t('온보딩 진행 단계', 'Onboarding progress')}</h2><span class="pct">${p.done}/${p.total}</span><span class="sub">${t('현재 단계', 'now')}: <b style="color:var(--brand)">${esc(curStage(p))}</b>${noteOf(cur) ? ' · ' + esc(noteOf(cur)) : ''}${p.idleHours != null && p.idleHours >= 24 ? ` · <span class="bad">${t(`마지막 변경 후 ${(p.idleHours / 24).toFixed(1)}일 경과`, `${(p.idleHours / 24).toFixed(1)} days since the last change`)}</span>` : ''}</span></div>
+      <ol class="stepper" aria-label="Onboarding stages">${p.stages.map((s, i) => `<li class="${esc(s.state)}" title="${esc(L(s))}${noteOf(s) ? ' — ' + esc(noteOf(s)) : ''}"><span class="dot">${STAGE_ICON[s.state] || (i + 1)}</span><span class="lb">${esc(L(s))}</span>${noteOf(s) ? `<span class="note">${esc(noteOf(s))}</span>` : ''}${s.at ? `<time title="${esc(fmtTime(s.at))}">${fmtShort(s.at)}</time>` : ''}</li>`).join('')}</ol>`;
   }
-  const miniBar = p => p ? `<span class="mini ${p.stages.some(s => s.state === 'WARN' || s.state === 'FAIL') ? 'warn' : (p.done === p.total ? 'done' : '')}" title="${esc(p.done + '/' + p.total + ' · ' + p.currentKo)}"><i style="width:${p.percent}%"></i></span>` : '';
+  const miniBar = p => p ? `<span class="mini ${p.stages.some(s => s.state === 'WARN' || s.state === 'FAIL') ? 'warn' : (p.done === p.total ? 'done' : '')}" title="${esc(p.done + '/' + p.total + ' · ' + curStage(p))}"><i style="width:${p.percent}%"></i></span>` : '';
 
   /* The "AI agent timeline": a one-line flow strip plus the detailed stepper with evidence. */
-  const traceTitle = (steps, live) => `AI Agent 판단 타임라인 <small>What the pipeline and the review agent did, step by step · ${steps.length} steps</small> ${live ? `<span class="live"><span class="pulse"></span>실시간 · live</span> <span class="sub" id="trace-checked" title="새 단계가 기록되면 자동으로 갱신됩니다 · refreshes itself every ${TRACE_POLL_MS / 1000}s">${TRACE_POLL_MS / 1000}초마다 자동 갱신</span>` : ''}`;
+  const traceTitle = (steps, live) => `${t('AI Agent 판단 타임라인', 'AI agent timeline')} <small>${t(`파이프라인과 리뷰 에이전트가 한 일, 단계별 · ${steps.length}단계`, `What the pipeline and the review agent did, step by step · ${steps.length} steps`)}</small> ${live ? `<span class="live"><span class="pulse"></span>${t('실시간', 'live')}</span> <span class="sub" id="trace-checked" title="${t('새 단계가 기록되면 자동으로 갱신됩니다', 'Refreshes itself when a new step is recorded')}">${t(`${TRACE_POLL_MS / 1000}초마다 자동 갱신`, `refreshes every ${TRACE_POLL_MS / 1000}s`)}</span>` : ''}`;
   /* The timeline folded under the onboarding stepper: closed by default, the chevron (or the whole header) toggles it. */
   function renderTraceSection(steps, live, newSince) {
-    return `<details id="trace-details" class="trace-details"${traceOpen ? ' open' : ''}><summary title="AI 에이전트 판단 타임라인 펼치기/접기"><span class="chev" aria-hidden="true">▸</span><h2 id="trace-title">${traceTitle(steps, live)}</h2><span class="sub hint"></span></summary><div id="trace-panel">${renderTrace(steps, live, newSince)}</div></details>`;
+    return `<details id="trace-details" class="trace-details"${traceOpen ? ' open' : ''}><summary title="${t('AI 에이전트 판단 타임라인 펼치기/접기', 'Expand or collapse the AI agent timeline')}"><span class="chev" aria-hidden="true">▸</span><h2 id="trace-title">${traceTitle(steps, live)}</h2><span class="sub hint"></span></summary><div id="trace-panel">${renderTrace(steps, live, newSince)}</div></details>`;
   }
   function renderTrace(steps, live, newSince = Infinity) {
     let h = '';
-    if (!steps.length) { return h + `<p class="empty">${live ? '고객이 서류를 보내면 분석 단계가 여기에 실시간으로 나타납니다.' : '기록된 단계가 없습니다 (Step 4b 이전에 처리된 신청).'} <span class="sub">${live ? 'Steps appear here live as the customer sends documents.' : 'No steps recorded.'}</span></p>`; }
+    if (!steps.length) { return h + `<p class="empty">${live ? t('고객이 서류를 보내면 분석 단계가 여기에 실시간으로 나타납니다.', 'Steps appear here live as the customer sends documents.') : t('기록된 단계가 없습니다 (Step 4b 이전에 처리된 신청).', 'No steps recorded (processed before Step 4b).')}</p>`; }
     const flow = steps.filter(s => !FLOW_HIDDEN.has(s.kind));
-    h += `<div class="flow">${flow.map((s, i) => `${i ? '<span class="arrow">→</span>' : ''}<span class="step ${s.status}" title="${esc(s.title)}">${esc(s.labelKo)} ${STATUS_ICON[s.status] || ''}</span>`).join('')}${live ? '<span class="arrow">→</span><span class="step" style="opacity:.6">…</span>' : ''}</div>`;
+    h += `<div class="flow">${flow.map((s, i) => `${i ? '<span class="arrow">→</span>' : ''}<span class="step ${s.status}" title="${esc(s.title)}">${esc(L(s))} ${STATUS_ICON[s.status] || ''}</span>`).join('')}${live ? '<span class="arrow">→</span><span class="step" style="opacity:.6">…</span>' : ''}</div>`;
     h += '<ul class="trace">';
     let round = -1;
     steps.forEach(s => {
-      if (s.round !== round) { round = s.round; h += `<li class="sep"><span></span><span>── 서류 라운드 ${round + 1} · document round ${round + 1} ──</span></li>`; }
+      if (s.round !== round) { round = s.round; h += `<li class="sep"><span></span><span>── ${t(`서류 라운드 ${round + 1}`, `document round ${round + 1}`)} ──</span></li>`; }
       let data = null; try { data = s.data ? JSON.parse(s.data) : null; } catch {}
       const meta = [];
       if (s.kind === 'AGENT_TURN' && data) { meta.push('stop=' + esc(data.stopReason || '?')); if (data.inputTokens != null) meta.push('in ' + data.inputTokens.toLocaleString() + (data.cacheReadTokens ? ' (cache ' + data.cacheReadTokens.toLocaleString() + ')' : '')); if (data.outputTokens != null) meta.push('out ' + data.outputTokens.toLocaleString()); }
       if (s.kind === 'VISION_ANALYSIS' && data && data.usage) { if (data.usage.inputTokens != null) meta.push('in ' + data.usage.inputTokens.toLocaleString()); if (data.usage.outputTokens != null) meta.push('out ' + data.usage.outputTokens.toLocaleString()); if (data.usage.stopReason) meta.push('stop=' + esc(data.usage.stopReason)); }
       if (s.durationMs != null) meta.push(fmtMs(s.durationMs));
-      h += `<li class="${s.id > newSince ? 'new' : ''}"><span class="node ${esc(s.phase)}" title="${esc(s.phaseKo)}"></span><time>${fmtClock(s.createdAt)}</time><div class="body">
-        <div class="head"><span class="kind">${esc(s.labelKo)}</span><span class="sub">${esc(s.label)}</span><span class="st ${esc(s.status)}">${STATUS_ICON[s.status] || ''} ${STATUS_KO_STEP[s.status] || s.status}</span>${actorChip(s.actor)}</div>
+      h += `<li class="${s.id > newSince ? 'new' : ''}"><span class="node ${esc(s.phase)}" title="${esc(L(s, 'phase'))}"></span><time>${fmtClock(s.createdAt)}</time><div class="body">
+        <div class="head"><span class="kind">${esc(L(s))}</span><span class="st ${esc(s.status)}">${STATUS_ICON[s.status] || ''} ${pair(STEP_STATUS, s.status)}</span>${actorChip(s.actor)}</div>
         <div class="title">${esc(s.title)}</div>${s.detail ? `<div class="detail">${esc(s.detail)}</div>` : ''}${meta.length ? `<div class="meta">${meta.join(' · ')}</div>` : ''}
-        ${data ? `<details data-sid="${s.id}"${openSteps.has(s.id) ? ' open' : ''}><summary>데이터 · data</summary><pre>${esc(JSON.stringify(data, null, 2))}</pre></details>` : ''}</div></li>`;
+        ${data ? `<details data-sid="${s.id}"${openSteps.has(s.id) ? ' open' : ''}><summary>${t('데이터', 'data')}</summary><pre>${esc(JSON.stringify(data, null, 2))}</pre></details>` : ''}</div></li>`;
     });
     return h + '</ul>';
   }
@@ -488,34 +501,34 @@
     if (document.hidden || traceTickBusy) return;                       // nothing to show while the tab is hidden
     traceTickBusy = true;
     try {
-      const t = await api('/admin/applications/' + encodeURIComponent(number) + '/agent-trace');
+      const tr = await api('/admin/applications/' + encodeURIComponent(number) + '/agent-trace');
       if (!current || current.applicationNumber !== number) return;
-      const checked = $('#trace-checked'); if (checked) checked.textContent = TRACE_POLL_MS / 1000 + '초마다 자동 갱신 · 확인 ' + new Date().toLocaleTimeString('ko-KR', { hour12: false });
-      if (t.progress && JSON.stringify(t.progress) !== lastProgressJson) { const sp = $('#stage-body'); if (sp) sp.innerHTML = renderStages(t.progress); }
-      const fresh = t.steps.filter(s => s.id > traceLastId);
-      const statusChanged = t.status !== current.status;
-      const touched = traceSeenUpdatedAt != null && t.updatedAt !== traceSeenUpdatedAt;   // e.g. officer note, re-assessment
-      traceSeenUpdatedAt = t.updatedAt;
+      const checked = $('#trace-checked'); if (checked) checked.textContent = t(`${TRACE_POLL_MS / 1000}초마다 자동 갱신 · 확인 `, `refreshes every ${TRACE_POLL_MS / 1000}s · checked `) + nowClock();
+      if (tr.progress && JSON.stringify(tr.progress) !== lastProgressJson) { const sp = $('#stage-body'); if (sp) sp.innerHTML = renderStages(tr.progress); }
+      const fresh = tr.steps.filter(s => s.id > traceLastId);
+      const statusChanged = tr.status !== current.status;
+      const touched = traceSeenUpdatedAt != null && tr.updatedAt !== traceSeenUpdatedAt;   // e.g. officer note, re-assessment
+      traceSeenUpdatedAt = tr.updatedAt;
       if (fresh.length) {
         const panel = $('#trace-panel');
-        if (panel) { panel.innerHTML = renderTrace(t.steps, t.live, traceLastId); bindTips(panel); }
-        const tt = $('#trace-title'); if (tt) tt.innerHTML = traceTitle(t.steps, t.live);
-        traceLastId = t.steps[t.steps.length - 1].id;
+        if (panel) { panel.innerHTML = renderTrace(tr.steps, tr.live, traceLastId); bindTips(panel); }
+        const tt = $('#trace-title'); if (tt) tt.innerHTML = traceTitle(tr.steps, tr.live);
+        traceLastId = tr.steps[tr.steps.length - 1].id;
         const last = fresh[fresh.length - 1];
-        setStatus(`AI 에이전트 단계 ${fresh.length}개 추가 · ${last.labelKo} ${STATUS_KO_STEP[last.status] || ''} · ${new Date().toLocaleTimeString('ko-KR', { hour12: false })}`);
+        setStatus(t(`AI 에이전트 단계 ${fresh.length}개 추가`, `${fresh.length} new AI agent step(s)`) + ` · ${L(last)} ${pair(STEP_STATUS, last.status)} · ${nowClock()}`);
       }
       const milestone = fresh.some(s => MILESTONE_PHASES.has(s.phase));
       if (statusChanged || milestone || touched) {
-        const why = statusChanged ? '상태가 ' + (STATUS_KO[t.status] || t.status) + '(으)로 바뀌었습니다.' : '새 결과가 도착했습니다.';
+        const why = statusChanged ? t(`상태가 ${statusName(tr.status)}(으)로 바뀌었습니다.`, `Status changed to ${statusName(tr.status)}.`) : t('새 결과가 도착했습니다.', 'New results arrived.');
         // Do not throw away what the officer is typing; reload once the focus leaves the detail pane.
         if (document.activeElement && document.activeElement.closest('#detail') && document.activeElement.matches('input, textarea, select')) {
-          setStatus(why + ' 입력을 마치면 화면이 갱신됩니다.');
+          setStatus(why + ' ' + t('입력을 마치면 화면이 갱신됩니다.', 'The view refreshes when you finish typing.'));
           document.activeElement.addEventListener('blur', () => { if (current && current.applicationNumber === number) { open(number, true); loadQueue(); } }, { once: true });
           return;
         }
         await open(number, true); loadQueue(); return;
       }
-      if (!t.live) stopTracePolling();
+      if (!tr.live) stopTracePolling();
     } catch (e) { /* keep polling; the next tick may succeed */ }
     finally { traceTickBusy = false; }
   }
@@ -538,14 +551,16 @@
     return body;
   }
   function setStatus(msg, err) { status.textContent = msg; status.className = 'status' + (err ? ' err' : ''); }
+  const errStatus = e => setStatus(t('오류: ', 'Error: ') + e.message, true);
+  const needKey = () => setStatus(t('관리자 키를 입력하세요.', 'Enter the admin key.'), true);
 
   function showTip(e, text) { tip.textContent = text; tip.style.opacity = 1; moveTip(e); }
   function moveTip(e) { tip.style.left = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; }
   function hideTip() { tip.style.opacity = 0; }
   function bindTips(root) { root.querySelectorAll('[data-tip]').forEach(el => { el.addEventListener('mouseenter', e => showTip(e, el.dataset.tip)); el.addEventListener('mousemove', moveTip); el.addEventListener('mouseleave', hideTip); }); }
 
-  const gradeCell = (g, score) => { const m = GRADE[g]; return m ? `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g)} <span class="sub">${m.ko}${score != null ? ' · ' + score : ''}</span></span>` : '<span class="sub">미평가</span>'; };
-  const pill = s => `<span class="pill ${esc(s)}">${esc(STATUS_KO[s] || s)}</span>`;
+  const gradeCell = (g, score) => { const m = GRADE[g]; return m ? `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g)} <span class="sub">${gradeName(g)}${score != null ? ' · ' + score : ''}</span></span>` : `<span class="sub">${t('미평가', 'not assessed')}</span>`; };
+  const pill = s => `<span class="pill ${esc(s)}">${esc(statusName(s))}</span>`;
   const countryCell = c => `<span class="dot" style="background:${COUNTRY_COLOR[c] || 'var(--text-3)'}"></span>${esc(c)}`;
 
   /* ---------- queue ---------- */
@@ -558,25 +573,26 @@
     return p.toString();
   }
   async function loadQueue() {
-    if (!keyInput.value.trim()) { setStatus('관리자 키를 입력하세요.', true); return; }
+    if (!keyInput.value.trim()) { needKey(); return; }
     try { sessionStorage.setItem('adminKey', keyInput.value.trim()); } catch {}
-    setStatus('불러오는 중…');
+    setStatus(t('불러오는 중…', 'Loading…'));
     try {
       apps = await api('/admin/applications?' + queryString());
+      queueLoaded = true;
       renderQueue();
-      setStatus('업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour12: false }));
-    } catch (e) { setStatus('오류: ' + e.message, true); }
+      setStatus(t('업데이트 ', 'Updated ') + nowClock());
+    } catch (e) { errStatus(e); }
   }
   function renderQueue() {
-    if (!apps.length) { list.innerHTML = '<p class="empty">조건에 맞는 신청이 없습니다. <span class="sub">Nothing matches.</span></p>'; $('#n-work').hidden = true; return; }
-    list.innerHTML = `<div class="scroll"><table><thead><tr><th>신청번호</th><th>상태</th><th>등급</th><th>대기</th></tr></thead><tbody>${apps.map(a => {
+    if (!apps.length) { list.innerHTML = `<p class="empty">${t('조건에 맞는 신청이 없습니다.', 'Nothing matches these filters.')}</p>`; $('#n-work').hidden = true; return; }
+    list.innerHTML = `<div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('상태', 'Status')}</th><th>${t('등급', 'Grade')}</th><th>${t('대기', 'Waiting')}</th></tr></thead><tbody>${apps.map(a => {
       const r = a.risk, waitingSince = a.risk?.assessedAt || a.verifiedAt || a.updatedAt;
       return `<tr class="row ${current && current.applicationNumber === a.applicationNumber ? 'selected' : ''}" data-n="${esc(a.applicationNumber)}">
-        <td><b>${esc(a.applicationNumber)}</b><button type="button" class="rp-mini report-btn" data-n="${esc(a.applicationNumber)}" title="고객 리포트 보기 · customer report">📄 리포트</button><br><span class="sub">${countryCell(a.country)} · ${esc(a.dealerCode || '–')} · ${esc(a.extracted?.name || a.customerName || '고객 미연결')}</span></td>
-        <td>${pill(a.status)}${a.review?.officerReviewRequired ? '<br><span class="chip warn">담당자 검토</span>' : ''}${a.progress && a.status !== 'APPROVED' && a.status !== 'REJECTED' ? `<br><span style="white-space:nowrap">${miniBar(a.progress)} <span class="sub">${esc(a.progress.currentKo)}</span></span>` : ''}</td>
-        <td>${r ? gradeCell(r.grade, r.score) : '<span class="sub">–</span>'}${r && r.fraudWarnings ? `<br><span class="chip fraud">⚠ 위조 ${r.fraudWarnings}</span>` : ''}</td>
+        <td><b>${esc(a.applicationNumber)}</b><button type="button" class="rp-mini report-btn" data-n="${esc(a.applicationNumber)}" title="${t('고객 리포트 보기', 'Open the customer report')}">📄 ${t('리포트', 'Report')}</button><br><span class="sub">${countryCell(a.country)} · ${esc(a.dealerCode || '–')} · ${esc(customerName(a))}</span></td>
+        <td>${pill(a.status)}${a.review?.officerReviewRequired ? `<br><span class="chip warn">${t('담당자 검토', 'Officer review')}</span>` : ''}${a.progress && a.status !== 'APPROVED' && a.status !== 'REJECTED' ? `<br><span style="white-space:nowrap">${miniBar(a.progress)} <span class="sub">${esc(curStage(a.progress))}</span></span>` : ''}</td>
+        <td>${r ? gradeCell(r.grade, r.score) : '<span class="sub">–</span>'}${r && r.fraudWarnings ? `<br><span class="chip fraud">⚠ ${t('위조', 'fraud')} ${r.fraudWarnings}</span>` : ''}</td>
         <td class="num"><span class="sub" title="${esc(fmtTime(waitingSince))}">${a.status === 'READY_FOR_REVIEW' ? ago(waitingSince) : ago(a.updatedAt)}</span></td></tr>`; }).join('')}</tbody></table></div>
-      <p class="sub" style="margin:8px 0 0">${apps.length}건 · 심사 대기 우선, 리스크 점수 높은 순 · 60초마다 갱신</p>`;
+      <p class="sub" style="margin:8px 0 0">${t(`${apps.length}건 · 심사 대기 우선, 리스크 점수 높은 순 · 60초마다 갱신`, `${apps.length} applications · ready-for-review first, highest risk score first · refreshes every 60s`)}</p>`;
     const waitingCount = apps.filter(a => a.status === 'READY_FOR_REVIEW').length; $('#n-work').textContent = waitingCount; $('#n-work').hidden = !waitingCount;
     list.querySelectorAll('tr.row').forEach(tr => tr.addEventListener('click', () => open(tr.dataset.n)));
     list.querySelectorAll('button.report-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); showReport(b.dataset.n); }));
@@ -591,26 +607,27 @@
       current = a;
       renderDetail(a);
       renderQueue();
-    } catch (e) { setStatus('오류: ' + e.message, true); }
+    } catch (e) { errStatus(e); }
   }
 
   function renderDetail(a) {
     const r = a.risk, final = a.status === 'APPROVED' || a.status === 'REJECTED';
     const docs = a.documents || [], live = docs.filter(d => !d.superseded), old = docs.filter(d => d.superseded);
+    const noPhone = final || !a.customerPhone;
     let h = `<div class="card">
       <div style="display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-start;justify-content:space-between">
         <div>
           <h2 style="font-size:20px">${esc(a.applicationNumber)} ${pill(a.status)}</h2>
-          <div class="sub">${countryCell(a.country)} ${esc(COUNTRY_KO[a.country] || '')} · 딜러 ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''} · 생성 ${fmtTime(a.createdAt)} · 최근 ${fmtTime(a.updatedAt)}</div>
-          <div style="margin-top:6px"><b>${esc(a.extracted?.name || a.customerName || '고객 미연결')}</b> ${a.customerPhone ? `<span class="sub">+${esc(a.customerPhone)}</span>` : '<span class="sub">(START 링크를 아직 열지 않음)</span>'}</div>
+          <div class="sub">${countryCell(a.country)} ${esc(countryName(a.country))} · ${t('딜러', 'dealer')} ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''} · ${t('생성', 'created')} ${fmtTime(a.createdAt)} · ${t('최근', 'updated')} ${fmtTime(a.updatedAt)}</div>
+          <div style="margin-top:6px"><b>${esc(customerName(a))}</b> ${a.customerPhone ? `<span class="sub">+${esc(a.customerPhone)}</span>` : `<span class="sub">${t('(START 링크를 아직 열지 않음)', '(START link not opened yet)')}</span>`}</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          ${r ? `<div class="gradebox" style="border-color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}"><span class="big" style="color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}">${esc(r.grade)}</span><div><div><b>${esc(r.gradeLabelKo)}</b> <span class="sub">${esc(r.gradeLabel)}</span></div><div class="sub">점수 ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ 위조·사기 경고 ${r.fraudWarnings}</span>` : '위조 신호 없음'}</div><div class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')} · ${fmtTime(r.assessedAt)}</div></div></div>` : '<span class="sub">리스크 미평가 (서류 미완료)</span>'}
+          ${r ? `<div class="gradebox" style="border-color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}"><span class="big" style="color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}">${esc(r.grade)}</span><div><div><b>${esc(L(r, 'gradeLabel'))}</b></div><div class="sub">${t('점수', 'score')} ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ ${t('위조·사기 경고', 'fraud / forgery warnings')} ${r.fraudWarnings}</span>` : t('위조 신호 없음', 'no fraud signal')}</div><div class="sub">${esc(methodName(r.method))} · ${fmtTime(r.assessedAt)}</div></div></div>` : `<span class="sub">${t('리스크 미평가 (서류 미완료)', 'Not assessed yet (documents incomplete)')}</span>`}
         </div>
       </div>
-      <div style="margin-top:8px">${(r?.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(b.labelKo)}</span>`).join('')}${a.review?.officerReviewRequired ? '<span class="chip warn" data-tip="자동 분석이 일부 데이터를 확신하지 못했습니다. 이미지와 대조해 주세요.">담당자 검토 필요</span>' : ''}${a.linkOutstanding ? '<span class="chip">딜러 폼 링크 유효</span>' : ''}</div>
-      ${final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin-top:10px"><b>${esc(STATUS_KO[a.status])}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : ''}
-      ${a.status === 'DOCUMENTS_REQUESTED' || a.status === 'RESUBMISSION_REQUESTED' ? `<div class="notice warn" style="margin-top:10px">${a.status === 'DOCUMENTS_REQUESTED' ? '고객에게 서류를 다시 요청한 상태입니다. 새 사진이 접수되면 검사·조회가 다시 실행되고 심사 대기로 돌아옵니다.' : '딜러에게 폼 재제출을 요청한 상태입니다.'}${a.resubmissionReason ? '<br><span class="sub">' + esc(a.resubmissionReason) + '</span>' : ''}</div>` : ''}
+      <div style="margin-top:8px">${(r?.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(L(b))}</span>`).join('')}${a.review?.officerReviewRequired ? `<span class="chip warn" data-tip="${t('자동 분석이 일부 데이터를 확신하지 못했습니다. 이미지와 대조해 주세요.', 'The automatic analysis was not confident about some fields. Compare with the images.')}">${t('담당자 검토 필요', 'Officer review required')}</span>` : ''}${a.linkOutstanding ? `<span class="chip">${t('딜러 폼 링크 유효', 'Dealer form link active')}</span>` : ''}</div>
+      ${final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin-top:10px"><b>${esc(statusName(a.status))}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : ''}
+      ${a.status === 'DOCUMENTS_REQUESTED' || a.status === 'RESUBMISSION_REQUESTED' ? `<div class="notice warn" style="margin-top:10px">${a.status === 'DOCUMENTS_REQUESTED' ? t('고객에게 서류를 다시 요청한 상태입니다. 새 사진이 접수되면 검사·조회가 다시 실행되고 심사 대기로 돌아옵니다.', 'The customer has been asked to resend documents. When new photos arrive, the checks and lookups run again and the application returns to the queue.') : t('딜러에게 폼 재제출을 요청한 상태입니다.', 'The dealer has been asked to resubmit the form.')}${a.resubmissionReason ? '<br><span class="sub">' + esc(a.resubmissionReason) + '</span>' : ''}</div>` : ''}
     </div>`;
 
     // reviewer copilot, under the customer and grade header
@@ -625,53 +642,50 @@
     h += `<div class="card" id="stage-panel" style="margin-top:16px"><div id="stage-body">${renderStages(a.progress)}</div>${renderTraceSection(trace, liveTrace, prevLastId)}</div>`;
 
     // actions
-    h += `<div class="card" style="margin-top:16px"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between"><h2 style="margin:0">심사 결정 <small>Decisions · notifications go to the dealer and the customer on WhatsApp</small></h2><button type="button" id="btn-report" title="이 고객의 리포트를 팝업으로 봅니다">📄 고객 리포트</button></div>
-      ${final ? '<p class="empty">결정이 완료된 신청입니다. 메모만 추가할 수 있습니다.</p>' : ''}
+    h += `<div class="card" style="margin-top:16px"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between"><h2 style="margin:0">${t('심사 결정', 'Decisions')} <small>${t('알림은 WhatsApp으로 딜러와 고객에게 전송됩니다', 'notifications go to the dealer and the customer on WhatsApp')}</small></h2><button type="button" id="btn-report" title="${t('이 고객의 리포트를 팝업으로 봅니다', 'Open this customer\'s report in a popup')}">📄 ${t('고객 리포트', 'Customer report')}</button></div>
+      ${final ? `<p class="empty">${t('결정이 완료된 신청입니다. 메모만 추가할 수 있습니다.', 'This application is decided. Only notes can be added.')}</p>` : ''}
       <div class="actions">
-        <div class="action"><h3>승인 / 거절 <span class="sub">Approve / reject</span></h3>
-          <label>메모 (고객·딜러에게 전달됨) <span class="sub">note, sent with the notification</span></label><textarea id="dec-note" ${final ? 'disabled' : ''} placeholder="예: 서류와 신원·신용 조회 모두 정상"></textarea>
-          <div class="btns"><button class="approve" id="btn-approve" ${final ? 'disabled' : ''}>✓ 승인 Approve</button><button class="reject" id="btn-reject" ${final ? 'disabled' : ''}>✕ 거절 Reject</button></div></div>
-        <div class="action"><h3>고객 서류 재요청 <span class="sub">Ask the customer to resend</span></h3>
-          <label class="inline"><input type="checkbox" id="rq-ktp" ${final || !a.customerPhone ? 'disabled' : ''}> 신분증 (KTP)</label>
-          <input type="text" id="rq-ktp-reason" placeholder="이유 (고객에게 영어로 전달) e.g. the photo is blurry" style="width:100%" ${final || !a.customerPhone ? 'disabled' : ''}>
-          <label class="inline" style="margin-top:6px"><input type="checkbox" id="rq-selfie" ${final || !a.customerPhone ? 'disabled' : ''}> 셀피 + 신분증</label>
-          <input type="text" id="rq-selfie-reason" placeholder="e.g. your face is not clearly visible" style="width:100%" ${final || !a.customerPhone ? 'disabled' : ''}>
-          <label>추가 안내 (선택) <span class="sub">optional note</span></label><input type="text" id="rq-note" style="width:100%" ${final || !a.customerPhone ? 'disabled' : ''}>
-          <div class="btns"><button id="btn-request-docs" ${final || !a.customerPhone ? 'disabled' : ''}>📷 고객에게 재요청</button>${!a.customerPhone ? '<span class="sub">고객 번호가 아직 없습니다</span>' : ''}</div></div>
-        <div class="action"><h3>딜러 폼 재제출 · 메모 · 재평가 <span class="sub">Dealer form, note, re-assess</span></h3>
-          <label>딜러 폼 재제출 이유 <span class="sub">new one-time link goes to the dealer</span></label><input type="text" id="rs-reason" style="width:100%" ${final ? 'disabled' : ''} placeholder="e.g. income field missing">
-          <div class="btns"><button id="btn-resubmit" ${final ? 'disabled' : ''}>🔗 딜러 재제출 요청</button><button id="btn-reassess" ${!r ? 'disabled' : ''}>↻ 리스크 재평가</button></div>
-          <label>심사 메모 <span class="sub">internal note, timeline only</span></label><input type="text" id="note-text" style="width:100%">
-          <div class="btns"><button id="btn-note">✎ 메모 추가</button></div></div>
+        <div class="action"><h3>${t('승인 / 거절', 'Approve / reject')}</h3>
+          <label>${t('메모 (고객·딜러에게 전달됨)', 'Note (sent with the notification)')}</label><textarea id="dec-note" ${final ? 'disabled' : ''} placeholder="${t('예: 서류와 신원·신용 조회 모두 정상', 'e.g. documents and lookups all in order')}"></textarea>
+          <div class="btns"><button class="approve" id="btn-approve" ${final ? 'disabled' : ''}>✓ ${t('승인', 'Approve')}</button><button class="reject" id="btn-reject" ${final ? 'disabled' : ''}>✕ ${t('거절', 'Reject')}</button></div></div>
+        <div class="action"><h3>${t('고객 서류 재요청', 'Ask the customer to resend')}</h3>
+          <label class="inline"><input type="checkbox" id="rq-ktp" ${noPhone ? 'disabled' : ''}> ${pair(DOC, 'KTP')}</label>
+          <input type="text" id="rq-ktp-reason" placeholder="${t('이유 (고객에게 영어로 전달) e.g. the photo is blurry', 'Reason, sent to the customer in English, e.g. the photo is blurry')}" style="width:100%" ${noPhone ? 'disabled' : ''}>
+          <label class="inline" style="margin-top:6px"><input type="checkbox" id="rq-selfie" ${noPhone ? 'disabled' : ''}> ${pair(DOC, 'SELFIE_KTP')}</label>
+          <input type="text" id="rq-selfie-reason" placeholder="e.g. your face is not clearly visible" style="width:100%" ${noPhone ? 'disabled' : ''}>
+          <label>${t('추가 안내 (선택)', 'Extra note (optional)')}</label><input type="text" id="rq-note" style="width:100%" ${noPhone ? 'disabled' : ''}>
+          <div class="btns"><button id="btn-request-docs" ${noPhone ? 'disabled' : ''}>📷 ${t('고객에게 재요청', 'Ask the customer')}</button>${!a.customerPhone ? `<span class="sub">${t('고객 번호가 아직 없습니다', 'No customer number yet')}</span>` : ''}</div></div>
+        <div class="action"><h3>${t('딜러 폼 재제출 · 메모 · 재평가', 'Dealer form · note · re-assess')}</h3>
+          <label>${t('딜러 폼 재제출 이유', 'Reason for the dealer to resubmit the form')} <span class="sub">${t('딜러에게 새 일회용 링크가 전송됩니다', 'a new one-time link goes to the dealer')}</span></label><input type="text" id="rs-reason" style="width:100%" ${final ? 'disabled' : ''} placeholder="e.g. income field missing">
+          <div class="btns"><button id="btn-resubmit" ${final ? 'disabled' : ''}>🔗 ${t('딜러 재제출 요청', 'Request resubmission')}</button><button id="btn-reassess" ${!r ? 'disabled' : ''}>↻ ${t('리스크 재평가', 'Re-assess risk')}</button></div>
+          <label>${t('심사 메모', 'Review note')} <span class="sub">${t('내부 메모, 이력에만 기록', 'internal, timeline only')}</span></label><input type="text" id="note-text" style="width:100%">
+          <div class="btns"><button id="btn-note">✎ ${t('메모 추가', 'Add note')}</button></div></div>
       </div></div>`;
 
     // documents
-    h += `<div class="card" style="margin-top:16px"><h2>서류 <small>Documents · ${live.length} current${old.length ? ', ' + old.length + ' superseded' : ''}</small></h2>`;
-    h += live.length ? `<div class="docs">${live.map(docCard).join('')}</div>` : '<p class="empty">아직 접수된 서류가 없습니다.</p>';
-    if (old.length) h += `<details style="margin-top:10px"><summary>이전 제출본 ${old.length}건 보기 · superseded uploads</summary><div class="docs" style="margin-top:10px">${old.map(docCard).join('')}</div></details>`;
+    h += `<div class="card" style="margin-top:16px"><h2>${t('서류', 'Documents')} <small>${t(`현재 ${live.length}건${old.length ? ', 이전 제출본 ' + old.length + '건' : ''}`, `${live.length} current${old.length ? ', ' + old.length + ' superseded' : ''}`)}</small></h2>`;
+    h += live.length ? `<div class="docs">${live.map(docCard).join('')}</div>` : `<p class="empty">${t('아직 접수된 서류가 없습니다.', 'No documents received yet.')}</p>`;
+    if (old.length) h += `<details style="margin-top:10px"><summary>${t(`이전 제출본 ${old.length}건 보기`, `Show ${old.length} superseded upload(s)`)}</summary><div class="docs" style="margin-top:10px">${old.map(docCard).join('')}</div></details>`;
     h += `</div>`;
 
     // extracted + providers
     h += `<div class="grid2" style="margin-top:16px">
-      <div class="card"><h2>추출 데이터 <small>Extracted from the ID document</small></h2>${a.extracted ? `<dl class="kv"><dt>이름</dt><dd>${esc(a.extracted.name || '–')}</dd><dt>NIK</dt><dd>${esc(a.extracted.nik || '–')}</dd><dt>생년월일</dt><dd>${esc(a.extracted.dob || '–')}</dd><dt>주소</dt><dd>${esc(a.extracted.address || '–')}</dd></dl>` : '<p class="empty">아직 추출된 데이터가 없습니다 (서류 미접수 또는 판독 신뢰도 부족).</p>'}</div>
-      <div class="card"><h2>신원·신용 조회 <small>Provider results</small></h2>${a.idVerification || a.creditCheck ? `<dl class="kv">
-        <dt>신원 조회</dt><dd>${outcome(a.idVerification)}</dd>
-        <dt>신용 조회</dt><dd>${outcome(a.creditCheck)}${a.creditCheck?.score != null ? ` · 점수 <b>${a.creditCheck.score}</b>` : ''}</dd>
-        <dt>조회 시각</dt><dd>${fmtTime(a.verifiedAt)}</dd></dl>` : `<p class="empty">${a.review?.officerReviewRequired ? 'NIK를 확신 있게 읽지 못해 조회를 건너뛰었습니다. 담당자가 확인 후 재평가하세요.' : '아직 조회가 실행되지 않았습니다.'}</p>`}</div>
+      <div class="card"><h2>${t('추출 데이터', 'Extracted data')} <small>${t('신분증에서 읽은 값', 'from the ID document')}</small></h2>${a.extracted ? extractedList(a.extracted) : `<p class="empty">${t('아직 추출된 데이터가 없습니다 (서류 미접수 또는 판독 신뢰도 부족).', 'No extracted data yet (no documents, or the reading was not confident enough).')}</p>`}</div>
+      <div class="card"><h2>${t('신원·신용 조회', 'Identity & credit checks')} <small>${t('기관 조회 결과', 'provider results')}</small></h2>${a.idVerification || a.creditCheck ? lookupList(a) : `<p class="empty">${a.review?.officerReviewRequired ? t('NIK를 확신 있게 읽지 못해 조회를 건너뛰었습니다. 담당자가 확인 후 재평가하세요.', 'The NIK could not be read confidently, so the lookups were skipped. Verify it and re-assess.') : t('아직 조회가 실행되지 않았습니다.', 'Lookups have not run yet.')}</p>`}</div>
     </div>`;
 
     // risk flags
-    h += `<div class="card" style="margin-top:16px"><h2>Risk Flag · 근거 <small>Risk flags with evidence (⚠ = fraud / forgery signal)</small></h2>`;
-    if (!r) h += '<p class="empty">리스크 평가 전입니다.</p>';
-    else if (!r.flags.length) h += '<p class="notice ok">경고 없음 · No warnings</p>';
-    else h += r.flags.map(f => `<div class="flag"><span class="sev" style="color:${SEV[f.severity].color}" title="${esc(f.severity)}">${SEV[f.severity].icon}</span><div><div class="t">${f.fraud ? '<span class="bad">⚠</span> ' : ''}${esc(f.titleKo)} <span class="sub">${esc(f.title)} · ${esc(f.sourceKo)} · 심각도 ${esc(f.severityKo)}</span></div><div class="d">${esc(f.detail)}</div></div></div>`).join('');
-    h += `<details style="margin-top:8px"><summary>등급 산정 기준</summary><p class="sub" style="margin:6px 0 0">점수 = 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A 0-14 · B 15-39 · C 40-69 · D 70+. 심각도 '높음'의 위조 신호가 하나라도 있으면 최소 C. 등급은 코드의 규칙이 계산하며 모델이 직접 정하지 않습니다.</p></details></div>`;
+    h += `<div class="card" style="margin-top:16px"><h2>Risk Flag · ${t('근거', 'evidence')} <small>${t('⚠ = 위조·사기 신호', '⚠ = fraud / forgery signal')}</small></h2>`;
+    if (!r) h += `<p class="empty">${t('리스크 평가 전입니다.', 'Not assessed yet.')}</p>`;
+    else if (!r.flags.length) h += `<p class="notice ok">${t('경고 없음', 'No warnings')}</p>`;
+    else h += r.flags.map(flagRow).join('');
+    h += `<details style="margin-top:8px"><summary>${t('등급 산정 기준', 'How the grade is computed')}</summary><p class="sub" style="margin:6px 0 0">${t("점수 = 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A 0-14 · B 15-39 · C 40-69 · D 70+. 심각도 '높음'의 위조 신호가 하나라도 있으면 최소 C. 등급은 코드의 규칙이 계산하며 모델이 직접 정하지 않습니다.", 'Score = sum of flag severities (LOW 10 · MEDIUM 20 · HIGH 35, capped at 100). A 0-14 · B 15-39 · C 40-69 · D 70+. Any HIGH fraud signal floors the grade at C. The grade is computed by code rules, not by the model.')}</p></details></div>`;
 
     // review summary
-    if (a.review) h += `<div class="card" style="margin-top:16px"><h2>자동 리뷰 요약 <small>Review agent summary · ${esc(a.review.decision || '')} · rounds ${a.review.rounds}${a.review.reviewedAt ? ' · ' + fmtTime(a.review.reviewedAt) : ''}</small></h2>${a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : '<p class="empty">요약이 아직 없습니다.</p>'}</div>`;
+    if (a.review) h += `<div class="card" style="margin-top:16px"><h2>${t('자동 리뷰 요약', 'Review agent summary')} <small>${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}${a.review.reviewedAt ? ' · ' + fmtTime(a.review.reviewedAt) : ''}</small></h2>${a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : `<p class="empty">${t('요약이 아직 없습니다.', 'No summary yet.')}</p>`}</div>`;
 
     // timeline
-    h += `<div class="card" style="margin-top:16px"><h2>심사 이력 <small>Timeline</small></h2>${(a.events || []).length ? `<ul class="timeline">${a.events.map(e => `<li><time>${fmtTime(e.createdAt)}</time><div><b>${esc(e.labelKo)}</b> <span class="sub">${esc(e.label)}${e.actor ? ' · ' + esc(e.actor) : ''}</span>${e.detail ? '<br>' + esc(e.detail) : ''}</div></li>`).join('')}</ul>` : '<p class="empty">아직 이력이 없습니다.</p>'}</div>`;
+    h += `<div class="card" style="margin-top:16px"><h2>${t('심사 이력', 'Timeline')}</h2>${(a.events || []).length ? `<ul class="timeline">${a.events.map(eventRow).join('')}</ul>` : `<p class="empty">${t('아직 이력이 없습니다.', 'No history yet.')}</p>`}</div>`;
 
     detail.innerHTML = h;
     bindTips(detail);
@@ -681,29 +695,37 @@
     if (liveTrace) startTracePolling(a.applicationNumber); else stopTracePolling();
   }
 
+  const extractedList = x => `<dl class="kv"><dt>${t('이름', 'Name')}</dt><dd>${esc(x.name || '–')}</dd><dt>NIK</dt><dd>${esc(x.nik || '–')}</dd><dt>${t('생년월일', 'Date of birth')}</dt><dd>${esc(x.dob || '–')}</dd><dt>${t('주소', 'Address')}</dt><dd>${esc(x.address || '–')}</dd></dl>`;
+  const lookupList = a => `<dl class="kv">
+        <dt>${t('신원 조회', 'Identity')}</dt><dd>${outcome(a.idVerification)}</dd>
+        <dt>${t('신용 조회', 'Credit')}</dt><dd>${outcome(a.creditCheck)}${a.creditCheck?.score != null ? ` · ${t('점수', 'score')} <b>${a.creditCheck.score}</b>` : ''}</dd>
+        <dt>${t('조회 시각', 'Checked at')}</dt><dd>${fmtTime(a.verifiedAt)}</dd></dl>`;
+  const flagRow = f => `<div class="flag"><span class="sev" style="color:${SEV[f.severity].color}" title="${esc(f.severity)}">${SEV[f.severity].icon}</span><div><div class="t">${f.fraud ? '<span class="bad">⚠</span> ' : ''}${esc(L(f, 'title'))} <span class="sub">${esc(LANG.lang === 'en' ? f.source.toLowerCase().replace(/_/g, ' ') : f.sourceKo)} · ${t('심각도', 'severity')} ${esc(t(f.severityKo, SEV[f.severity]?.en || f.severity))}</span></div><div class="d">${esc(f.detail)}</div></div></div>`;
+  const eventRow = e => `<li><time>${fmtTime(e.createdAt)}</time><div><b>${esc(L(e))}</b>${e.actor ? ` <span class="sub">${esc(e.actor)}</span>` : ''}${e.detail ? '<br>' + esc(e.detail) : ''}</div></li>`;
+
   function outcome(o) {
     if (!o) return '–';
     const cls = o.status === 'MATCH' ? 'ok' : (o.status === 'MISMATCH' ? 'bad' : 'mid');
-    return `<span class="${cls}">${esc(OUTCOME_KO[o.status] || o.status)}</span> <span class="sub">${esc(o.label || '')}</span><br><span class="sub">${esc(o.detail || '')}</span>`;
+    return `<span class="${cls}">${esc(pair(OUTCOME, o.status))}</span><br><span class="sub">${esc(o.detail || '')}</span>`;
   }
 
   function docCard(d) {
     let an = null; try { an = d.analysis ? JSON.parse(d.analysis) : null; } catch {}
-    const check = d.checkPassed == null ? '<span class="mid">검사 중</span>' : d.checkPassed ? '<span class="ok">검사 통과</span>' : `<span class="bad">검사 실패</span> <span class="sub">${esc(d.checkReason || '')}</span>`;
+    const check = d.checkPassed == null ? `<span class="mid">${t('검사 중', 'checking')}</span>` : d.checkPassed ? `<span class="ok">${t('검사 통과', 'check passed')}</span>` : `<span class="bad">${t('검사 실패', 'check failed')}</span> <span class="sub">${esc(d.checkReason || '')}</span>`;
     let h = `<div class="doc ${d.superseded ? 'superseded' : ''}" data-id="${d.id}">
-      <div class="img" data-url="${esc(d.fileUrl)}" data-available="${d.fileAvailable}">${d.fileAvailable ? '이미지 불러오는 중…' : '파일이 디스크에 없습니다'}</div>
-      <div style="margin-top:8px"><b>${esc(DOC_KO[d.type] || d.typeLabel)}</b> ${d.superseded ? '<span class="chip">이전 제출본</span>' : ''} ${d.needsOfficerReview ? '<span class="chip warn">담당자 검토</span>' : ''}</div>
-      <div class="meta">${check}<br>${fmtTime(d.createdAt)}${d.caption ? ' · 캡션: ' + esc(d.caption) : ''}${d.detectedType ? '<br>감지: ' + esc(d.detectedType) : ''}</div>`;
+      <div class="img" data-url="${esc(d.fileUrl)}" data-available="${d.fileAvailable}">${d.fileAvailable ? t('이미지 불러오는 중…', 'Loading image…') : t('파일이 디스크에 없습니다', 'File missing on disk')}</div>
+      <div style="margin-top:8px"><b>${esc(DOC[d.type] ? pair(DOC, d.type) : d.typeLabel)}</b> ${d.superseded ? `<span class="chip">${t('이전 제출본', 'superseded')}</span>` : ''} ${d.needsOfficerReview ? `<span class="chip warn">${t('담당자 검토', 'officer review')}</span>` : ''}</div>
+      <div class="meta">${check}<br>${fmtTime(d.createdAt)}${d.caption ? ' · ' + t('캡션', 'caption') + ': ' + esc(d.caption) : ''}${d.detectedType ? '<br>' + t('감지', 'detected') + ': ' + esc(d.detectedType) : ''}</div>`;
     if (an) {
       const issues = (an.qualityIssues || []).map(q => `<span class="chip ${q.severity === 'HIGH' ? 'fraud' : q.severity === 'MEDIUM' ? 'warn' : ''}" data-tip="${esc(q.detail)}">${esc(q.type)} · ${esc(q.severity)}</span>`).join('');
-      const tamper = (an.tamperSignals || []).map(q => `<span class="chip fraud" data-tip="${esc(q.detail)}">⚠ ${esc(TAMPER_KO[q.type] || q.type)} · ${esc(q.severity)}</span>`).join('');
+      const tamper = (an.tamperSignals || []).map(q => `<span class="chip fraud" data-tip="${esc(q.detail)}">⚠ ${esc(pair(TAMPER, q.type))} · ${esc(q.severity)}</span>`).join('');
       const fields = (an.fields || []).filter(f => f.value != null || f.status !== 'NOT_VISIBLE');
-      h += `<details style="margin-top:6px"><summary>분석 상세 · ${esc(an.documentType)} ${pct(an.documentTypeConfidence)}${an.needsOfficerReview ? ' · 담당자 검토' : ''}</summary>
-        <div style="margin-top:6px">${issues || '<span class="sub">품질 문제 없음</span>'}</div>
-        ${tamper ? `<div style="margin-top:6px"><b class="bad">위조 의심 요소 · forgery evidence</b><br>${tamper}</div>` : (an.requestedType === 'KTP' && an.model && !String(an.model).startsWith('stub') ? '<div class="sub" style="margin-top:4px">위조 흔적 없음 · no forgery evidence seen</div>' : '')}
-        ${fields.length ? `<table style="margin-top:6px"><thead><tr><th>필드</th><th>값</th><th class="num">신뢰도</th></tr></thead><tbody>${fields.map(f => `<tr><td>${esc(f.name.replace(/_/g, ' '))}</td><td>${esc(f.value ?? '–')}${f.status === 'NEEDS_OFFICER_REVIEW' ? ' <span class="chip warn">검토</span>' : ''}${f.note ? `<br><span class="sub">${esc(f.note)}</span>` : ''}</td><td class="num">${pct(f.confidence)}</td></tr>`).join('')}</tbody></table>` : ''}
-        ${an.nik ? `<div style="margin-top:6px"><b>NIK 검증: </b>${an.nik.issues && an.nik.issues.length ? `<span class="bad">실패</span><ul style="margin:4px 0 0 16px;padding:0">${an.nik.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '<span class="ok">통과</span>'} <span class="sub">${esc(an.nik.provinceName || '')} ${an.nik.dobFromNik ? '· 생년월일 ' + esc(an.nik.dobFromNik) : ''} ${an.nik.genderFromNik ? '· ' + esc(an.nik.genderFromNik) : ''}</span></div>` : ''}
-        ${(an.reviewReasons || []).length ? `<div style="margin-top:6px"><b>검토 사유:</b><ul style="margin:4px 0 0 16px;padding:0">${an.reviewReasons.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      h += `<details style="margin-top:6px"><summary>${t('분석 상세', 'Analysis details')} · ${esc(an.documentType)} ${pct(an.documentTypeConfidence)}${an.needsOfficerReview ? ' · ' + t('담당자 검토', 'officer review') : ''}</summary>
+        <div style="margin-top:6px">${issues || `<span class="sub">${t('품질 문제 없음', 'No quality issues')}</span>`}</div>
+        ${tamper ? `<div style="margin-top:6px"><b class="bad">${t('위조 의심 요소', 'Forgery evidence')}</b><br>${tamper}</div>` : (an.requestedType === 'KTP' && an.model && !String(an.model).startsWith('stub') ? `<div class="sub" style="margin-top:4px">${t('위조 흔적 없음', 'No forgery evidence seen')}</div>` : '')}
+        ${fields.length ? `<table style="margin-top:6px"><thead><tr><th>${t('필드', 'Field')}</th><th>${t('값', 'Value')}</th><th class="num">${t('신뢰도', 'Confidence')}</th></tr></thead><tbody>${fields.map(f => `<tr><td>${esc(f.name.replace(/_/g, ' '))}</td><td>${esc(f.value ?? '–')}${f.status === 'NEEDS_OFFICER_REVIEW' ? ` <span class="chip warn">${t('검토', 'review')}</span>` : ''}${f.note ? `<br><span class="sub">${esc(f.note)}</span>` : ''}</td><td class="num">${pct(f.confidence)}</td></tr>`).join('')}</tbody></table>` : ''}
+        ${an.nik ? `<div style="margin-top:6px"><b>${t('NIK 검증', 'NIK validation')}: </b>${an.nik.issues && an.nik.issues.length ? `<span class="bad">${t('실패', 'failed')}</span><ul style="margin:4px 0 0 16px;padding:0">${an.nik.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : `<span class="ok">${t('통과', 'passed')}</span>`} <span class="sub">${esc(an.nik.provinceName || '')} ${an.nik.dobFromNik ? '· ' + t('생년월일', 'DOB') + ' ' + esc(an.nik.dobFromNik) : ''} ${an.nik.genderFromNik ? '· ' + esc(an.nik.genderFromNik) : ''}</span></div>` : ''}
+        ${(an.reviewReasons || []).length ? `<div style="margin-top:6px"><b>${t('검토 사유', 'Review reasons')}:</b><ul style="margin:4px 0 0 16px;padding:0">${an.reviewReasons.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
         ${an.modelNotes ? `<div class="sub" style="margin-top:6px">${esc(an.modelNotes)}</div>` : ''}
         <div class="sub" style="margin-top:4px">model: ${esc(an.model || '')}</div></details>`;
     }
@@ -725,7 +747,7 @@
         if (!detail.contains(el)) continue;
         el.innerHTML = `<img src="${blob}" alt="document">`;
         el.addEventListener('click', () => { $('#lightbox img').src = blob; lightbox.style.display = 'flex'; });
-      } catch (e) { el.textContent = '이미지를 불러오지 못했습니다 (' + e.message + ')'; }
+      } catch (e) { el.textContent = t('이미지를 불러오지 못했습니다', 'Could not load the image') + ' (' + e.message + ')'; }
     }
   }
   lightbox.addEventListener('click', () => { lightbox.style.display = 'none'; });
@@ -733,22 +755,26 @@
 
   /* ---------- customer report popup ---------- */
   const sheet = $('#report .sheet');
-  function closeReport() { report.style.display = 'none'; sheet.innerHTML = ''; }
+  let reportNumber = null;                      // application shown in the popup, so a language switch can redraw it
+  function closeReport() { report.style.display = 'none'; sheet.innerHTML = ''; reportNumber = null; }
   report.addEventListener('click', e => { if (e.target === report) closeReport(); });
+  const closeBtn = () => `<button type="button" class="rp-close">✕ ${t('닫기', 'Close')}</button>`;
 
   async function showReport(number) {
     report.style.display = 'flex';
-    sheet.innerHTML = `<div class="sheet-head"><h2 id="report-title">${esc(number)} <small class="sub">고객 리포트 · Customer report</small></h2><div class="sheet-tools"><button type="button" class="rp-close">✕ 닫기</button></div></div><p class="empty">리포트를 불러오는 중… <span class="sub">Loading…</span></p>`;
+    reportNumber = number;
+    sheet.innerHTML = `<div class="sheet-head"><h2 id="report-title">${esc(number)} <small class="sub">${t('고객 리포트', 'Customer report')}</small></h2><div class="sheet-tools">${closeBtn()}</div></div><p class="empty">${t('리포트를 불러오는 중…', 'Loading the report…')}</p>`;
     sheet.querySelector('.rp-close').addEventListener('click', closeReport);
     try {
       const a = current && current.applicationNumber === number ? current : await api('/admin/applications/' + encodeURIComponent(number));
+      if (reportNumber !== number) return;
       sheet.innerHTML = reportHtml(a);
       sheet.querySelectorAll('.rp-close').forEach(b => b.addEventListener('click', closeReport));
       sheet.querySelector('.rp-print').addEventListener('click', () => window.print());
       sheet.querySelector('.rp-open').addEventListener('click', () => { closeReport(); showTab('work'); open(number); });
       bindTips(sheet);
     } catch (e) {
-      sheet.innerHTML = `<div class="sheet-head"><h2 id="report-title">${esc(number)}</h2><div class="sheet-tools"><button type="button" class="rp-close">✕ 닫기</button></div></div><p class="notice crit">리포트를 불러오지 못했습니다: ${esc(e.message)} <span class="sub">Could not load the report.</span></p>`;
+      sheet.innerHTML = `<div class="sheet-head"><h2 id="report-title">${esc(number)}</h2><div class="sheet-tools">${closeBtn()}</div></div><p class="notice crit">${t('리포트를 불러오지 못했습니다', 'Could not load the report')}: ${esc(e.message)}</p>`;
       sheet.querySelector('.rp-close').addEventListener('click', closeReport);
     }
   }
@@ -758,60 +784,61 @@
     const r = a.risk, final = a.status === 'APPROVED' || a.status === 'REJECTED';
     const docs = (a.documents || []).filter(d => !d.superseded), superseded = (a.documents || []).filter(d => d.superseded).length;
     const g = GRADE[r?.grade] || { color: 'var(--text-3)' };
-    const sec = (ko, en, body) => `<div class="sec"><h3>${ko} <small>${en}</small></h3>${body}</div>`;
-    const none = (ko, en) => `<p class="empty" style="padding:4px 0">${ko} <span class="sub">${en}</span></p>`;
+    const sec = (title, sub, body) => `<div class="sec"><h3>${title}${sub ? ` <small>${sub}</small>` : ''}</h3>${body}</div>`;
+    const none = text => `<p class="empty" style="padding:4px 0">${text}</p>`;
     const docRow = d => {
       let an = null; try { an = d.analysis ? JSON.parse(d.analysis) : null; } catch {}
       const tamper = (an?.tamperSignals || []).length, issues = (an?.qualityIssues || []).length;
-      const check = d.checkPassed == null ? '<span class="mid">검사 중</span>' : d.checkPassed ? '<span class="ok">통과</span>' : `<span class="bad">실패</span>${d.checkReason ? ` <span class="sub">${esc(d.checkReason)}</span>` : ''}`;
-      return `<tr><td><b>${esc(DOC_KO[d.type] || d.typeLabel)}</b>${d.needsOfficerReview ? ' <span class="chip warn">담당자 검토</span>' : ''}</td><td>${check}</td><td>${an ? `${esc(an.documentType || '')} ${pct(an.documentTypeConfidence)}` : '<span class="sub">–</span>'}</td><td>${tamper ? `<span class="bad">⚠ 위조 의심 ${tamper}</span>` : issues ? `<span class="mid">품질 문제 ${issues}</span>` : '<span class="ok">없음</span>'}</td><td class="num"><span class="sub">${fmtTime(d.createdAt)}</span></td></tr>`;
+      const check = d.checkPassed == null ? `<span class="mid">${t('검사 중', 'checking')}</span>` : d.checkPassed ? `<span class="ok">${t('통과', 'passed')}</span>` : `<span class="bad">${t('실패', 'failed')}</span>${d.checkReason ? ` <span class="sub">${esc(d.checkReason)}</span>` : ''}`;
+      return `<tr><td><b>${esc(DOC[d.type] ? pair(DOC, d.type) : d.typeLabel)}</b>${d.needsOfficerReview ? ` <span class="chip warn">${t('담당자 검토', 'officer review')}</span>` : ''}</td><td>${check}</td><td>${an ? `${esc(an.documentType || '')} ${pct(an.documentTypeConfidence)}` : '<span class="sub">–</span>'}</td><td>${tamper ? `<span class="bad">⚠ ${t('위조 의심', 'forgery signals')} ${tamper}</span>` : issues ? `<span class="mid">${t('품질 문제', 'quality issues')} ${issues}</span>` : `<span class="ok">${t('없음', 'none')}</span>`}</td><td class="num"><span class="sub">${fmtTime(d.createdAt)}</span></td></tr>`;
     };
     const events = (a.events || []).slice(-10).reverse();
     return `<div class="sheet-head">
         <div><h2 id="report-title">${esc(a.applicationNumber)} ${pill(a.status)}</h2>
-          <div class="sub">고객 리포트 · Customer report · ${countryCell(a.country)} ${esc(COUNTRY_KO[a.country] || '')} · 딜러 ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''}</div></div>
-        <div class="sheet-tools no-print"><button type="button" class="rp-open">상세 열기</button><button type="button" class="rp-print">🖨 인쇄</button><button type="button" class="rp-close">✕ 닫기</button></div>
+          <div class="sub">${t('고객 리포트', 'Customer report')} · ${countryCell(a.country)} ${esc(countryName(a.country))} · ${t('딜러', 'dealer')} ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''}</div></div>
+        <div class="sheet-tools no-print"><button type="button" class="rp-open">${t('상세 열기', 'Open detail')}</button><button type="button" class="rp-print">🖨 ${t('인쇄', 'Print')}</button>${closeBtn()}</div>
       </div>
       <div class="grid2">
-        <div>${sec('고객', 'Customer', `<dl class="kv"><dt>이름</dt><dd><b>${esc(a.extracted?.name || a.customerName || '고객 미연결')}</b></dd><dt>전화</dt><dd>${a.customerPhone ? '+' + esc(a.customerPhone) : '<span class="sub">아직 없음</span>'}</dd><dt>국가</dt><dd>${esc(COUNTRY_KO[a.country] || a.country)}</dd><dt>딜러</dt><dd>${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}</dd><dt>생성</dt><dd>${fmtTime(a.createdAt)}</dd><dt>최근 변경</dt><dd>${fmtTime(a.updatedAt)}</dd>${a.progress ? `<dt>진행 단계</dt><dd>${esc(a.progress.currentKo || '')} <span class="sub">${esc(a.progress.current || '')}</span></dd>` : ''}</dl>`)}</div>
-        <div>${sec('AI 리스크 등급', 'Risk grade', r ? `<div class="gradebox" style="border-color:${g.color}"><span class="big" style="color:${g.color}">${esc(r.grade)}</span><div><div><b>${esc(r.gradeLabelKo)}</b> <span class="sub">${esc(r.gradeLabel)}</span></div><div class="sub">점수 ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ 위조·사기 경고 ${r.fraudWarnings}</span>` : '위조 신호 없음'}</div><div class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? 'Claude 비전 + 규칙' : '규칙 (스텁)')} · ${fmtTime(r.assessedAt)}</div></div></div>
-            <div style="margin-top:8px">${(r.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(b.labelKo)}</span>`).join('') || '<span class="sub">배지 없음</span>'}${a.review?.officerReviewRequired ? '<span class="chip warn">담당자 검토 필요</span>' : ''}</div>` : none('리스크 미평가 (서류 미완료)', 'Not assessed yet'))}</div>
+        <div>${sec(t('고객', 'Customer'), '', `<dl class="kv"><dt>${t('이름', 'Name')}</dt><dd><b>${esc(customerName(a))}</b></dd><dt>${t('전화', 'Phone')}</dt><dd>${a.customerPhone ? '+' + esc(a.customerPhone) : `<span class="sub">${t('아직 없음', 'not yet')}</span>`}</dd><dt>${t('국가', 'Country')}</dt><dd>${esc(countryName(a.country) || a.country)}</dd><dt>${t('딜러', 'Dealer')}</dt><dd>${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}</dd><dt>${t('생성', 'Created')}</dt><dd>${fmtTime(a.createdAt)}</dd><dt>${t('최근 변경', 'Updated')}</dt><dd>${fmtTime(a.updatedAt)}</dd>${a.progress ? `<dt>${t('진행 단계', 'Stage')}</dt><dd>${esc(curStage(a.progress))} <span class="sub">${a.progress.done}/${a.progress.total}</span></dd>` : ''}</dl>`)}</div>
+        <div>${sec(t('AI 리스크 등급', 'AI risk grade'), '', r ? `<div class="gradebox" style="border-color:${g.color}"><span class="big" style="color:${g.color}">${esc(r.grade)}</span><div><div><b>${esc(L(r, 'gradeLabel'))}</b></div><div class="sub">${t('점수', 'score')} ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ ${t('위조·사기 경고', 'fraud / forgery warnings')} ${r.fraudWarnings}</span>` : t('위조 신호 없음', 'no fraud signal')}</div><div class="sub">${esc(methodName(r.method))} · ${fmtTime(r.assessedAt)}</div></div></div>
+            <div style="margin-top:8px">${(r.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(L(b))}</span>`).join('') || `<span class="sub">${t('배지 없음', 'No badges')}</span>`}${a.review?.officerReviewRequired ? `<span class="chip warn">${t('담당자 검토 필요', 'Officer review required')}</span>` : ''}</div>` : none(t('리스크 미평가 (서류 미완료)', 'Not assessed yet (documents incomplete)')))}</div>
       </div>
-      ${sec('추출 데이터', 'Extracted from the ID document', a.extracted ? `<dl class="kv"><dt>이름</dt><dd>${esc(a.extracted.name || '–')}</dd><dt>NIK</dt><dd>${esc(a.extracted.nik || '–')}</dd><dt>생년월일</dt><dd>${esc(a.extracted.dob || '–')}</dd><dt>주소</dt><dd>${esc(a.extracted.address || '–')}</dd></dl>` : none('아직 추출된 데이터가 없습니다.', 'No extracted data yet.'))}
-      ${sec('신원·신용 조회', 'Identity & credit checks', a.idVerification || a.creditCheck ? `<dl class="kv"><dt>신원 조회</dt><dd>${outcome(a.idVerification)}</dd><dt>신용 조회</dt><dd>${outcome(a.creditCheck)}${a.creditCheck?.score != null ? ` · 점수 <b>${a.creditCheck.score}</b>` : ''}</dd><dt>조회 시각</dt><dd>${fmtTime(a.verifiedAt)}</dd></dl>` : none('아직 조회가 실행되지 않았습니다.', 'Not run yet.'))}
-      ${sec('서류', `Documents · ${docs.length} current${superseded ? ', ' + superseded + ' superseded' : ''}`, docs.length ? `<div class="scroll"><table><thead><tr><th>서류</th><th>검사</th><th>감지 유형</th><th>위조·품질</th><th class="num">접수</th></tr></thead><tbody>${docs.map(docRow).join('')}</tbody></table></div>` : none('아직 접수된 서류가 없습니다.', 'No documents yet.'))}
-      ${sec('Risk Flag · 근거', 'Risk flags with evidence', !r ? none('리스크 평가 전입니다.', 'Not assessed yet.') : !r.flags.length ? '<p class="notice ok" style="margin:0">경고 없음 · No warnings</p>' : r.flags.map(f => `<div class="flag"><span class="sev" style="color:${SEV[f.severity].color}">${SEV[f.severity].icon}</span><div><div class="t">${f.fraud ? '<span class="bad">⚠</span> ' : ''}${esc(f.titleKo)} <span class="sub">${esc(f.title)} · ${esc(f.sourceKo)} · 심각도 ${esc(f.severityKo)}</span></div><div class="d">${esc(f.detail)}</div></div></div>`).join(''))}
-      ${a.review ? sec('자동 리뷰 요약', `Review agent summary · ${esc(a.review.decision || '')} · rounds ${a.review.rounds}`, a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : none('요약이 아직 없습니다.', 'No summary yet.')) : ''}
-      ${sec('심사 결정', 'Decision', final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin:0"><b>${esc(STATUS_KO[a.status])}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : `<p class="empty" style="padding:4px 0">아직 결정되지 않았습니다 · 현재 상태 ${esc(STATUS_KO[a.status] || a.status)}${a.resubmissionReason ? `<br><span class="sub">${esc(a.resubmissionReason)}</span>` : ''}</p>`)}
-      ${sec('최근 이력', `Recent history · last ${events.length} of ${(a.events || []).length}`, events.length ? `<ul class="timeline">${events.map(e => `<li><time>${fmtTime(e.createdAt)}</time><div><b>${esc(e.labelKo)}</b> <span class="sub">${esc(e.label)}${e.actor ? ' · ' + esc(e.actor) : ''}</span>${e.detail ? '<br>' + esc(e.detail) : ''}</div></li>`).join('')}</ul>` : none('아직 이력이 없습니다.', 'No history yet.'))}
-      <div class="foot"><span>NEXUS ASEAN · 심사 백오피스 리포트</span><span>생성 ${fmtTime(new Date().toISOString())}${reviewerInput.value.trim() ? ' · ' + esc(reviewerInput.value.trim()) : ''}</span></div>`;
+      ${sec(t('추출 데이터', 'Extracted data'), t('신분증에서 읽은 값', 'from the ID document'), a.extracted ? extractedList(a.extracted) : none(t('아직 추출된 데이터가 없습니다.', 'No extracted data yet.')))}
+      ${sec(t('신원·신용 조회', 'Identity & credit checks'), '', a.idVerification || a.creditCheck ? lookupList(a) : none(t('아직 조회가 실행되지 않았습니다.', 'Lookups have not run yet.')))}
+      ${sec(t('서류', 'Documents'), t(`현재 ${docs.length}건${superseded ? ', 이전 제출본 ' + superseded + '건' : ''}`, `${docs.length} current${superseded ? ', ' + superseded + ' superseded' : ''}`), docs.length ? `<div class="scroll"><table><thead><tr><th>${t('서류', 'Document')}</th><th>${t('검사', 'Check')}</th><th>${t('감지 유형', 'Detected type')}</th><th>${t('위조·품질', 'Forgery / quality')}</th><th class="num">${t('접수', 'Received')}</th></tr></thead><tbody>${docs.map(docRow).join('')}</tbody></table></div>` : none(t('아직 접수된 서류가 없습니다.', 'No documents yet.')))}
+      ${sec('Risk Flag · ' + t('근거', 'evidence'), '', !r ? none(t('리스크 평가 전입니다.', 'Not assessed yet.')) : !r.flags.length ? `<p class="notice ok" style="margin:0">${t('경고 없음', 'No warnings')}</p>` : r.flags.map(flagRow).join(''))}
+      ${a.review ? sec(t('자동 리뷰 요약', 'Review agent summary'), `${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}`, a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : none(t('요약이 아직 없습니다.', 'No summary yet.'))) : ''}
+      ${sec(t('심사 결정', 'Decision'), '', final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin:0"><b>${esc(statusName(a.status))}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : `<p class="empty" style="padding:4px 0">${t('아직 결정되지 않았습니다 · 현재 상태', 'Not decided yet · current status')} ${esc(statusName(a.status))}${a.resubmissionReason ? `<br><span class="sub">${esc(a.resubmissionReason)}</span>` : ''}</p>`)}
+      ${sec(t('최근 이력', 'Recent history'), t(`최근 ${events.length}건 / 전체 ${(a.events || []).length}건`, `last ${events.length} of ${(a.events || []).length}`), events.length ? `<ul class="timeline">${events.map(eventRow).join('')}</ul>` : none(t('아직 이력이 없습니다.', 'No history yet.')))}
+      <div class="foot"><span>NEXUS ASEAN · ${t('심사 백오피스 리포트', 'review back office report')}</span><span>${t('생성', 'generated')} ${fmtTime(new Date().toISOString())}${reviewerInput.value.trim() ? ' · ' + esc(reviewerInput.value.trim()) : ''}</span></div>`;
   }
 
   function bindActions(a, final) {
     const n = encodeURIComponent(a.applicationNumber), reviewer = () => reviewerInput.value.trim() || null;
     const after = (msg, res) => {
       const parts = [msg];
-      if (res && typeof res.dealerNotified === 'boolean') parts.push('딜러 알림 ' + (res.dealerNotified ? '✓' : '✗'));
-      if (res && res.customerNotified != null) parts.push('고객 알림 ' + (res.customerNotified ? '✓' : '✗'));
+      if (res && typeof res.dealerNotified === 'boolean') parts.push(t('딜러 알림 ', 'dealer notified ') + (res.dealerNotified ? '✓' : '✗'));
+      if (res && res.customerNotified != null) parts.push(t('고객 알림 ', 'customer notified ') + (res.customerNotified ? '✓' : '✗'));
       setStatus(parts.join(' · '));
       open(a.applicationNumber, true); loadQueue();
     };
-    const run = async (btn, fn) => { btn.disabled = true; setStatus('처리 중…'); try { await fn(); } catch (e) { setStatus('오류: ' + e.message, true); btn.disabled = false; } };
+    const run = async (btn, fn) => { btn.disabled = true; setStatus(t('처리 중…', 'Working…')); try { await fn(); } catch (e) { errStatus(e); btn.disabled = false; } };
+    const confirmDecision = verb => confirm(t(`${a.applicationNumber} 을(를) ${verb[0]}할까요? 딜러와 고객에게 WhatsApp 알림이 전송됩니다.`, `${verb[1]} ${a.applicationNumber}? The dealer and the customer will be notified on WhatsApp.`));
     if (!final) {
-      $('#btn-approve').addEventListener('click', e => { if (!confirm(a.applicationNumber + ' 을(를) 승인할까요? 딜러와 고객에게 WhatsApp 알림이 전송됩니다.')) return; run(e.target, async () => after('승인 완료', await api('/admin/applications/' + n + '/decision', { method: 'POST', body: JSON.stringify({ decision: 'APPROVED', note: $('#dec-note').value, reviewer: reviewer() }) }))); });
-      $('#btn-reject').addEventListener('click', e => { if (!confirm(a.applicationNumber + ' 을(를) 거절할까요? 딜러와 고객에게 WhatsApp 알림이 전송됩니다.')) return; run(e.target, async () => after('거절 완료', await api('/admin/applications/' + n + '/decision', { method: 'POST', body: JSON.stringify({ decision: 'REJECTED', note: $('#dec-note').value, reviewer: reviewer() }) }))); });
-      $('#btn-resubmit').addEventListener('click', e => { const reason = $('#rs-reason').value.trim(); if (!reason) { setStatus('재제출 이유를 입력하세요.', true); return; } run(e.target, async () => after('딜러에게 재제출 요청 전송', await api('/admin/applications/' + n + '/request-resubmission', { method: 'POST', body: JSON.stringify({ reason, reviewer: reviewer() }) }))); });
+      $('#btn-approve').addEventListener('click', e => { if (!confirmDecision(['승인', 'Approve'])) return; run(e.target, async () => after(t('승인 완료', 'Approved'), await api('/admin/applications/' + n + '/decision', { method: 'POST', body: JSON.stringify({ decision: 'APPROVED', note: $('#dec-note').value, reviewer: reviewer() }) }))); });
+      $('#btn-reject').addEventListener('click', e => { if (!confirmDecision(['거절', 'Reject'])) return; run(e.target, async () => after(t('거절 완료', 'Rejected'), await api('/admin/applications/' + n + '/decision', { method: 'POST', body: JSON.stringify({ decision: 'REJECTED', note: $('#dec-note').value, reviewer: reviewer() }) }))); });
+      $('#btn-resubmit').addEventListener('click', e => { const reason = $('#rs-reason').value.trim(); if (!reason) { setStatus(t('재제출 이유를 입력하세요.', 'Enter a reason for the resubmission.'), true); return; } run(e.target, async () => after(t('딜러에게 재제출 요청 전송', 'Resubmission request sent to the dealer'), await api('/admin/applications/' + n + '/request-resubmission', { method: 'POST', body: JSON.stringify({ reason, reviewer: reviewer() }) }))); });
       if (a.customerPhone) $('#btn-request-docs').addEventListener('click', e => {
         const items = [];
         if ($('#rq-ktp').checked) items.push({ type: 'KTP', reason: $('#rq-ktp-reason').value.trim() || 'please send a clearer photo of your KTP' });
         if ($('#rq-selfie').checked) items.push({ type: 'SELFIE_KTP', reason: $('#rq-selfie-reason').value.trim() || 'please send a clearer selfie holding your KTP' });
-        if (!items.length) { setStatus('재요청할 서류를 선택하세요.', true); return; }
-        run(e.target, async () => after('고객에게 서류 재요청 전송', await api('/admin/applications/' + n + '/request-documents', { method: 'POST', body: JSON.stringify({ items, note: $('#rq-note').value.trim() || null, reviewer: reviewer() }) })));
+        if (!items.length) { setStatus(t('재요청할 서류를 선택하세요.', 'Select the documents to request.'), true); return; }
+        run(e.target, async () => after(t('고객에게 서류 재요청 전송', 'Document request sent to the customer'), await api('/admin/applications/' + n + '/request-documents', { method: 'POST', body: JSON.stringify({ items, note: $('#rq-note').value.trim() || null, reviewer: reviewer() }) })));
       });
     }
-    $('#btn-reassess').addEventListener('click', e => run(e.target, async () => { await api('/admin/applications/' + n + '/assess-risk' + (reviewer() ? '?reviewer=' + encodeURIComponent(reviewer()) : ''), { method: 'POST' }); after('리스크 재평가 완료'); }));
+    $('#btn-reassess').addEventListener('click', e => run(e.target, async () => { await api('/admin/applications/' + n + '/assess-risk' + (reviewer() ? '?reviewer=' + encodeURIComponent(reviewer()) : ''), { method: 'POST' }); after(t('리스크 재평가 완료', 'Risk re-assessed')); }));
     $('#btn-report').addEventListener('click', () => showReport(a.applicationNumber));
-    $('#btn-note').addEventListener('click', e => { const note = $('#note-text').value.trim(); if (!note) { setStatus('메모를 입력하세요.', true); return; } run(e.target, async () => { await api('/admin/applications/' + n + '/note', { method: 'POST', body: JSON.stringify({ note, reviewer: reviewer() }) }); after('메모 추가 완료'); }); });
+    $('#btn-note').addEventListener('click', e => { const note = $('#note-text').value.trim(); if (!note) { setStatus(t('메모를 입력하세요.', 'Enter a note.'), true); return; } run(e.target, async () => { await api('/admin/applications/' + n + '/note', { method: 'POST', body: JSON.stringify({ note, reviewer: reviewer() }) }); after(t('메모 추가 완료', 'Note added')); }); });
   }
 
   /* ---------- new application (demo start without a dealer phone) ---------- */
@@ -834,35 +861,35 @@
   }
   $('#na-create').addEventListener('click', async e => {
     const phone = $('#na-phone').value.trim(), name = $('#na-name').value.trim();
-    if (!keyInput.value.trim()) { setStatus('관리자 키를 입력하세요.', true); return; }
-    if (phone && !/^\d{8,15}$/.test(phone)) { $('#na-status').textContent = '전화번호는 국가코드 포함 숫자만 (8-15자리)'; return; }
-    e.target.disabled = true; $('#na-status').textContent = '생성 중…';
+    if (!keyInput.value.trim()) { needKey(); return; }
+    if (phone && !/^\d{8,15}$/.test(phone)) { $('#na-status').textContent = t('전화번호는 국가코드 포함 숫자만 (8-15자리)', 'Phone: digits only with country code (8-15 digits)'); return; }
+    e.target.disabled = true; $('#na-status').textContent = t('생성 중…', 'Creating…');
     try {
       const r = await api('/admin/applications', { method: 'POST', body: JSON.stringify({ customerPhone: phone || null, customerName: name || null, dealerCode: $('#na-dealer').value || null, invite: $('#na-invite').checked, reviewer: reviewerInput.value.trim() || null }) });
       const n = r.application.applicationNumber;
-      const invite = !r.customerInvited ? '<span class="sub">고객 번호 없음 · 고객이 아래 링크(또는 QR)로 시작합니다</span>'
-        : r.inviteSent === true ? '<span class="ok">✓ WhatsApp 초대 요청됨</span> <span class="sub">고객은 아무 메시지나 보내면 시작됩니다 (예: START). 24시간 창 밖이면 Meta가 나중에 "전송 실패"를 보내며 심사 이력에 기록됩니다 — 그때는 고객이 먼저 "hi"를 보내면 됩니다</span>'
-        : r.inviteSent === false ? '<span class="bad">✗ WhatsApp 전송 실패</span> <span class="sub">고객이 먼저 이 번호로 메시지를 보내면(24시간 창) 자동으로 시작되고, QR을 스캔해도 됩니다</span>'
-        : '<span class="sub">초대 메시지는 보내지 않음 · 고객이 아무 메시지나 보내면 시작됩니다</span>';
+      const invite = !r.customerInvited ? `<span class="sub">${t('고객 번호 없음 · 고객이 아래 링크(또는 QR)로 시작합니다', 'No customer number · the customer starts from the link (or QR) below')}</span>`
+        : r.inviteSent === true ? `<span class="ok">✓ ${t('WhatsApp 초대 요청됨', 'WhatsApp invitation requested')}</span> <span class="sub">${t('고객은 아무 메시지나 보내면 시작됩니다 (예: START). 24시간 창 밖이면 Meta가 나중에 "전송 실패"를 보내며 심사 이력에 기록됩니다 — 그때는 고객이 먼저 "hi"를 보내면 됩니다', 'The customer starts by sending any message (e.g. START). Outside the 24-hour window Meta reports a delivery failure later, recorded in the timeline; then the customer just sends "hi" first.')}</span>`
+        : r.inviteSent === false ? `<span class="bad">✗ ${t('WhatsApp 전송 실패', 'WhatsApp delivery failed')}</span> <span class="sub">${t('고객이 먼저 이 번호로 메시지를 보내면(24시간 창) 자동으로 시작되고, QR을 스캔해도 됩니다', 'It starts automatically once the customer messages this number first (24-hour window), or scans the QR.')}</span>`
+        : `<span class="sub">${t('초대 메시지는 보내지 않음 · 고객이 아무 메시지나 보내면 시작됩니다', 'No invitation sent · the customer starts by sending any message')}</span>`;
       const link = r.startLink || '';
       $('#na-result').innerHTML = `<div class="result">
-        <div><b>${esc(n)}</b> 생성됨 · <a class="app" href="/review?app=${encodeURIComponent(n)}" data-open="${esc(n)}">상세 열기 →</a></div>
+        <div><b>${esc(n)}</b> ${t('생성됨', 'created')} · <a class="app" href="/review?app=${encodeURIComponent(n)}" data-open="${esc(n)}">${t('상세 열기 →', 'Open detail →')}</a></div>
         <div style="margin-top:4px">${invite}</div>
         <div class="qr">${link ? qrSvg(link) : ''}<div>
-          <div class="sub">고객 폰으로 스캔하면 WhatsApp이 열리고 <b>${esc(r.startText)}</b>가 입력되어 있습니다.</div>
-          ${link ? `<div class="link" style="margin-top:6px">${esc(link)}</div><div class="btns"><button id="na-copy">링크 복사</button></div>` : '<div class="sub" style="margin-top:6px">비즈니스 번호를 아직 모릅니다 (첫 웹훅 수신 후 또는 WHATSAPP_BUSINESS_PHONE 설정). 고객에게 "' + esc(r.startText) + '" 전송을 안내하세요.</div>'}
+          <div class="sub">${t('고객 폰으로 스캔하면 WhatsApp이 열리고', 'Scanned on the customer\'s phone, WhatsApp opens with')} <b>${esc(r.startText)}</b>${t('가 입력되어 있습니다.', ' pre-filled.')}</div>
+          ${link ? `<div class="link" style="margin-top:6px">${esc(link)}</div><div class="btns"><button id="na-copy">${t('링크 복사', 'Copy link')}</button></div>` : `<div class="sub" style="margin-top:6px">${t('비즈니스 번호를 아직 모릅니다 (첫 웹훅 수신 후 또는 WHATSAPP_BUSINESS_PHONE 설정). 고객에게', 'The business number is not known yet (after the first webhook, or set WHATSAPP_BUSINESS_PHONE). Ask the customer to send')} "${esc(r.startText)}"${t(' 전송을 안내하세요.', '.')}</div>`}
         </div></div></div>`;
       $('#na-status').textContent = '';
       $('#na-result').querySelector('[data-open]')?.addEventListener('click', ev => { ev.preventDefault(); open(n); });
-      $('#na-copy')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(link); $('#na-status').textContent = '복사됨'; } catch { $('#na-status').textContent = '복사 실패: 링크를 직접 선택하세요'; } });
+      $('#na-copy')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(link); $('#na-status').textContent = t('복사됨', 'Copied'); } catch { $('#na-status').textContent = t('복사 실패: 링크를 직접 선택하세요', 'Copy failed: select the link by hand'); } });
       loadQueue();
-    } catch (err) { $('#na-status').textContent = '오류: ' + err.message; }
+    } catch (err) { $('#na-status').textContent = t('오류: ', 'Error: ') + err.message; }
     finally { e.target.disabled = false; }
   });
 
   /* ---------- statistics tab ---------- */
   const statsPanel = $('#stats'), queuePanel = $('#queue');
-  let activeTab = 'work', statsLoadedAt = 0;
+  let activeTab = 'work', statsLoadedAt = 0, lastStats = null;
   try { activeTab = sessionStorage.getItem('reviewTab') || activeTab; } catch {}
   if (location.hash === '#stats') activeTab = 'stats';
 
@@ -880,15 +907,16 @@
   window.addEventListener('hashchange', () => showTab(location.hash === '#stats' ? 'stats' : 'work'));
 
   async function loadStats() {
-    if (!keyInput.value.trim()) { setStatus('관리자 키를 입력하세요.', true); return; }
+    if (!keyInput.value.trim()) { needKey(); return; }
     try {
       const d = await api('/admin/review/stats');
       statsLoadedAt = Date.now();
+      lastStats = d;
       renderStats(d);
-    } catch (e) { setStatus('오류: ' + e.message, true); }
+    } catch (e) { errStatus(e); }
   }
 
-  const hrs = h => h == null ? '–' : h < 1 ? Math.round(h * 60) + '분' : h < 48 ? h.toFixed(1) + 'h' : (h / 24).toFixed(1) + 'd';
+  const hrs = h => h == null ? '–' : h < 1 ? Math.round(h * 60) + t('분', 'm') : h < 48 ? h.toFixed(1) + 'h' : (h / 24).toFixed(1) + 'd';
   const rate = v => v == null ? '–' : Math.round(v * 100) + '%';
 
   /* Horizontal bars: rows = [{label, value, color, tip}]. */
@@ -918,79 +946,79 @@
     days.forEach((d, i) => {
       const x = left + i * iw + iw * 0.2, bw = iw * 0.6;
       const yA = y(d.approved), yR = y(d.approved + d.rejected);
-      if (d.approved) s += `<rect class="bar" x="${x}" y="${yA}" width="${bw}" height="${y(0) - yA}" fill="var(--good)" data-tip="${esc(d.date)} · 승인 ${d.approved}"/>`;
-      if (d.rejected) s += `<rect class="bar" x="${x}" y="${yR}" width="${bw}" height="${yA - yR}" fill="var(--critical)" data-tip="${esc(d.date)} · 거절 ${d.rejected}"/>`;
+      if (d.approved) s += `<rect class="bar" x="${x}" y="${yA}" width="${bw}" height="${y(0) - yA}" fill="var(--good)" data-tip="${esc(d.date)} · ${t('승인', 'approved')} ${d.approved}"/>`;
+      if (d.rejected) s += `<rect class="bar" x="${x}" y="${yR}" width="${bw}" height="${yA - yR}" fill="var(--critical)" data-tip="${esc(d.date)} · ${t('거절', 'rejected')} ${d.rejected}"/>`;
       if (i % 2 === 0 || days.length <= 8) s += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle">${esc(d.label)}</text>`;
     });
     const pts = days.map((d, i) => `${left + i * iw + iw / 2},${y(d.completed)}`);
     s += `<polyline class="line" points="${pts.join(' ')}"/>`;
-    days.forEach((d, i) => { s += `<circle class="pt" cx="${left + i * iw + iw / 2}" cy="${y(d.completed)}" r="2.5" data-tip="${esc(d.date)} · 심사 대기 진입 ${d.completed}"/>`; });
+    days.forEach((d, i) => { s += `<circle class="pt" cx="${left + i * iw + iw / 2}" cy="${y(d.completed)}" r="2.5" data-tip="${esc(d.date)} · ${t('심사 대기 진입', 'ready for review')} ${d.completed}"/>`; });
     return s + '</svg>';
   }
 
   function renderStats(d) {
-    const w = d.workload, t = d.throughput;
+    const w = d.workload, th = d.throughput;
     $('#n-stats').textContent = w.readyForReview; $('#n-stats').hidden = !w.readyForReview;
-    const tile = (ko, en, v, cls = '') => `<div class="tile ${cls}"><div class="k">${ko} <small>${esc(en)}</small></div><div class="v">${v}</div></div>`;
-    let h = `<div class="card"><h2>지금 내 책상 위 <small>Workload right now</small></h2><div class="tiles">
-      ${tile('심사 대기', 'Ready for review', w.readyForReview)}
-      ${tile('고위험 대기 (C·D)', 'High-risk waiting', w.highRiskWaiting, w.highRiskWaiting ? 'alert' : '')}
-      ${tile('위조·사기 경고 대기', 'Fraud warnings waiting', w.fraudWaiting, w.fraudWaiting ? 'alert' : '')}
-      ${tile('담당자 검토 필요', 'Flagged by the agent', w.officerReviewRequired)}
-      ${tile('고객 서류 재요청 중', 'Waiting on customer', w.documentsRequested)}
-      ${tile('딜러 재제출 대기', 'Waiting on dealer', w.resubmissionRequested)}
-      ${tile('최장 대기', 'Oldest waiting', hrs(w.oldestWaitingHours), w.oldestWaitingHours >= 72 ? 'alert' : '')}
-      ${tile('평균 대기', 'Average waiting', hrs(w.avgWaitingHours))}
+    const tile = (label, v, cls = '') => `<div class="tile ${cls}"><div class="k">${label}</div><div class="v">${v}</div></div>`;
+    let h = `<div class="card"><h2>${t('지금 내 책상 위', 'Workload right now')}</h2><div class="tiles">
+      ${tile(t('심사 대기', 'Ready for review'), w.readyForReview)}
+      ${tile(t('고위험 대기 (C·D)', 'High-risk waiting (C·D)'), w.highRiskWaiting, w.highRiskWaiting ? 'alert' : '')}
+      ${tile(t('위조·사기 경고 대기', 'Fraud warnings waiting'), w.fraudWaiting, w.fraudWaiting ? 'alert' : '')}
+      ${tile(t('담당자 검토 필요', 'Flagged by the agent'), w.officerReviewRequired)}
+      ${tile(t('고객 서류 재요청 중', 'Waiting on the customer'), w.documentsRequested)}
+      ${tile(t('딜러 재제출 대기', 'Waiting on the dealer'), w.resubmissionRequested)}
+      ${tile(t('최장 대기', 'Oldest waiting'), hrs(w.oldestWaitingHours), w.oldestWaitingHours >= 72 ? 'alert' : '')}
+      ${tile(t('평균 대기', 'Average waiting'), hrs(w.avgWaitingHours))}
     </div></div>`;
 
-    h += `<div class="card"><h2>처리 속도 <small>Throughput</small></h2><div class="tiles">
-      ${tile('오늘 결정', 'Decided today', t.decidedToday)}
-      ${tile('7일 결정', 'Decided, 7 days', `${t.decided7d} <span class="sub">✓${t.approved7d} ✕${t.rejected7d}</span>`)}
-      ${tile('30일 결정', 'Decided, 30 days', `${t.decided30d} <span class="sub">✓${t.approved30d} ✕${t.rejected30d}</span>`)}
-      ${tile('30일 승인율', 'Approval rate, 30 days', rate(t.approvalRate30d))}
-      ${tile('평균 결정 시간 (7일)', 'Avg time to decision, 7 d', hrs(t.avgDecisionHours7d))}
-      ${tile('평균 결정 시간 (30일)', 'Avg time to decision, 30 d', hrs(t.avgDecisionHours30d))}
-      ${tile('고객 서류 재요청 (7일 / 30일)', 'Officer doc re-requests', `${t.documentsRequested7d} <span class="sub">/ ${t.documentsRequested30d}</span>`)}
-      ${tile('2회 이상 심사 라운드', 'Decided after 2+ rounds', `${t.multiRoundDecided} <span class="sub">avg ${t.avgRoundsDecided == null ? '–' : t.avgRoundsDecided.toFixed(1)}</span>`)}
+    h += `<div class="card"><h2>${t('처리 속도', 'Throughput')}</h2><div class="tiles">
+      ${tile(t('오늘 결정', 'Decided today'), th.decidedToday)}
+      ${tile(t('7일 결정', 'Decided, 7 days'), `${th.decided7d} <span class="sub">✓${th.approved7d} ✕${th.rejected7d}</span>`)}
+      ${tile(t('30일 결정', 'Decided, 30 days'), `${th.decided30d} <span class="sub">✓${th.approved30d} ✕${th.rejected30d}</span>`)}
+      ${tile(t('30일 승인율', 'Approval rate, 30 days'), rate(th.approvalRate30d))}
+      ${tile(t('평균 결정 시간 (7일)', 'Avg time to decision, 7 d'), hrs(th.avgDecisionHours7d))}
+      ${tile(t('평균 결정 시간 (30일)', 'Avg time to decision, 30 d'), hrs(th.avgDecisionHours30d))}
+      ${tile(t('고객 서류 재요청 (7일 / 30일)', 'Doc re-requests (7 d / 30 d)'), `${th.documentsRequested7d} <span class="sub">/ ${th.documentsRequested30d}</span>`)}
+      ${tile(t('2회 이상 심사 라운드', 'Decided after 2+ rounds'), `${th.multiRoundDecided} <span class="sub">avg ${th.avgRoundsDecided == null ? '–' : th.avgRoundsDecided.toFixed(1)}</span>`)}
     </div></div>`;
 
     h += `<div class="srow">
-      <div class="card"><h2>대기 시간 분포 <small>Waiting time of the queue</small></h2>${hbars([
-        { label: '24시간 미만', value: w.waitingUnder24h, color: 'var(--good)', tip: `24시간 미만 · under 24 h: ${w.waitingUnder24h}` },
-        { label: '1-3일', value: w.waiting1to3d, color: 'var(--warn)', tip: `1-3일 · 1-3 days: ${w.waiting1to3d}` },
-        { label: '3일 초과', value: w.waitingOver3d, color: 'var(--critical)', tip: `3일 초과 · over 3 days: ${w.waitingOver3d}` },
+      <div class="card"><h2>${t('대기 시간 분포', 'Waiting time of the queue')}</h2>${hbars([
+        { label: t('24시간 미만', 'under 24 h'), value: w.waitingUnder24h, color: 'var(--good)' },
+        { label: t('1-3일', '1-3 days'), value: w.waiting1to3d, color: 'var(--warn)' },
+        { label: t('3일 초과', 'over 3 days'), value: w.waitingOver3d, color: 'var(--critical)' },
       ], { left: 90, aria: 'Waiting time buckets' })}
-      <p class="sub" style="margin:8px 0 0">3일을 넘긴 건부터 처리하세요. <span class="sub">Start with anything over three days.</span></p></div>
-      <div class="card"><h2>등급별 대기 <small>Queue by AI risk grade</small></h2>${hbars(w.queueByGrade.map(g => ({ label: g.grade === 'NONE' ? g.labelKo : `${g.grade} ${g.labelKo}`, value: g.waiting, color: GRADE[g.grade]?.color || 'var(--text-3)', tip: `${g.grade} · ${g.label}: ${g.waiting}` })), { left: 100, aria: 'Queue by grade' })}</div>
-      <div class="card"><h2>국가별 대기 <small>Queue by country</small></h2><div class="scroll"><table><thead><tr><th>국가</th><th class="num">대기</th><th class="num">고위험</th><th class="num">최장 대기</th></tr></thead><tbody>
-        ${w.queueByCountry.map(c => `<tr><td>${countryCell(c.code)} ${esc(c.nameKo)}</td><td class="num">${c.waiting}</td><td class="num">${c.highRisk ? `<span class="bad">${c.highRisk}</span>` : '0'}</td><td class="num">${hrs(c.oldestWaitingHours)}</td></tr>`).join('')}
+      <p class="sub" style="margin:8px 0 0">${t('3일을 넘긴 건부터 처리하세요.', 'Start with anything over three days.')}</p></div>
+      <div class="card"><h2>${t('등급별 대기', 'Queue by AI risk grade')}</h2>${hbars(w.queueByGrade.map(g => ({ label: g.grade === 'NONE' ? L(g) : `${g.grade} ${L(g)}`, value: g.waiting, color: GRADE[g.grade]?.color || 'var(--text-3)', tip: `${g.grade} · ${L(g)}: ${g.waiting}` })), { left: 100, aria: 'Queue by grade' })}</div>
+      <div class="card"><h2>${t('국가별 대기', 'Queue by country')}</h2><div class="scroll"><table><thead><tr><th>${t('국가', 'Country')}</th><th class="num">${t('대기', 'Waiting')}</th><th class="num">${t('고위험', 'High risk')}</th><th class="num">${t('최장 대기', 'Oldest')}</th></tr></thead><tbody>
+        ${w.queueByCountry.map(c => `<tr><td>${countryCell(c.code)} ${esc(L(c, 'name'))}</td><td class="num">${c.waiting}</td><td class="num">${c.highRisk ? `<span class="bad">${c.highRisk}</span>` : '0'}</td><td class="num">${hrs(c.oldestWaitingHours)}</td></tr>`).join('')}
       </tbody></table></div></div>
     </div>`;
 
     h += `<div class="srow">
-      <div class="card"><h2>일별 처리 추이 <small>Daily decisions (columns) vs new arrivals (line), last 14 days</small></h2>${dailyChart(d.daily)}
-        <div class="legend"><span><span class="sw" style="background:var(--good)"></span>승인 approved</span><span><span class="sw" style="background:var(--critical)"></span>거절 rejected</span><span><span class="sw" style="background:var(--text);height:2px;vertical-align:3px"></span>심사 대기 진입 ready for review</span></div>
-        <p class="sub" style="margin:8px 0 0">선이 기둥보다 계속 높으면 대기 건이 쌓이고 있는 것입니다. <span class="sub">If the line stays above the columns, the backlog is growing.</span></p></div>
-      <div class="card"><h2>심사자별 현황 <small>Per reviewer · from the audit trail</small></h2>${d.reviewers.length ? `<div class="scroll"><table><thead><tr><th>심사자</th><th class="num">승인</th><th class="num">거절</th><th class="num">서류 재요청</th><th class="num">딜러 재제출</th><th class="num">재평가</th><th class="num">메모</th><th class="num">7일 결정</th><th>최근 활동</th></tr></thead><tbody>
-        ${d.reviewers.map(r => `<tr><td><b>${esc(r.name)}</b></td><td class="num">${r.approved}</td><td class="num">${r.rejected}</td><td class="num">${r.documentsRequested}</td><td class="num">${r.resubmissionsRequested}</td><td class="num">${r.reassessments}</td><td class="num">${r.notes}</td><td class="num">${r.decisions7d}</td><td><span class="sub" title="${esc(fmtTime(r.lastActivityAt))}">${ago(r.lastActivityAt)} 전</span></td></tr>`).join('')}
-      </tbody></table></div>` : '<p class="empty">아직 심사자 이름으로 기록된 작업이 없습니다. 헤더에 심사자 이름을 입력하고 작업하면 여기에 집계됩니다. <span class="sub">No officer activity yet. Type a reviewer name in the header; actions are counted here.</span></p>'}</div>
+      <div class="card"><h2>${t('일별 처리 추이', 'Daily trend')} <small>${t('결정(기둥) vs 심사 대기 진입(선), 최근 14일', 'decisions (columns) vs new arrivals (line), last 14 days')}</small></h2>${dailyChart(d.daily)}
+        <div class="legend"><span><span class="sw" style="background:var(--good)"></span>${t('승인', 'approved')}</span><span><span class="sw" style="background:var(--critical)"></span>${t('거절', 'rejected')}</span><span><span class="sw" style="background:var(--text);height:2px;vertical-align:3px"></span>${t('심사 대기 진입', 'ready for review')}</span></div>
+        <p class="sub" style="margin:8px 0 0">${t('선이 기둥보다 계속 높으면 대기 건이 쌓이고 있는 것입니다.', 'If the line stays above the columns, the backlog is growing.')}</p></div>
+      <div class="card"><h2>${t('심사자별 현황', 'Per reviewer')} <small>${t('감사 이력 기준', 'from the audit trail')}</small></h2>${d.reviewers.length ? `<div class="scroll"><table><thead><tr><th>${t('심사자', 'Reviewer')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('거절', 'Rejected')}</th><th class="num">${t('서류 재요청', 'Doc requests')}</th><th class="num">${t('딜러 재제출', 'Resubmissions')}</th><th class="num">${t('재평가', 'Re-assessed')}</th><th class="num">${t('메모', 'Notes')}</th><th class="num">${t('7일 결정', 'Decided 7 d')}</th><th>${t('최근 활동', 'Last activity')}</th></tr></thead><tbody>
+        ${d.reviewers.map(r => `<tr><td><b>${esc(r.name)}</b></td><td class="num">${r.approved}</td><td class="num">${r.rejected}</td><td class="num">${r.documentsRequested}</td><td class="num">${r.resubmissionsRequested}</td><td class="num">${r.reassessments}</td><td class="num">${r.notes}</td><td class="num">${r.decisions7d}</td><td><span class="sub" title="${esc(fmtTime(r.lastActivityAt))}">${agoText(r.lastActivityAt)}</span></td></tr>`).join('')}
+      </tbody></table></div>` : `<p class="empty">${t('아직 심사자 이름으로 기록된 작업이 없습니다. 헤더에 심사자 이름을 입력하고 작업하면 여기에 집계됩니다.', 'No officer activity yet. Type a reviewer name in the header; actions are counted here.')}</p>`}</div>
     </div>`;
 
     const al = d.agentAlignment;
     h += `<div class="srow">
-      <div class="card"><h2>대기 중 Risk Flag <small>Flags on the applications waiting now</small></h2>${d.queueFlags.length ? hbars(d.queueFlags.slice(0, 10).map(f => ({ label: (f.fraud ? '⚠ ' : '') + f.titleKo, value: f.count, color: f.fraud ? 'var(--critical)' : 'var(--seq)', tip: `${f.titleKo} · ${f.title} (${f.severity}): ${f.count}` })), { left: 200, aria: 'Flags in the queue' }) : '<p class="empty">대기 중인 건에 Risk Flag가 없습니다. <span class="sub">No flags in the queue.</span></p>'}</div>
-      <div class="card"><h2>등급별 결정 결과 <small>How decisions went per AI grade</small></h2><div class="scroll"><table><thead><tr><th>등급</th><th class="num">결정</th><th class="num">승인</th><th class="num">거절</th><th class="num">승인율</th></tr></thead><tbody>
+      <div class="card"><h2>${t('대기 중 Risk Flag', 'Risk flags in the queue')} <small>${t('지금 대기 중인 건의 Flag', 'flags on the applications waiting now')}</small></h2>${d.queueFlags.length ? hbars(d.queueFlags.slice(0, 10).map(f => ({ label: (f.fraud ? '⚠ ' : '') + L(f, 'title'), value: f.count, color: f.fraud ? 'var(--critical)' : 'var(--seq)', tip: `${L(f, 'title')} (${f.severity}): ${f.count}` })), { left: 200, aria: 'Flags in the queue' }) : `<p class="empty">${t('대기 중인 건에 Risk Flag가 없습니다.', 'No flags in the queue.')}</p>`}</div>
+      <div class="card"><h2>${t('등급별 결정 결과', 'Decisions per AI grade')}</h2><div class="scroll"><table><thead><tr><th>${t('등급', 'Grade')}</th><th class="num">${t('결정', 'Decided')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('거절', 'Rejected')}</th><th class="num">${t('승인율', 'Approval rate')}</th></tr></thead><tbody>
         ${d.gradeOutcomes.map(g => `<tr><td>${gradeCell(g.grade)}</td><td class="num">${g.decided}</td><td class="num">${g.approved}</td><td class="num">${g.rejected}</td><td class="num">${rate(g.approvalRate)}</td></tr>`).join('')}
       </tbody></table></div>
-      <h3>AI 에이전트 판단 vs 심사 결과 <span class="sub">agent "officer review required" vs final decision</span></h3>
-      <div class="scroll"><table><thead><tr><th>에이전트 판단</th><th class="num">결정</th><th class="num">승인</th><th class="num">거절</th></tr></thead><tbody>
-        <tr><td>담당자 검토 필요 <span class="sub">flagged</span></td><td class="num">${al.flaggedDecided}</td><td class="num">${al.flaggedApproved}</td><td class="num">${al.flaggedRejected}</td></tr>
-        <tr><td>플래그 없음 <span class="sub">not flagged</span></td><td class="num">${al.notFlaggedDecided}</td><td class="num">${al.notFlaggedApproved}</td><td class="num">${al.notFlaggedRejected}</td></tr>
+      <h3>${t('AI 에이전트 판단 vs 심사 결과', 'Agent flag vs final decision')} <span class="sub">${t('"담당자 검토 필요" 표시와 최종 결정', '"officer review required" against the outcome')}</span></h3>
+      <div class="scroll"><table><thead><tr><th>${t('에이전트 판단', 'Agent')}</th><th class="num">${t('결정', 'Decided')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('거절', 'Rejected')}</th></tr></thead><tbody>
+        <tr><td>${t('담당자 검토 필요', 'Flagged')}</td><td class="num">${al.flaggedDecided}</td><td class="num">${al.flaggedApproved}</td><td class="num">${al.flaggedRejected}</td></tr>
+        <tr><td>${t('플래그 없음', 'Not flagged')}</td><td class="num">${al.notFlaggedDecided}</td><td class="num">${al.notFlaggedApproved}</td><td class="num">${al.notFlaggedRejected}</td></tr>
       </tbody></table></div>
-      <p class="sub" style="margin:8px 0 0">플래그된 건의 거절 비율이 높을수록 에이전트 판단이 심사 결과와 잘 맞는 것입니다. 스텁 모드에서는 플래그가 기록되지 않습니다. <span class="sub">A high rejection share among flagged cases means the agent's flags are useful. Stub mode records no flags.</span></p></div>
+      <p class="sub" style="margin:8px 0 0">${t('플래그된 건의 거절 비율이 높을수록 에이전트 판단이 심사 결과와 잘 맞는 것입니다. 스텁 모드에서는 플래그가 기록되지 않습니다.', "A high rejection share among flagged cases means the agent's flags are useful. Stub mode records no flags.")}</p></div>
     </div>`;
 
-    h += `<p class="status">생성 시각 ${fmtTime(d.generatedAt)}${d.demoApplications ? ` · 데모 데이터 ${d.demoApplications}건 포함 (demo seed)` : ''} · 60초마다 갱신</p>`;
+    h += `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${d.demoApplications ? ` · ${t(`데모 데이터 ${d.demoApplications}건 포함`, `includes ${d.demoApplications} demo applications`)}` : ''} · ${t('60초마다 갱신', 'refreshes every 60s')}</p>`;
     statsPanel.innerHTML = h;
     bindTips(statsPanel);
   }
@@ -1000,7 +1028,14 @@
   $('#newapp').addEventListener('toggle', () => { if ($('#newapp').open && keyInput.value.trim()) loadDealers(); });
   keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') { loadQueue(); if (activeTab === 'stats') loadStats(); } });
   ['#f-scope', '#f-country', '#f-grade'].forEach(s => $(s).addEventListener('change', loadQueue));
-  let t; $('#f-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadQueue, 300); });
+  let tq; $('#f-q').addEventListener('input', () => { clearTimeout(tq); tq = setTimeout(loadQueue, 300); });
+  // Language switch: redraw everything that was rendered from data; the static markup is swapped by lang.js itself.
+  LANG.onChange(() => {
+    if (queueLoaded) renderQueue();
+    if (current) renderDetail(current);
+    if (lastStats) renderStats(lastStats);
+    if (reportNumber) showReport(reportNumber);
+  });
   const wanted = new URLSearchParams(location.search).get('app');
   if (wanted) activeTab = 'work';
   showTab(activeTab);
