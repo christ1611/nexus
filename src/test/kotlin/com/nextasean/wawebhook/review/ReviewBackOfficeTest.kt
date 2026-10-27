@@ -59,6 +59,7 @@ class ReviewBackOfficeTest @Autowired constructor(
     private val documents: DocumentRepository,
     private val events: ReviewEventRepository,
     private val trace: com.nextasean.wawebhook.trace.AgentTraceService,
+    private val copilot: ReviewCopilotService,
     private val mockMvc: MockMvc,
 ) {
     private fun id() = "wamid." + UUID.randomUUID()
@@ -224,6 +225,41 @@ class ReviewBackOfficeTest @Autowired constructor(
             jsonPath("$.steps[-1].kind") { value("OFFICER_DECISION") }
             jsonPath("$.steps[-1].actor") { value("officer:Officer Kim") }
         }
+    }
+
+    @Test
+    fun `the copilot explains the stored score from the case file without an API key, and keeps the conversation`() {
+        sender.clear()
+        val number = onboard("6287000000031")   // own phone: a shared phone would raise cross-check flags on the other tests' applications
+        val ask = { body: String ->
+            mockMvc.post("/admin/applications/$number/copilot") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = body }
+        }
+        // Stub mode: rule-based answers built from the stored assessment, never from the model.
+        ask("""{"question":"왜 이 점수가 나왔어?","reviewer":"Kim"}""").andExpect {
+            status { isOk() }
+            jsonPath("$.mode") { value("rules") }
+            jsonPath("$.answer") { value(containsString("등급 A")) }
+            jsonPath("$.answer") { value(containsString("0 / 100")) }
+        }
+        ask("""{"question":"승인해도 될까?","history":[{"role":"user","content":"왜 이 점수가 나왔어?"},{"role":"assistant","content":"등급 A"}]}""").andExpect {
+            status { isOk() }
+            jsonPath("$.answer") { value(containsString("승인")) }
+        }
+        ask("""{"question":"   "}""").andExpect { status { isBadRequest() } }
+        mockMvc.post("/admin/applications/APP-0000-000000/copilot") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"question":"x"}""" }
+            .andExpect { status { isNotFound() } }
+        mockMvc.post("/admin/applications/$number/copilot") { contentType = MediaType.APPLICATION_JSON; content = """{"question":"x"}""" }
+            .andExpect { status { isUnauthorized() } }
+        // The case file the model would receive masks the ID number and carries the flags and timeline.
+        val app = applications.findByApplicationNumber(number)!!
+        val caseFile = copilot.caseFile(app)
+        assertTrue(caseFile.contains("Score 0 / 100"), caseFile)
+        assertTrue(caseFile.contains("## AI agent timeline"), caseFile)
+        assertTrue(!caseFile.contains(app.extractedNik!!), "NIK must be masked")
+        assertTrue(caseFile.contains(app.extractedNik!!.takeLast(4)))
+        // Close the case so it does not sit at the top of the queue for the other tests.
+        mockMvc.post("/admin/applications/$number/decision") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"decision":"APPROVED","reviewer":"Kim"}""" }
+            .andExpect { status { isOk() } }
     }
 
     @Test

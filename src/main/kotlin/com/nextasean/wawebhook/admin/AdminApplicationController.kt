@@ -2,6 +2,10 @@ package com.nextasean.wawebhook.admin
 
 import com.nextasean.wawebhook.application.ApplicationRepository
 import com.nextasean.wawebhook.application.ApplicationService
+import com.nextasean.wawebhook.application.StageProgress
+import com.nextasean.wawebhook.application.StageProgressService
+import com.nextasean.wawebhook.review.ReviewCopilotService
+import com.anthropic.errors.AnthropicException
 import com.nextasean.wawebhook.application.ApplicationStatus
 import com.nextasean.wawebhook.application.DealerApplication
 import com.nextasean.wawebhook.application.Decision
@@ -27,6 +31,7 @@ import com.nextasean.wawebhook.trace.AgentStep
 import com.nextasean.wawebhook.trace.AgentTraceService
 import com.nextasean.wawebhook.trace.TraceKind
 import com.nextasean.wawebhook.trace.TraceStatus
+import org.slf4j.LoggerFactory
 import org.springframework.http.CacheControl
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -59,8 +64,11 @@ class AdminApplicationController(
     private val risk: RiskAssessmentService,
     private val audit: ReviewAuditService,
     private val trace: AgentTraceService,
+    private val stages: StageProgressService,
+    private val copilot: ReviewCopilotService,
     private val businessPhone: BusinessPhoneHolder,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
     /** Back-office creation: no dealer phone needed. With a customer phone the customer is invited over WhatsApp. */
     data class CreateRequest(val dealerCode: String? = null, val customerPhone: String? = null, val customerName: String? = null, val invite: Boolean = true, val reviewer: String? = null)
 
@@ -118,6 +126,9 @@ class AdminApplicationController(
 
     data class NoteRequest(val note: String, val reviewer: String? = null)
 
+    /** A reviewer's question to the copilot, with the earlier turns of this conversation (oldest first). */
+    data class CopilotRequest(val question: String = "", val history: List<ReviewCopilotService.Turn> = emptyList(), val reviewer: String? = null)
+
     data class DealerView(val code: String, val name: String, val phone: String, val active: Boolean, val country: String, val tier: String)
 
     data class ApplicationView(
@@ -149,6 +160,8 @@ class AdminApplicationController(
         val events: List<EventView>? = null,
         /** Step 4b: what the pipeline and the review agent did, in order (the "AI agent timeline"). */
         val agentTrace: List<StepView>? = null,
+        /** Where the application is in the onboarding pipeline (stepper on the review page, mini bar in the queue). */
+        val progress: StageProgress? = null,
         val createdAt: Instant,
         val updatedAt: Instant,
     )
@@ -205,7 +218,7 @@ class AdminApplicationController(
     }
 
     /** Lightweight payload for live polling while the customer is still sending documents. */
-    data class TraceView(val applicationNumber: String, val status: ApplicationStatus, val updatedAt: Instant, val live: Boolean, val steps: List<StepView>)
+    data class TraceView(val applicationNumber: String, val status: ApplicationStatus, val updatedAt: Instant, val live: Boolean, val steps: List<StepView>, val progress: StageProgress)
 
     data class RiskView(
         val grade: String,
@@ -273,7 +286,8 @@ class AdminApplicationController(
                 compareBy<DealerApplication> { queueRank(it.status) }.thenByDescending { it.riskScore ?: -1 }.thenBy { it.createdAt },
             )
         }
-        return rows.map { it.toView(byId[it.dealerId], docCounts[it.id] ?: 0) }
+        val progress = stages.forAll(rows)
+        return rows.map { it.toView(byId[it.dealerId], docCounts[it.id] ?: 0).copy(progress = progress[it.id]) }
     }
 
     @GetMapping("/applications/{number}")
@@ -286,7 +300,7 @@ class AdminApplicationController(
     @GetMapping("/applications/{number}/agent-trace")
     fun agentTrace(@PathVariable number: String): ResponseEntity<Any> {
         val app = service.findByNumber(number) ?: return notFound(number)
-        return ResponseEntity.ok(TraceView(app.applicationNumber, app.status, app.updatedAt, live = !app.status.isFinal, steps = trace.steps(app.id).map(StepView::of)))
+        return ResponseEntity.ok(TraceView(app.applicationNumber, app.status, app.updatedAt, live = !app.status.isFinal, steps = trace.steps(app.id).map(StepView::of), progress = stages.forApplication(app)))
     }
 
     /** The stored image of one document, for the review page. Only reachable with the admin key. */
@@ -354,6 +368,24 @@ class AdminApplicationController(
         return ResponseEntity.ok(detail(app))
     }
 
+    /**
+     * The reviewer's copilot: a question about this application answered from its case file (Claude when configured,
+     * rule-based explanation of the stored assessment otherwise). Nothing is written; the conversation lives in the browser.
+     */
+    @PostMapping("/applications/{number}/copilot")
+    fun copilot(@PathVariable number: String, @RequestBody body: CopilotRequest): ResponseEntity<Any> {
+        val app = service.findByNumber(number) ?: return notFound(number)
+        val question = body.question.trim()
+        if (question.isEmpty()) return ResponseEntity.badRequest().body(mapOf("error" to "question is required"))
+        if (question.length > MAX_QUESTION) return ResponseEntity.badRequest().body(mapOf("error" to "question is too long (max $MAX_QUESTION characters)"))
+        return try {
+            ResponseEntity.ok(copilot.ask(app, question, body.history, body.reviewer))
+        } catch (e: AnthropicException) {
+            log.warn("Review copilot failed | application={} | {}", number, e.toString())
+            ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(mapOf("error" to "Claude API error: ${e.message}"))
+        }
+    }
+
     /** Re-runs the risk rules on one application (e.g. after the officer corrected data). */
     @PostMapping("/applications/{number}/assess-risk")
     fun assessRisk(@PathVariable number: String, @RequestParam(required = false) reviewer: String?): ResponseEntity<Any> {
@@ -373,7 +405,7 @@ class AdminApplicationController(
     private fun detail(app: DealerApplication): ApplicationView {
         val docs = documents.findByApplicationIdOrderByCreatedAtAsc(app.id!!)
         return app.toView(dealers.findById(app.dealerId).orElse(null), docs.count { !it.superseded && it.checkPassed == true })
-            .copy(documents = docs.map { it.toView(app) }, events = audit.timeline(app).map(EventView::of), agentTrace = trace.steps(app.id).map(StepView::of))
+            .copy(documents = docs.map { it.toView(app) }, events = audit.timeline(app).map(EventView::of), agentTrace = trace.steps(app.id).map(StepView::of), progress = stages.forApplication(app))
     }
 
     private fun queueRank(status: ApplicationStatus) = when (status) {
@@ -434,4 +466,7 @@ class AdminApplicationController(
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
+    private companion object {
+        const val MAX_QUESTION = 2_000
+    }
 }

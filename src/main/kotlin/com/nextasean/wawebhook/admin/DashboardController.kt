@@ -3,6 +3,8 @@ package com.nextasean.wawebhook.admin
 import com.nextasean.wawebhook.application.ApplicationRepository
 import com.nextasean.wawebhook.application.ApplicationStatus
 import com.nextasean.wawebhook.application.DealerApplication
+import com.nextasean.wawebhook.application.OnboardingStage
+import com.nextasean.wawebhook.application.StageProgressService
 import com.nextasean.wawebhook.config.AppProperties
 import com.nextasean.wawebhook.customer.CustomerSessionRepository
 import com.nextasean.wawebhook.dealer.Countries
@@ -12,6 +14,7 @@ import com.nextasean.wawebhook.risk.CustomerBadge
 import com.nextasean.wawebhook.risk.RiskAssessment
 import com.nextasean.wawebhook.risk.RiskAssessmentService
 import com.nextasean.wawebhook.risk.RiskGrade
+import com.nextasean.wawebhook.trace.AgentStep
 import com.nextasean.wawebhook.trace.AgentTraceService
 import com.nextasean.wawebhook.trace.TraceKind
 import com.nextasean.wawebhook.trace.TraceStatus
@@ -39,6 +42,7 @@ class DashboardController(
     private val sessions: CustomerSessionRepository,
     private val risk: RiskAssessmentService,
     private val trace: AgentTraceService,
+    private val stages: StageProgressService,
     props: AppProperties,
 ) {
     private val zone: ZoneId = props.zoneId
@@ -154,6 +158,41 @@ class DashboardController(
         val highRiskByCountry: Map<String, Int>,
     )
 
+    /** Active applications currently at each onboarding stage. */
+    data class PipelineStageCount(val code: String, val label: String, val labelKo: String, val count: Int)
+
+    /** One open application with its position in the pipeline, for the live "in progress" table. */
+    data class ProgressRow(
+        val applicationNumber: String,
+        val country: String,
+        val dealerCode: String?,
+        val customerName: String?,
+        val status: String,
+        val current: String,
+        val currentKo: String,
+        val done: Int,
+        val total: Int,
+        val percent: Int,
+        val stageStates: List<String>,
+        val note: String?,
+        val idleHours: Double?,
+        val updatedAt: Instant,
+    )
+
+    /** One agent-trace step across all applications, newest first: the live activity feed. */
+    data class RecentStep(
+        val applicationNumber: String,
+        val country: String,
+        val kind: String,
+        val label: String,
+        val labelKo: String,
+        val phase: String,
+        val status: String,
+        val actor: String,
+        val title: String,
+        val createdAt: Instant,
+    )
+
     data class Stats(
         val generatedAt: Instant,
         val countries: List<String>,
@@ -169,6 +208,9 @@ class DashboardController(
         val reviewQueue: List<QueueRow>,
         val trend: List<TrendWeek>,
         val agent: AgentActivity,
+        val pipeline: List<PipelineStageCount>,
+        val inProgress: List<ProgressRow>,
+        val recentSteps: List<RecentStep>,
     )
 
     @GetMapping("/stats")
@@ -259,7 +301,26 @@ class DashboardController(
                 )
             }
 
-        return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, recent, queue, trend(apps, assessments, now), agentActivity())
+        val open = apps.filter { !it.status.isFinal }
+        val progress = stages.forAll(open, now)
+        val pipeline = OnboardingStage.entries.map { s -> PipelineStageCount(s.name, s.label, s.labelKo, open.count { progress[it.id]?.current == s.name }) }
+        val inProgress = open.sortedByDescending { it.updatedAt }.take(40).mapNotNull { app ->
+            val p = progress[app.id] ?: return@mapNotNull null
+            val current = p.stages.first { it.code == p.current }
+            ProgressRow(
+                app.applicationNumber, app.country, dealerById[app.dealerId]?.dealerCode, app.extractedName ?: app.customerName, app.status.name,
+                p.current, p.currentKo, p.done, p.total, p.percent, p.stages.map { it.state.name }, current.note, p.idleHours, app.updatedAt,
+            )
+        }
+        val appById = apps.associateBy { it.id }
+        val recentSteps = trace.all()
+            .sortedWith(compareByDescending<AgentStep> { it.createdAt }.thenByDescending { it.id })
+            .take(RECENT_STEPS)
+            .map { s ->
+                val app = appById[s.applicationId]
+                RecentStep(app?.applicationNumber ?: "?", app?.country ?: "", s.kind.name, s.kind.label, s.kind.labelKo, s.kind.phase.name, s.status.name, s.actor, s.title, s.createdAt)
+            }
+        return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, recent, queue, trend(apps, assessments, now), agentActivity(), pipeline, inProgress, recentSteps)
     }
 
     private fun agentActivity(): AgentActivity {
@@ -315,6 +376,7 @@ class DashboardController(
 
     private companion object {
         const val TREND_WEEKS = 8
+        const val RECENT_STEPS = 25
     }
 
     private fun riskRow(app: DealerApplication, a: RiskAssessment, dealer: Dealer?) = RiskRow(

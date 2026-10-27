@@ -3,53 +3,133 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NEXT ASEAN 온보딩 대시보드</title>
+<meta name="theme-color" content="#0a31a8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css">
+<title>JB금융그룹 NEXT ASEAN 온보딩 대시보드</title>
 <style>
+  /* JB-style header: white bar, deep-blue top rule, monogram + group name, pill navigation */
+  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
+  .brand .mark { flex: none; width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%); color: #fff; font-weight: 800; font-size: 15px; letter-spacing: -0.03em; display: grid; place-items: center; }
+  .brand .group { font-size: 12px; font-weight: 700; color: var(--brand); letter-spacing: .01em; line-height: 1.2; }
+  .brand .group .svc { color: var(--text-3); font-weight: 500; margin-left: 6px; }
+  header nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  header nav a { color: var(--text-2); text-decoration: none; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 999px; white-space: nowrap; }
+  header nav a .en { color: var(--text-3); font-weight: 400; margin-left: 4px; }
+  header nav a:hover { background: var(--surface-2); color: var(--text); }
+  header nav a.active { background: var(--brand-tint); color: var(--brand); font-weight: 700; }
+  header nav a.active .en { color: var(--brand); opacity: .75; }
+  footer { max-width: 1400px; margin: 0 auto; padding: 20px 24px 28px; display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: space-between; font-size: 12px; color: var(--text-3); }
+  footer b { color: var(--brand); font-weight: 700; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-tint); }
+  button:hover:not(:disabled) { border-color: var(--brand-3); color: var(--brand); }
+  button.primary:hover:not(:disabled) { background: var(--brand-2); color: #fff; }
+  button.approve:hover:not(:disabled), button.reject:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
+  ::selection { background: var(--brand-tint); }
+  @media (max-width: 700px) { .brand .mark { width: 34px; height: 34px; font-size: 13px; border-radius: 9px; } h1 small { display: none; } }
+  /* JB금융그룹 corporate palette: deep blue #0A31A8, accent #1C56FF, sky #00B2FF, navy #0D2D77, slate greys. */
   :root {
     color-scheme: light;
-    --surface: #fcfcfb; --surface-2: #f3f2ef; --border: #e2e1dc;
-    --text: #0b0b0b; --text-2: #52514e; --text-3: #7a7975;
-    --c-id: #2a78d6; --c-mm: #eb6834; --c-kh: #1baf7a;          /* categorical slots 1-3: Indonesia, Myanmar, Cambodia */
-    --seq: #2a78d6; --seq-light: #9ec5f4;                         /* sequential blue */
-    --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --critical: #d03b3b;
-    --grid: #e8e7e2;
+    --brand: #0a31a8; --brand-2: #1c56ff; --brand-3: #598aff; --brand-sky: #00b2ff; --brand-navy: #0d2d77; --brand-tint: #eaf0ff;
+    --page: #f5f7fa; --surface: #ffffff; --surface-2: #f3f5f9; --border: #e1e5ee; --grid: #eceff5;
+    --text: #1a1f2e; --text-2: #4a5464; --text-3: #728197;
+    --c-id: #1c56ff; --c-mm: #f28c28; --c-kh: #17a673;                 /* categorical slots 1-3: Indonesia, Myanmar, Cambodia */
+    --seq: var(--brand); --seq-light: #9bb6ff;                          /* sequential blue */
+    --good: #0e9f6e; --warn: #f5b400; --serious: #ec7a3c; --critical: #d93025;
+    --good-bg: #e6f7ef; --warn-bg: #fff6d9; --serious-bg: #fdebe0; --critical-bg: #fde8e7; --info-bg: var(--brand-tint);
+    --shadow: 0 1px 2px rgba(13, 45, 119, .06), 0 4px 16px rgba(13, 45, 119, .04);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --surface: #1a1a19; --surface-2: #242423; --border: #353533;
-      --text: #f0efec; --text-2: #c3c2b7; --text-3: #8f8e88;
-      --c-id: #3987e5; --c-mm: #d95926; --c-kh: #199e70;
-      --seq: #3987e5; --seq-light: #1c5cab; --grid: #2e2e2c;
+      --brand: #598aff; --brand-2: #7da2ff; --brand-3: #9bb6ff; --brand-navy: #0d2d77; --brand-tint: #1a2a5c;
+      --page: #0b1226; --surface: #121a33; --surface-2: #1a2445; --border: #27325a; --grid: #222c4f;
+      --text: #eef1f8; --text-2: #b7c0d9; --text-3: #8491b3;
+      --c-id: #598aff; --c-mm: #f28c28; --c-kh: #2bb985;
+      --seq: var(--brand); --seq-light: #2f4a9e;
+      --good: #34c38f; --critical: #ef5350;
+      --good-bg: #123a2c; --warn-bg: #3d3210; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
+      --shadow: none;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --surface: #1a1a19; --surface-2: #242423; --border: #353533;
-    --text: #f0efec; --text-2: #c3c2b7; --text-3: #8f8e88;
-    --c-id: #3987e5; --c-mm: #d95926; --c-kh: #199e70;
-    --seq: #3987e5; --seq-light: #1c5cab; --grid: #2e2e2c;
+    --brand: #598aff; --brand-2: #7da2ff; --brand-3: #9bb6ff; --brand-navy: #0d2d77; --brand-tint: #1a2a5c;
+    --page: #0b1226; --surface: #121a33; --surface-2: #1a2445; --border: #27325a; --grid: #222c4f;
+    --text: #eef1f8; --text-2: #b7c0d9; --text-3: #8491b3;
+    --c-id: #598aff; --c-mm: #f28c28; --c-kh: #2bb985;
+    --seq: var(--brand); --seq-light: #2f4a9e;
+    --good: #34c38f; --critical: #ef5350;
+    --good-bg: #123a2c; --warn-bg: #3d3210; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
+    --shadow: none;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--surface); color: var(--text); font: 14px/1.45 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", Segoe UI, Roboto, sans-serif; }
-  header { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border); }
-  h1 { font-size: 18px; margin: 0; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 14px/1.5 "SUIT Variable", SUIT, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; padding: 12px 24px; background: var(--surface); border-top: 4px solid var(--brand); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+  h1 { font-size: 17px; margin: 0; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; }
   h1 small { display: block; font-size: 12px; font-weight: 400; color: var(--text-3); }
-  h2 { font-size: 15px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
   h2 small, .sub { display: block; font-size: 12px; font-weight: 400; color: var(--text-3); }
-  main { padding: 16px; display: grid; gap: 16px; max-width: 1200px; margin: 0 auto; }
+  main { padding: 20px 24px 8px; display: grid; gap: 20px; max-width: 1200px; margin: 0 auto; }
   .row { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; min-width: 0; box-shadow: var(--shadow); }
   .tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
-  .tile { background: var(--surface-2); border-radius: 8px; padding: 12px; }
+  .tile { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
   .tile .k { font-size: 12px; color: var(--text-2); }
   .tile .k small { color: var(--text-3); }
-  .tile .v { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .tile .v { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--brand); font-variant-numeric: tabular-nums; }
   .tile.alert .v { color: var(--critical); }
   .key { display: flex; gap: 8px; align-items: center; }
-  input[type=password], input[type=text] { font: inherit; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); min-width: 220px; }
-  button { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
-  button.primary { background: var(--seq); color: #fff; border-color: transparent; }
+  input[type=password], input[type=text] { font: inherit; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); min-width: 220px; }
+  button { font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+  button.primary { background: var(--brand); color: #fff; border-color: transparent; }
+  /* Onboarding stage stepper (review detail) and the mini progress bar (queue rows, dashboard) */
+  .stepper { list-style: none; margin: 8px 0 0; padding: 0; display: flex; gap: 0; overflow-x: auto; scrollbar-width: thin; }
+  .stepper li { flex: 1 1 0; min-width: 96px; position: relative; padding: 0 6px 0 0; text-align: center; }
+  .stepper li::before { content: ""; position: absolute; top: 13px; left: 0; right: 0; height: 2px; background: var(--grid); }
+  .stepper li.DONE::before, .stepper li.SKIPPED::before { background: var(--brand-3); }
+  .stepper .dot { position: relative; z-index: 1; width: 26px; height: 26px; border-radius: 50%; margin: 0 auto; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--surface); border: 2px solid var(--grid); color: var(--text-3); }
+  .stepper .DONE .dot { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .stepper .SKIPPED .dot { background: var(--surface-2); border-color: var(--brand-3); color: var(--brand); }
+  .stepper .CURRENT .dot { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px var(--brand-tint); animation: pulse 1.4s infinite; }
+  .stepper .WARN .dot { background: var(--warn); border-color: var(--warn); color: #000; }
+  .stepper .FAIL .dot { background: var(--critical); border-color: var(--critical); color: #fff; }
+  .stepper .lb { display: block; margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--text-2); line-height: 1.2; }
+  .stepper .PENDING .lb { color: var(--text-3); font-weight: 500; }
+  .stepper .CURRENT .lb { color: var(--brand); }
+  .stepper .lb small { display: block; font-weight: 400; color: var(--text-3); font-size: 10px; }
+  .stepper .note { display: block; font-size: 11px; color: var(--text-2); margin-top: 2px; line-height: 1.25; }
+  .stepper .WARN .note { color: var(--serious); } .stepper .FAIL .note { color: var(--critical); }
+  .stepper time { display: block; font-size: 10px; color: var(--text-3); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .progress-head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+  .progress-head .pct { font-size: 20px; font-weight: 700; color: var(--brand); font-variant-numeric: tabular-nums; }
+  .mini { display: inline-block; width: 64px; height: 6px; border-radius: 999px; background: var(--grid); vertical-align: middle; overflow: hidden; }
+  .mini i { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
+  .mini.warn i { background: var(--warn); } .mini.done i { background: var(--good); }
+  .segbar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--grid); margin: 10px 0 8px; }
+  .segbar i { display: block; height: 100%; min-width: 2px; }
+  .stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
+  .stages .s { padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border-left: 3px solid var(--brand-3); }
+  .stages .s .n { font-size: 20px; font-weight: 700; color: var(--brand); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .stages .s .k { font-size: 11px; color: var(--text-2); font-weight: 600; } .stages .s .k small { display: block; color: var(--text-3); font-weight: 400; }
+  .stages .s.zero .n { color: var(--text-3); } .stages .s.zero { border-left-color: var(--grid); }
+  .dots { display: inline-flex; gap: 2px; vertical-align: middle; }
+  .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--grid); }
+  .dots i.DONE, .dots i.SKIPPED { background: var(--brand); } .dots i.CURRENT { background: var(--brand-3); box-shadow: 0 0 0 2px var(--brand-tint); }
+  .dots i.WARN { background: var(--warn); } .dots i.FAIL { background: var(--critical); }
+  .feed { list-style: none; margin: 0; padding: 0; }
+  .feed li { display: grid; grid-template-columns: 82px 16px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--grid); font-size: 13px; align-items: start; }
+  .feed time { color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .feed .node { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; background: var(--text-3); }
+  .feed .node.ANALYSIS { background: var(--brand); } .feed .node.VALIDATION { background: var(--brand-3); } .feed .node.AGENT { background: #8b5cf6; }
+  .feed .node.VERIFICATION { background: var(--c-kh); } .feed .node.RISK { background: var(--serious); } .feed .node.OUTCOME { background: var(--good); } .feed .node.OFFICER { background: var(--warn); }
+  .feed .st { font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); margin-left: 4px; }
+  .feed .st.OK { color: var(--good); } .feed .st.FAIL { color: var(--critical); } .feed .st.WARN { color: var(--serious); } .feed .st.DECISION { color: var(--brand); }
+  .feed .t { color: var(--text-2); font-size: 12px; }
+  .feed li.new { animation: arrive 3s ease-out; }
+  @keyframes arrive { 0%, 70% { background: var(--info-bg); } 100% { background: transparent; } }
+  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: .45; } 100% { opacity: 1; } }
+  .auto { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); }
+  .auto .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 1.4s infinite; }
   .status { font-size: 12px; color: var(--text-3); }
   .status.err { color: var(--critical); }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -69,47 +149,54 @@
   svg .grid { stroke: var(--grid); stroke-width: 1; }
   .bar { cursor: default; }
   .bar:hover { filter: brightness(0.9); }
-  #tip { position: fixed; pointer-events: none; background: var(--text); color: var(--surface); font-size: 12px; padding: 6px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s; z-index: 10; max-width: 260px; }
+  #tip { position: fixed; pointer-events: none; background: var(--brand-navy); color: #fff; font-size: 12px; padding: 6px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s; z-index: 10; max-width: 260px; }
   .empty { color: var(--text-3); font-size: 13px; padding: 12px 0; }
   details summary { cursor: pointer; color: var(--text-2); font-size: 12px; }
   .scroll { overflow-x: auto; }
-  nav a { color: var(--text-2); text-decoration: none; margin-right: 12px; font-size: 13px; }
-  nav a.active { color: var(--text); font-weight: 600; border-bottom: 2px solid var(--seq); }
-  a.app { color: var(--seq); text-decoration: none; font-weight: 600; }
+  a.app { color: var(--brand); text-decoration: none; font-weight: 600; }
   a.app:hover { text-decoration: underline; }
   .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; font-weight: 600; background: var(--surface-2); color: var(--text-2); }
-  .pill.READY_FOR_REVIEW { background: var(--seq-light); color: var(--text); }
+  .pill.READY_FOR_REVIEW { background: var(--info-bg); color: var(--brand); }
   .pill.DOCUMENTS_REQUESTED, .pill.RESUBMISSION_REQUESTED { background: var(--warn); color: #000; }
   .pill.APPROVED { background: var(--good); color: #fff; } .pill.REJECTED { background: var(--critical); color: #fff; }
   .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; margin-bottom: -4px; }
   .tabs::-webkit-scrollbar { display: none; }
-  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px 10px; color: var(--text-2); white-space: nowrap; display: inline-flex; align-items: baseline; gap: 6px; }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; font-weight: 500; padding: 8px 12px 10px; color: var(--text-2); white-space: nowrap; display: inline-flex; align-items: baseline; gap: 6px; }
   .tabs button small { font-size: 11px; color: var(--text-3); }
-  .tabs button:hover { color: var(--text); background: var(--surface-2); }
-  .tabs button[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--seq); }
+  .tabs button:hover { color: var(--brand); background: var(--brand-tint); border-radius: 8px 8px 0 0; }
+  .tabs button[aria-selected="true"] { color: var(--brand); font-weight: 700; border-bottom-color: var(--brand); }
   .tabs button .n { font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); align-self: center; }
-  .tabs button[aria-selected="true"] .n { background: var(--seq); color: #fff; }
+  .tabs button[aria-selected="true"] .n { background: var(--brand); color: #fff; }
   .panel { display: grid; gap: 16px; }
   .panel[hidden] { display: none; }
-  @media (max-width: 600px) { main, header { padding: 12px 16px; } .tile .v { font-size: 22px; } }
+  @media (max-width: 600px) { main, header, footer { padding-left: 16px; padding-right: 16px; } .tile .v { font-size: 22px; } }
 </style>
 </head>
 <body>
 <header>
-  <div>
-    <h1>NEXT ASEAN 온보딩 대시보드 <small>WhatsApp onboarding dashboard · Indonesia / Myanmar / Cambodia</small></h1>
-    <nav style="margin-top:4px"><a href="/dashboard" class="active">대시보드 Dashboard</a><a href="/review">심사 Review</a></nav>
+  <div class="brand">
+    <span class="mark" aria-hidden="true">JB</span>
+    <div>
+      <div class="group">JB금융그룹 <span class="svc">NEXT ASEAN</span></div>
+      <h1>온보딩 대시보드 <small>WhatsApp onboarding dashboard · Indonesia / Myanmar / Cambodia</small></h1>
+    </div>
   </div>
+  <nav aria-label="Back office pages"><a href="/dashboard" class="active">대시보드 <span class="en">Dashboard</span></a><a href="/review">심사 <span class="en">Review</span></a></nav>
   <div class="key">
     <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">
     <button class="primary" id="load">불러오기</button>
     <button id="refresh" title="Refresh">새로고침</button>
+    <span class="auto" id="auto" hidden><span class="pulse"></span>15초마다 자동 갱신</span>
     <span class="status" id="status"></span>
   </div>
 </header>
 <main id="main">
   <p class="empty">관리자 키를 입력하고 <b>불러오기</b>를 누르세요. 키는 이 브라우저 세션에만 저장됩니다. <br><span class="sub">Enter the admin key and press Load. The key stays in this browser session only.</span></p>
 </main>
+<footer>
+  <span><b>JB금융그룹</b> · NEXT ASEAN 온보딩 백오피스 <span class="sub" style="display:inline">Internal demo · Indonesia / Myanmar / Cambodia</span></span>
+  <span>관리자 키는 이 브라우저 세션에만 저장됩니다 · Admin key stays in this browser session</span>
+</footer>
 <div id="tip" role="tooltip"></div>
 
 <script>
@@ -131,6 +218,11 @@
   const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
   const num = v => v == null ? '–' : (Number.isInteger(v) ? v : v.toFixed(0));
   const fmtTime = iso => { try { return new Date(iso).toLocaleString('ko-KR', { hour12: false }); } catch { return iso; } };
+  const fmtClock = iso => { try { return new Date(iso).toLocaleTimeString('ko-KR', { hour12: false }); } catch { return iso; } };
+  const fmtShort = iso => { try { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; } catch { return iso; } };
+  const STAGE_COLORS = ['#9bb6ff', '#7da2ff', '#598aff', '#3b6ef0', '#1c56ff', '#1446d6', '#0a31a8', '#0d2d77', '#17a673'];
+  const AUTO_MS = 15000;
+  let seenStepKeys = null;   // activity-feed keys already shown, to highlight what is new on each refresh
 
   try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
 
@@ -233,11 +325,25 @@
       ['고위험 고객 (C·D)', 'High-risk customers', t.highRisk, true], ['위조·사기 경고', 'Fraud / forgery warnings', t.fraudWarnings, true],
       ['담당자 검토 필요', 'Officer review required', t.officerReviewRequired], ['고객 서류 재요청 중', 'Documents requested', t.documentsRequested],
       ['최장 대기', 'Oldest waiting', hrs(t.oldestWaitingHours)], ['평균 결정 시간', 'Avg time to decision', hrs(t.avgDecisionHours)],
+      ['진행 정체 (24h+)', 'Stalled in progress', (d.inProgress || []).filter(r => r.status !== 'READY_FOR_REVIEW' && r.idleHours != null && r.idleHours >= 24).length, true],
     ];
     const P = {};
     let h = '';
     h += `<section class="card"><div class="tiles">${tiles.map(([ko, en, v, alert]) =>
       `<div class="tile ${alert && v > 0 ? 'alert' : ''}"><div class="k">${ko} <small>${en}</small></div><div class="v">${v}</div></div>`).join('')}</div></section>`;
+
+    // live pipeline board: where every open application is right now
+    const pipe = d.pipeline || [], openTotal = pipe.reduce((s, x) => s + x.count, 0);
+    h += `<section class="card"><h2>온보딩 진행 현황 <small>Pipeline · ${openTotal} open applications by current stage · live</small></h2>
+      <div class="segbar" role="img" aria-label="Open applications by stage">${pipe.map((s, i) => s.count ? `<i style="width:${(s.count / Math.max(openTotal, 1)) * 100}%;background:${STAGE_COLORS[i]}" data-tip="${esc(s.labelKo + ' · ' + s.label + ': ' + s.count)}"></i>` : '').join('')}</div>
+      <div class="stages">${pipe.map((s, i) => `<div class="s ${s.count ? '' : 'zero'}" style="border-left-color:${s.count ? STAGE_COLORS[i] : ''}"><div class="n">${s.count}</div><div class="k">${esc(s.labelKo)}<small>${esc(s.label)}</small></div></div>`).join('')}</div>`;
+    const rows = (d.inProgress || []).filter(r => r.status !== 'READY_FOR_REVIEW');
+    h += `<h3 style="margin:16px 0 6px;font-size:13px;color:var(--text-2)">진행 중인 신청 <span class="sub" style="display:inline">In progress (not yet waiting for an officer) · ${rows.length}건 · 최근 활동순</span></h3>`;
+    if (!rows.length) h += `<p class="empty">진행 중인 신청이 없습니다. <span class="sub">Nothing in progress.</span></p>`;
+    else h += `<div class="scroll"><table><thead><tr><th>신청번호</th><th>국가</th><th>딜러</th><th>고객</th><th>상태</th><th>진행<br><span class="sub">Progress</span></th><th>현재 단계<br><span class="sub">Current stage</span></th><th class="num">마지막 활동<br><span class="sub">Last activity</span></th></tr></thead><tbody>${
+      rows.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td><span class="dots" title="${r.done}/${r.total}">${r.stageStates.map(s => `<i class="${esc(s)}"></i>`).join('')}</span> <span class="sub">${r.done}/${r.total}</span></td><td><b>${esc(r.currentKo)}</b>${r.note ? `<br><span class="sub">${esc(r.note)}</span>` : ''}</td><td class="num" title="${esc(fmtTime(r.updatedAt))}">${r.idleHours != null && r.idleHours >= 24 ? `<span style="color:var(--serious);font-weight:600">${hrs(r.idleHours)} 전</span>` : `<span class="sub">${hrs(r.idleHours)} 전</span>`}</td></tr>`).join('')
+    }</tbody></table></div>`;
+    h += `</section>`;
 
     h += `<section class="card"><h2>심사 대기 큐 <small>Review queue · highest risk first · <a class="app" href="/review">심사 화면 열기 →</a></small></h2>`;
     if (!d.reviewQueue.length) h += `<p class="empty">심사 대기 중인 신청이 없습니다. <span class="sub">Nothing waiting for an officer.</span></p>`;
@@ -298,6 +404,12 @@
     ].map(([ko, en, v]) => `<div class="tile"><div class="k">${ko} <small>${esc(en)}</small></div><div class="v">${v}</div></div>`).join('')}</div>
     <p class="sub" style="margin:8px 0 0">각 신청의 단계별 판단 과정은 심사 화면의 <a class="app" href="/review">AI Agent 판단 타임라인</a>에서 실시간으로 볼 수 있습니다. 스텁 모드에서는 비전 분석·에이전트 턴이 0으로 남고 규칙·조회 단계만 기록됩니다.</p></section>`;
 
+    const steps = d.recentSteps || [], keys = new Set(steps.map(s => s.applicationNumber + '#' + s.createdAt + '#' + s.kind));
+    h += `<section class="card"><h2>최근 AI 에이전트 활동 <small>Live activity feed · latest ${steps.length} steps across all applications · ${AUTO_MS / 1000}초마다 갱신</small></h2>`;
+    h += steps.length ? `<ul class="feed">${steps.map(s => `<li class="${seenStepKeys && !seenStepKeys.has(s.applicationNumber + '#' + s.createdAt + '#' + s.kind) ? 'new' : ''}"><time title="${esc(fmtTime(s.createdAt))}">${fmtShort(s.createdAt)}</time><span class="node ${esc(s.phase)}" title="${esc(s.phase)}"></span><div>${appLink(s.applicationNumber)} <span class="dot" style="background:${COUNTRY_COLOR[s.country] || 'var(--text-3)'};margin:0 2px 0 4px"></span><b>${esc(s.labelKo)}</b> <span class="sub" style="display:inline">${esc(s.label)}</span><span class="st ${esc(s.status)}">${esc(s.status)}</span><div class="t">${esc(s.title)}</div></div></li>`).join('')}</ul>` : '<p class="empty">기록된 단계가 없습니다.</p>';
+    h += `</section>`;
+    seenStepKeys = keys;
+
     P.agent = h; h = '';
 
     h += `<section class="card"><h2>최근 신청 <small>Recent applications</small></h2><div class="scroll"><table><thead><tr><th>신청번호</th><th>국가</th><th>딜러</th><th>상태</th><th>등급</th><th>생성</th></tr></thead><tbody>${d.recent.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">아직 신청이 없습니다.</td></tr>'}</tbody></table></div>
@@ -305,11 +417,13 @@
     P.recent = h; h = '';
 
     const footer = `<p class="status">생성 시각 ${fmtTime(d.generatedAt)} · generated ${fmtTime(d.generatedAt)}${t.demoApplications ? ` · 데모 데이터 ${t.demoApplications}건 포함 (demo seed; DELETE /admin/demo/seed 로 제거)` : ''}</p>`;
-    const counts = { overview: t.readyForReview, risk: t.highRisk, agent: ag.steps };
+    const counts = { overview: openTotal, risk: t.highRisk, agent: ag.steps };
+    const wasOpen = new Set([...main.querySelectorAll('details[open] > summary')].map(s => s.textContent.trim()));
     main.innerHTML = `<div class="tabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([id, ko, en]) =>
       `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}">${ko} <small>${en}</small>${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
       + TABS.map(([id]) => `<div class="panel" role="tabpanel" id="panel-${id}" aria-labelledby="tab-${id}" data-panel="${id}"${id === activeTab ? '' : ' hidden'}>${P[id]}</div>`).join('')
       + footer;
+    main.querySelectorAll('details > summary').forEach(s => { if (wasOpen.has(s.textContent.trim())) s.parentElement.open = true; });
     bindTips(main);
   }
 
@@ -338,7 +452,8 @@
       const res = await fetch('/admin/dashboard/stats', { headers: { 'X-Admin-Key': key } });
       if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.error || ('HTTP ' + res.status)); }
       render(await res.json());
-      status.textContent = '업데이트 완료 ' + new Date().toLocaleTimeString('ko-KR', { hour12: false });
+      status.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour12: false });
+      $('#auto').hidden = false;
     } catch (e) {
       status.textContent = '오류: ' + e.message; status.className = 'status err';
     }
@@ -347,7 +462,8 @@
   $('#refresh').addEventListener('click', load);
   keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
   if (keyInput.value) load();
-  setInterval(() => { if (keyInput.value.trim()) load(); }, 60000);
+  setInterval(() => { if (keyInput.value.trim() && !document.hidden) load(); }, AUTO_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && keyInput.value.trim()) load(); });
 })();
 </script>
 </body>
