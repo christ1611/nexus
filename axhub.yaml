@@ -6,6 +6,12 @@ runtime:
   health_path: /healthz
   healthcheck:
     start_period: 120s
+  # Persistent disk for the embedded H2 database and the downloaded documents (./data under WORKDIR /app),
+  # so they survive restarts and redeploys. Pausing the app clears it.
+  cache:
+    size: 2Gi
+    paths:
+      - /app/data
 
 build:
   deploy_method: docker
