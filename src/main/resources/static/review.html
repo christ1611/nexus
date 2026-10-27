@@ -163,6 +163,17 @@
   .trace .detail { color: var(--text-2); font-size: 13px; margin-top: 2px; white-space: pre-wrap; }
   .trace .meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
   .trace details { margin-top: 4px; } .trace pre { max-height: 220px; margin: 4px 0 0; }
+  /* AI agent timeline folded under the onboarding stepper; closed by default, chevron toggles it */
+  .trace-details { margin-top: 12px; border-top: 1px solid var(--grid); padding-top: 10px; }
+  .trace-details > summary { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; cursor: pointer; font-size: inherit; color: inherit; border-radius: 8px; padding: 4px 6px; margin: -4px -6px; }
+  .trace-details > summary::-webkit-details-marker { display: none; }
+  .trace-details > summary:hover { background: var(--surface-2); }
+  .trace-details > summary h2 { margin: 0; }
+  .trace-details .chev { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--brand); font-size: 12px; line-height: 1; transition: transform .15s; }
+  .trace-details[open] .chev { transform: rotate(90deg); }
+  .trace-details .hint::after { content: "펼치기 · expand"; } .trace-details[open] .hint::after { content: "접기 · collapse"; }
+  .trace-details .hint { margin-left: auto; }
+  #trace-panel { margin-top: 10px; }
   /* Onboarding stage stepper (review detail) and the mini progress bar (queue rows, dashboard) */
   .stepper { list-style: none; margin: 8px 0 0; padding: 0; display: flex; gap: 0; overflow-x: auto; scrollbar-width: thin; }
   .stepper li { flex: 1 1 0; min-width: 96px; position: relative; padding: 0 6px 0 0; text-align: center; }
@@ -360,6 +371,7 @@
   const ago = iso => { if (!iso) return ''; const h = (Date.now() - new Date(iso).getTime()) / 36e5; return h < 1 ? Math.round(h * 60) + '분' : h < 48 ? h.toFixed(1) + '시간' : Math.round(h / 24) + '일'; };
   const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
   let apps = [], current = null, blobs = new Map(), tracePoll = null, traceLastId = 0, traceSeenUpdatedAt = null;
+  let traceOpen = false;                       // AI timeline fold: closed by default, the officer's choice survives re-renders
   const openSteps = new Set();                  // step ids whose "데이터" details are expanded; survives re-renders
   const MILESTONE_PHASES = new Set(['DOCUMENT', 'VERIFICATION', 'RISK', 'OUTCOME', 'OFFICER']); // steps that change other panels too
   const TRACE_POLL_MS = 2000;
@@ -446,8 +458,13 @@
   const miniBar = p => p ? `<span class="mini ${p.stages.some(s => s.state === 'WARN' || s.state === 'FAIL') ? 'warn' : (p.done === p.total ? 'done' : '')}" title="${esc(p.done + '/' + p.total + ' · ' + p.currentKo)}"><i style="width:${p.percent}%"></i></span>` : '';
 
   /* The "AI agent timeline": a one-line flow strip plus the detailed stepper with evidence. */
+  const traceTitle = (steps, live) => `AI Agent 판단 타임라인 <small>What the pipeline and the review agent did, step by step · ${steps.length} steps</small> ${live ? `<span class="live"><span class="pulse"></span>실시간 · live</span> <span class="sub" id="trace-checked" title="새 단계가 기록되면 자동으로 갱신됩니다 · refreshes itself every ${TRACE_POLL_MS / 1000}s">${TRACE_POLL_MS / 1000}초마다 자동 갱신</span>` : ''}`;
+  /* The timeline folded under the onboarding stepper: closed by default, the chevron (or the whole header) toggles it. */
+  function renderTraceSection(steps, live, newSince) {
+    return `<details id="trace-details" class="trace-details"${traceOpen ? ' open' : ''}><summary title="AI 에이전트 판단 타임라인 펼치기/접기"><span class="chev" aria-hidden="true">▸</span><h2 id="trace-title">${traceTitle(steps, live)}</h2><span class="sub hint"></span></summary><div id="trace-panel">${renderTrace(steps, live, newSince)}</div></details>`;
+  }
   function renderTrace(steps, live, newSince = Infinity) {
-    let h = `<h2>AI Agent 판단 타임라인 <small>What the pipeline and the review agent did, step by step · ${steps.length} steps</small> ${live ? `<span class="live"><span class="pulse"></span>실시간 · live</span> <span class="sub" id="trace-checked" title="새 단계가 기록되면 자동으로 갱신됩니다 · refreshes itself every ${TRACE_POLL_MS / 1000}s">${TRACE_POLL_MS / 1000}초마다 자동 갱신</span>` : ''}</h2>`;
+    let h = '';
     if (!steps.length) { return h + `<p class="empty">${live ? '고객이 서류를 보내면 분석 단계가 여기에 실시간으로 나타납니다.' : '기록된 단계가 없습니다 (Step 4b 이전에 처리된 신청).'} <span class="sub">${live ? 'Steps appear here live as the customer sends documents.' : 'No steps recorded.'}</span></p>`; }
     const flow = steps.filter(s => !FLOW_HIDDEN.has(s.kind));
     h += `<div class="flow">${flow.map((s, i) => `${i ? '<span class="arrow">→</span>' : ''}<span class="step ${s.status}" title="${esc(s.title)}">${esc(s.labelKo)} ${STATUS_ICON[s.status] || ''}</span>`).join('')}${live ? '<span class="arrow">→</span><span class="step" style="opacity:.6">…</span>' : ''}</div>`;
@@ -481,7 +498,7 @@
       const t = await api('/admin/applications/' + encodeURIComponent(number) + '/agent-trace');
       if (!current || current.applicationNumber !== number) return;
       const checked = $('#trace-checked'); if (checked) checked.textContent = TRACE_POLL_MS / 1000 + '초마다 자동 갱신 · 확인 ' + new Date().toLocaleTimeString('ko-KR', { hour12: false });
-      if (t.progress && JSON.stringify(t.progress) !== lastProgressJson) { const sp = $('#stage-panel'); if (sp) sp.innerHTML = renderStages(t.progress); }
+      if (t.progress && JSON.stringify(t.progress) !== lastProgressJson) { const sp = $('#stage-body'); if (sp) sp.innerHTML = renderStages(t.progress); }
       const fresh = t.steps.filter(s => s.id > traceLastId);
       const statusChanged = t.status !== current.status;
       const touched = traceSeenUpdatedAt != null && t.updatedAt !== traceSeenUpdatedAt;   // e.g. officer note, re-assessment
@@ -489,6 +506,7 @@
       if (fresh.length) {
         const panel = $('#trace-panel');
         if (panel) { panel.innerHTML = renderTrace(t.steps, t.live, traceLastId); bindTips(panel); }
+        const tt = $('#trace-title'); if (tt) tt.innerHTML = traceTitle(t.steps, t.live);
         traceLastId = t.steps[t.steps.length - 1].id;
         const last = fresh[fresh.length - 1];
         setStatus(`AI 에이전트 단계 ${fresh.length}개 추가 · ${last.labelKo} ${STATUS_KO_STEP[last.status] || ''} · ${new Date().toLocaleTimeString('ko-KR', { hour12: false })}`);
@@ -513,7 +531,7 @@
     tracePoll = setInterval(() => traceTick(number), TRACE_POLL_MS);
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && current && tracePoll) traceTick(current.applicationNumber); });
-  detail.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details[data-sid]')) { const id = Number(d.dataset.sid); if (d.open) openSteps.add(id); else openSteps.delete(id); } }, true);
+  detail.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details[data-sid]')) { const id = Number(d.dataset.sid); if (d.open) openSteps.add(id); else openSteps.delete(id); } else if (d.id === 'trace-details') traceOpen = d.open; }, true);
 
   try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
   try { const r = localStorage.getItem('reviewerName'); if (r) reviewerInput.value = r; } catch {}
@@ -605,16 +623,13 @@
     // reviewer copilot, under the customer and grade header
     h += `<div class="card copilot" id="copilot" style="margin-top:16px">${renderCopilot(a)}</div>`;
 
-    // onboarding stage stepper (kept fresh by the trace poll)
-    h += `<div class="card" id="stage-panel" style="margin-top:16px">${renderStages(a.progress)}</div>`;
-
-    // AI agent timeline (Step 4b)
+    // onboarding stage stepper with the AI agent timeline (Step 4b) folded underneath; both kept fresh by the trace poll
     const liveTrace = !final;
     const trace = a.agentTrace || [];
     const prevLastId = traceLastId;                                   // highlight only what arrived since the last render
     traceLastId = trace.length ? trace[trace.length - 1].id : 0;
     traceSeenUpdatedAt = a.updatedAt;
-    h += `<div class="card" id="trace-panel" style="margin-top:16px">${renderTrace(trace, liveTrace, prevLastId)}</div>`;
+    h += `<div class="card" id="stage-panel" style="margin-top:16px"><div id="stage-body">${renderStages(a.progress)}</div>${renderTraceSection(trace, liveTrace, prevLastId)}</div>`;
 
     // actions
     h += `<div class="card" style="margin-top:16px"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between"><h2 style="margin:0">심사 결정 <small>Decisions · notifications go to the dealer and the customer on WhatsApp</small></h2><button type="button" id="btn-report" title="이 고객의 리포트를 팝업으로 봅니다">📄 고객 리포트</button></div>
