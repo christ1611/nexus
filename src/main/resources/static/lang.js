@@ -27,7 +27,9 @@ window.LANG = (function () {
   function mount() {
     if (document.getElementById('lang-toggle')) return;
     const s = document.createElement('style');
-    s.textContent = '#lang-toggle{position:fixed;right:16px;bottom:16px;z-index:40;font:inherit;font-weight:700;font-size:13px;padding:9px 16px 9px 14px;border-radius:999px;border:1px solid var(--border,#e1e5ee);background:var(--surface,#fff);color:var(--brand,#0a31a8);box-shadow:0 2px 10px rgba(13,45,119,.18);cursor:pointer;transition:background .15s,color .15s}'
+    // Top right: inside the header's control group when the page has one, otherwise pinned to the corner.
+    s.textContent = '#lang-toggle{font:inherit;font-weight:700;font-size:13px;padding:7px 14px 7px 12px;border-radius:999px;border:1px solid var(--border,#e1e5ee);background:var(--surface,#fff);color:var(--brand,#0a31a8);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}'
+      + '#lang-toggle.floating{position:fixed;right:16px;top:16px;z-index:40;box-shadow:0 2px 10px rgba(13,45,119,.18)}'
       + '#lang-toggle::before{content:"🌐";margin-right:6px}'
       + '#lang-toggle:hover{background:var(--brand,#0a31a8);color:#fff;border-color:transparent}'
       + '#lang-toggle:focus-visible{outline:none;box-shadow:0 0 0 3px var(--brand-tint,#eaf0ff)}'
@@ -35,7 +37,8 @@ window.LANG = (function () {
     document.head.appendChild(s);
     const b = document.createElement('button'); b.type = 'button'; b.id = 'lang-toggle';
     b.addEventListener('click', () => set(lang === 'ko' ? 'en' : 'ko'));
-    document.body.appendChild(b);
+    const slot = document.querySelector('header .key');
+    if (slot) slot.appendChild(b); else { b.classList.add('floating'); document.body.appendChild(b); }
     apply();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
