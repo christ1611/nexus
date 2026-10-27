@@ -112,8 +112,14 @@ class DemoDataSeeder(
             // after that scenarios are random, with a fifth of them landing in the last two days.
             val fixed = i < SHOWCASE.size && count >= SHOWCASE.size
             val country = if (fixed) "ID" else randomCountry
-            val dealer = dealersByCountry.getValue(country).let { it[random.nextInt(it.size)] }
-            val scenario = if (fixed) SHOWCASE[i].first else scenarioFor(random, country)
+            var scenario = if (fixed) SHOWCASE[i].first else scenarioFor(random, country)
+            // Excellent dealers bring in more volume and cleaner customers: a weighted pick, the showcase fraud cases filed by
+            // standard dealers, and most risky random scenarios re-rolled to clean when an excellent dealer drew them.
+            val pool = dealersByCountry.getValue(country)
+            val weighted = pool.flatMap { d -> List(if (d.tier == DealerTier.EXCELLENT) 2 else 1) { d } }
+            val standard = pool.filter { it.tier != DealerTier.EXCELLENT }
+            val dealer = if (fixed && scenario in RISKY && standard.isNotEmpty()) standard[random.nextInt(standard.size)] else weighted[random.nextInt(weighted.size)]
+            if (!fixed && dealer.tier == DealerTier.EXCELLENT && scenario in RISKY && random.nextDouble() < 0.6) scenario = Scenario.CLEAN
             val daysAgo = when {
                 fixed -> SHOWCASE[i].second
                 random.nextDouble() < 0.2 -> random.nextDouble() * 2
@@ -156,19 +162,21 @@ class DemoDataSeeder(
 
     fun count(): Int = applications.findByDemoSeedTrue().size
 
-    /** Uses the configured demo dealers per country and adds placeholder dealers for countries that have none. */
-    private fun ensureDealers(): Map<String, List<Dealer>> = Countries.ALL.associate { c ->
-        val existing = dealers.findAll().filter { it.active && it.country.equals(c.code, ignoreCase = true) }
-        val list = existing.ifEmpty {
-            val code = "$DEMO_DEALER_PREFIX${c.code}"
-            listOf(
-                dealers.findByDealerCode(code) ?: dealers.save(
-                    Dealer(phone = "6280000000${Countries.ALL.indexOf(c) + 1}".padEnd(13, '0'), name = "Demo Dealer ${c.name}", dealerCode = code, country = c.code, tier = if (c.code == "ID") DealerTier.EXCELLENT else DealerTier.STANDARD),
-                ).also { log.info("Placeholder demo dealer created | code={} | country={}", code, c.code) },
-            )
+    /** The configured dealers plus the demo roster ([DEMO_DEALERS]) per country; roster dealers are created on demand and removed by [clear] once unused. */
+    private fun ensureDealers(): Map<String, List<Dealer>> {
+        DEMO_DEALERS.forEachIndexed { i, (suffix, name, tier) ->
+            val code = "$DEMO_DEALER_PREFIX$suffix"
+            if (dealers.findByDealerCode(code) == null) {
+                // Not a dialable range; the notifiers skip demo rows anyway.
+                dealers.save(Dealer(phone = "6280000%05d".format(100 + i), name = name, dealerCode = code, country = suffix.substringBefore('-'), tier = tier))
+                log.info("Demo dealer created | code={} | name={} | tier={}", code, name, tier)
+            }
         }
-        c.code to list
+        return Countries.ALL.associate { c -> c.code to dealers.findAll().filter { it.active && it.country.equals(c.code, ignoreCase = true) } }
     }
+
+    /** True when every roster dealer exists, i.e. the stored demo data was made by this version of the seeder. */
+    fun rosterComplete(): Boolean = DEMO_DEALERS.all { dealers.findByDealerCode("$DEMO_DEALER_PREFIX${it.first}") != null }
 
     private fun scenarioFor(random: Random, country: String): Scenario {
         val r = random.nextDouble()
@@ -509,6 +517,15 @@ class DemoDataSeeder(
         const val TREND_DAYS = 52.0
         val JOURNEY_MARGIN: Duration = Duration.ofHours(4)
         const val DEMO_DEALER_PREFIX = "DLR-DEMO-"
+        /** Demo dealer roster: code suffix (country first), name, tier. Two or three per country so the dealer tab can compare tiers. */
+        val DEMO_DEALERS = listOf(
+            Triple("ID-1", "PT Astra Mobil Jakarta", DealerTier.EXCELLENT), Triple("ID-2", "Sinar Motor Surabaya", DealerTier.EXCELLENT),
+            Triple("ID-3", "Mandiri Oto Bandung", DealerTier.STANDARD), Triple("ID-4", "Jaya Motor Medan", DealerTier.STANDARD),
+            Triple("MM-1", "Yangon Auto Center", DealerTier.EXCELLENT), Triple("MM-2", "Mandalay Motors", DealerTier.STANDARD), Triple("MM-3", "Golden Land Cars", DealerTier.STANDARD),
+            Triple("KH-1", "Phnom Penh Auto", DealerTier.EXCELLENT), Triple("KH-2", "Angkor Motor", DealerTier.STANDARD), Triple("KH-3", "Mekong Cars", DealerTier.STANDARD),
+        )
+        /** Scenarios that end in a fraud signal or a failed lookup; excellent dealers draw them less often. */
+        private val RISKY = setOf(Scenario.IDENTITY_MISMATCH, Scenario.NOT_FOUND, Scenario.SCREEN_PHOTO, Scenario.INVALID_NIK, Scenario.SELFIE_MISMATCH, Scenario.FORGERY, Scenario.SHARED_ID)
         const val MODEL = "claude-opus-5-5"
         /** Scenario and age in days of the first applications of every seed run. */
         private val SHOWCASE = listOf(
@@ -580,10 +597,13 @@ class DemoApplicationSeederRunner(private val props: DemoProperties, private val
         if (!props.seedApplications) return
         val existing = seeder.count()
         if (existing > 0) {
-            log.info("Demo applications already present ({}); not seeding again. POST /admin/demo/seed with reset=true to regenerate.", existing)
-            return
+            if (seeder.rosterComplete()) {
+                log.info("Demo applications already present ({}); not seeding again. POST /admin/demo/seed with reset=true to regenerate.", existing)
+                return
+            }
+            log.info("Demo applications present ({}) but from an older seed layout; regenerating with the current dealer roster.", existing)
         }
-        val result = seeder.seed(props.seedCount)
+        val result = seeder.seed(props.seedCount, reset = existing > 0)
         log.info("Demo applications seeded at startup | created={} | total={}", result.created, result.total)
     }
 }

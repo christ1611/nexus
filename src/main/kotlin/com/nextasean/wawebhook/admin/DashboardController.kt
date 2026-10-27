@@ -10,6 +10,7 @@ import com.nextasean.wawebhook.customer.CustomerSessionRepository
 import com.nextasean.wawebhook.dealer.Countries
 import com.nextasean.wawebhook.dealer.Dealer
 import com.nextasean.wawebhook.dealer.DealerRepository
+import com.nextasean.wawebhook.dealer.DealerTier
 import com.nextasean.wawebhook.risk.CustomerBadge
 import com.nextasean.wawebhook.risk.RiskAssessment
 import com.nextasean.wawebhook.risk.RiskAssessmentService
@@ -93,7 +94,30 @@ class DashboardController(
     data class GradeCount(val grade: String, val label: String, val labelKo: String, val count: Int)
     data class FlagCount(val code: String, val title: String, val titleKo: String, val severity: String, val fraud: Boolean, val count: Int)
     data class BadgeCount(val code: String, val label: String, val labelKo: String, val count: Int)
-    data class DealerStats(val code: String, val name: String, val country: String, val tier: String, val applications: Int, val approved: Int, val highRisk: Int)
+    /** Outcome metrics of a group of applications (one dealer, or every dealer of a tier). */
+    data class Metrics(
+        val applications: Int,
+        val open: Int,
+        val approved: Int,
+        val rejected: Int,
+        /** approved / decided; null without a decision yet. */
+        val approvalRate: Double?,
+        val assessed: Int,
+        val highRisk: Int,
+        val highRiskRate: Double?,
+        val fraudWarnings: Int,
+        val fraudRate: Double?,
+        val avgRiskScore: Double?,
+        val avgCreditScore: Double?,
+        val identityMatchRate: Double?,
+        /** Assessed customers who got the "referred by an excellent dealer" badge. */
+        val referralBadges: Int,
+        val applications30d: Int,
+        val lastApplicationAt: Instant?,
+    )
+    data class DealerStats(val code: String, val name: String, val country: String, val tier: String, val tierLabel: String, val tierLabelKo: String, val metrics: Metrics)
+    /** Excellent vs standard dealers side by side (the dashboard's dealer tab). */
+    data class TierStats(val tier: String, val label: String, val labelKo: String, val dealers: Int, val metrics: Metrics)
     data class FlagSummary(val code: String, val title: String, val titleKo: String, val severity: String, val fraud: Boolean, val detail: String)
     data class RiskRow(
         val applicationNumber: String,
@@ -111,7 +135,6 @@ class DashboardController(
         val badgesKo: List<String>,
         val assessedAt: Instant,
     )
-    data class RecentRow(val applicationNumber: String, val country: String, val dealerCode: String?, val status: String, val grade: String?, val createdAt: Instant)
 
     /** Step 4: one application waiting for an officer, with what makes it urgent. */
     data class QueueRow(
@@ -156,6 +179,9 @@ class DashboardController(
         val fraudWarnings: Int,
         val createdByCountry: Map<String, Int>,
         val highRiskByCountry: Map<String, Int>,
+        /** Per dealer tier (EXCELLENT / STANDARD), for the dealer tab's weekly comparison. */
+        val createdByTier: Map<String, Int>,
+        val approvedByTier: Map<String, Int>,
     )
 
     /** Active applications currently at each onboarding stage. */
@@ -205,7 +231,7 @@ class DashboardController(
         val badges: List<BadgeCount>,
         val dealers: List<DealerStats>,
         val highRiskApplications: List<RiskRow>,
-        val recent: List<RecentRow>,
+        val dealerTiers: List<TierStats>,
         val reviewQueue: List<QueueRow>,
         val trend: List<TrendWeek>,
         val agent: AgentActivity,
@@ -278,19 +304,18 @@ class DashboardController(
             .map { (code, flags) -> FlagCount(code, flags.first().title, flags.first().titleKo, flags.maxOf { it.severity }.name, flags.first().fraudSignal, flags.size) }
             .sortedWith(compareByDescending<FlagCount> { it.count }.thenBy { it.code })
         val badges = CustomerBadge.entries.map { b -> BadgeCount(b.name, b.label, b.labelKo, assessments.count { b in it.second.badges }) }
-        val dealerStats = allDealers.sortedBy { it.dealerCode }.map { d ->
-            val dApps = apps.filter { it.dealerId == d.id }
-            DealerStats(
-                d.dealerCode, d.name, d.country, d.tier.name, dApps.size,
-                dApps.count { it.status == ApplicationStatus.APPROVED },
-                dApps.count { app -> RiskGrade.parse(app.riskGrade)?.highRisk == true },
-            )
+        val assessedById = assessments.associate { it.first.id to it.second }
+        val dealerStats = allDealers
+            .sortedWith(compareBy<Dealer> { it.tier != DealerTier.EXCELLENT }.thenByDescending { d -> apps.count { it.dealerId == d.id } }.thenBy { it.dealerCode })
+            .map { d -> DealerStats(d.dealerCode, d.name, d.country, d.tier.name, d.tier.label, d.tier.labelKo, metrics(apps.filter { it.dealerId == d.id }, assessedById, now)) }
+        val dealerTiers = DealerTier.entries.map { tier ->
+            val ids = allDealers.filter { it.tier == tier }.map { it.id }.toSet()
+            TierStats(tier.name, tier.label, tier.labelKo, ids.size, metrics(apps.filter { it.dealerId in ids }, assessedById, now))
         }
         val highRisk = assessments.filter { it.second.grade.highRisk }
             .sortedWith(compareByDescending<Pair<DealerApplication, RiskAssessment>> { it.second.score }.thenByDescending { it.second.assessedAt })
             .take(20)
             .map { (app, a) -> riskRow(app, a, dealerById[app.dealerId]) }
-        val recent = apps.take(10).map { RecentRow(it.applicationNumber, it.country, dealerById[it.dealerId]?.dealerCode, it.status.name, it.riskGrade, it.createdAt) }
         val queue = waiting
             .sortedWith(compareByDescending<DealerApplication> { it.riskScore ?: -1 }.thenBy { waitingSince(it) })
             .take(20)
@@ -321,7 +346,7 @@ class DashboardController(
                 val app = appById[s.applicationId]
                 RecentStep(app?.applicationNumber ?: "?", app?.country ?: "", s.kind.name, s.kind.label, s.kind.labelKo, s.kind.phase.name, s.status.name, s.actor, s.title, s.createdAt)
             }
-        return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, recent, queue, trend(apps, assessments, now), agentActivity(), pipeline, inProgress, recentSteps)
+        return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, dealerTiers, queue, trend(apps, assessments, dealerById, now), agentActivity(), pipeline, inProgress, recentSteps)
     }
 
     private fun agentActivity(): AgentActivity {
@@ -350,7 +375,7 @@ class DashboardController(
     private fun hours(from: Instant, to: Instant): Double = Duration.between(from, to).toMinutes() / 60.0
 
     /** The last [TREND_WEEKS] ISO weeks (Monday start, dashboard time zone), oldest first, always present even when empty. */
-    private fun trend(apps: List<DealerApplication>, assessments: List<Pair<DealerApplication, RiskAssessment>>, now: Instant): List<TrendWeek> {
+    private fun trend(apps: List<DealerApplication>, assessments: List<Pair<DealerApplication, RiskAssessment>>, dealerById: Map<Long?, Dealer>, now: Instant): List<TrendWeek> {
         val thisWeek = LocalDate.ofInstant(now, zone).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val assessedById = assessments.associate { it.first.id to it.second }
         fun week(i: Instant?): LocalDate? = i?.let { LocalDate.ofInstant(it, zone).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
@@ -371,8 +396,40 @@ class DashboardController(
                 fraudWarnings = assessedThisWeek.count { it.fraudFlags.isNotEmpty() },
                 createdByCountry = Countries.ALL.associate { c -> c.code to created.count { it.country.equals(c.code, ignoreCase = true) } },
                 highRiskByCountry = Countries.ALL.associate { c -> c.code to completed.count { it.country.equals(c.code, ignoreCase = true) && assessedById[it.id]?.grade?.highRisk == true } },
+                createdByTier = DealerTier.entries.associate { t -> t.name to created.count { dealerById[it.dealerId]?.tier == t } },
+                approvedByTier = DealerTier.entries.associate { t -> t.name to decidedThisWeek.count { it.status == ApplicationStatus.APPROVED && dealerById[it.dealerId]?.tier == t } },
             )
         }
+    }
+
+    private fun metrics(group: List<DealerApplication>, assessedById: Map<Long?, RiskAssessment>, now: Instant): Metrics {
+        val assessed = group.mapNotNull { assessedById[it.id] }
+        val approved = group.count { it.status == ApplicationStatus.APPROVED }
+        val rejected = group.count { it.status == ApplicationStatus.REJECTED }
+        val highRisk = assessed.count { it.grade.highRisk }
+        val fraud = assessed.count { it.fraudFlags.isNotEmpty() }
+        val verified = group.filter { it.idVerificationStatus != null }
+        val scores = group.mapNotNull { it.creditScore }
+        val since = now.minus(Duration.ofDays(30))
+        fun rate(n: Int, of: Int): Double? = of.takeIf { it > 0 }?.let { n.toDouble() / it }
+        return Metrics(
+            applications = group.size,
+            open = group.count { !it.status.isFinal },
+            approved = approved,
+            rejected = rejected,
+            approvalRate = rate(approved, approved + rejected),
+            assessed = assessed.size,
+            highRisk = highRisk,
+            highRiskRate = rate(highRisk, assessed.size),
+            fraudWarnings = fraud,
+            fraudRate = rate(fraud, assessed.size),
+            avgRiskScore = assessed.takeIf { it.isNotEmpty() }?.map { it.score.toDouble() }?.average(),
+            avgCreditScore = scores.takeIf { it.isNotEmpty() }?.average(),
+            identityMatchRate = rate(verified.count { it.idVerificationStatus == ProviderOutcome.MATCH }, verified.size),
+            referralBadges = assessed.count { CustomerBadge.EXCELLENT_DEALER_REFERRAL in it.badges },
+            applications30d = group.count { !it.createdAt.isBefore(since) },
+            lastApplicationAt = group.maxOfOrNull { it.createdAt },
+        )
     }
 
     private companion object {

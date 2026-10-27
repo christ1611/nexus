@@ -73,6 +73,8 @@
   .tile .k small { color: var(--text-3); }
   .tile .v { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--brand); font-variant-numeric: tabular-nums; }
   .tile.alert .v { color: var(--critical); }
+  .tile.good .v { color: var(--good); }
+  #panel-dealers th { white-space: nowrap; }
   .key { display: flex; gap: 8px; align-items: center; }
   input[type=password], input[type=text] { font: inherit; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); min-width: 220px; }
   button { font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
@@ -307,11 +309,32 @@
     return s;
   }
 
+  /* Weekly columns per dealer tier, side by side: excellent dealers in the brand blue, standard dealers in the light step. */
+  function tierTrendChart(weeks) {
+    const W = 520, H = 170, left = 36, right = 8, top = 16, bottom = 26, n = weeks.length;
+    const TIERS = [['EXCELLENT', t('우수 딜러', 'Excellent'), 'var(--seq)'], ['STANDARD', t('일반 딜러', 'Standard'), 'var(--seq-light)']];
+    const max = Math.max(1, ...weeks.flatMap(w => TIERS.map(([k]) => (w.createdByTier || {})[k] || 0)));
+    const plotW = W - left - right, plotH = H - top - bottom, colW = plotW / n, barW = Math.min(16, colW * 0.3);
+    const y = v => top + plotH - plotH * v / max;
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Applications per week by dealer tier">`;
+    [0, 0.5, 1].forEach(f => { const yy = y(max * f); s += `<line class="grid" x1="${left}" x2="${W - right}" y1="${yy}" y2="${yy}"/><text x="${left - 6}" y="${yy + 4}" text-anchor="end">${Math.round(max * f)}</text>`; });
+    weeks.forEach((w, i) => {
+      const cx = left + colW * i + colW / 2;
+      TIERS.forEach(([k, label, color], j) => {
+        const v = (w.createdByTier || {})[k] || 0, x = cx + (j - 1) * barW + 1;
+        if (v) s += `<rect class="bar" x="${x}" y="${y(v)}" width="${barW - 2}" height="${Math.max(y(0) - y(v), 1)}" rx="2" fill="${color}" data-tip="${esc(t(`${w.label} 주 · ${label}: ${v}건 신청, 승인 ${(w.approvedByTier || {})[k] || 0}`, `week ${w.label} · ${label}: ${v} applications, ${(w.approvedByTier || {})[k] || 0} approved`))}"/>`;
+      });
+      s += `<text x="${cx}" y="${H - 8}" text-anchor="middle" class="lbl">${esc(w.label)}</text>`;
+    });
+    s += `</svg><div class="legend">${TIERS.map(([, label, color]) => `<span><span class="dot" style="background:${color}"></span>${label}</span>`).join('')}</div>`;
+    return s;
+  }
+
   function gradeCell(g) { const m = GRADE[g] || { color: 'var(--text-3)', icon: '○', ko: '미평가', en: 'n/a' }; return `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g || '–')} <span class="sub" style="display:inline">${t(m.ko, m.en)}</span></span>`; }
 
   const TABS = [
     ['overview', '개요', 'Overview'], ['risk', '리스크·사기', 'Risk & fraud'], ['country', '국가·딜러', 'Countries & dealers'],
-    ['agent', 'AI 에이전트', 'AI agent'], ['recent', '최근 신청', 'Recent applications'],
+    ['agent', 'AI 에이전트', 'AI agent'], ['dealers', '우수 딜러', 'Excellent dealers'],
   ];
   let activeTab = 'overview';
   try { activeTab = sessionStorage.getItem('dashboardTab') || activeTab; } catch {}
@@ -390,7 +413,7 @@
 
     h += `<div class="row">
       <section class="card"><h2>${t('온보딩 퍼널', 'Onboarding funnel')}</h2>${hbars(d.funnel.map(f => ({ label: L(f, 'stage'), value: f.count, color: 'var(--seq)', tip: `${L(f, 'stage')}: ${f.count}` })), { left: 110, aria: 'Onboarding funnel' })}</section>
-      <section class="card"><h2>${t('딜러별 현황', 'Per dealer')}</h2><div class="scroll"><table><thead><tr><th>${t('코드', 'Code')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('국가', 'Country')}</th><th>${t('등급', 'Tier')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('고위험', 'High risk')}</th></tr></thead><tbody>${d.dealers.map(x => `<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${x.tier === 'EXCELLENT' ? '★ ' + t('우수 딜러', 'Excellent') : t('일반', 'Standard')}</td><td class="num">${x.applications}</td><td class="num">${x.approved}</td><td class="num">${x.highRisk}</td></tr>`).join('')}</tbody></table></div></section>
+      <section class="card"><h2>${t('딜러별 현황', 'Per dealer')}</h2><div class="scroll"><table><thead><tr><th>${t('코드', 'Code')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('국가', 'Country')}</th><th>${t('등급', 'Tier')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('고위험', 'High risk')}</th></tr></thead><tbody>${d.dealers.map(x => `<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${x.tier === 'EXCELLENT' ? '★ ' + t('우수 딜러', 'Excellent') : t('일반', 'Standard')}</td><td class="num">${x.metrics.applications}</td><td class="num">${x.metrics.approved}</td><td class="num">${x.metrics.highRisk}</td></tr>`).join('')}</tbody></table></div></section>
     </div>`;
 
     P.country = h; h = '';
@@ -413,12 +436,39 @@
 
     P.agent = h; h = '';
 
-    h += `<section class="card"><h2>${t('최근 신청', 'Recent applications')}</h2><div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('국가', 'Country')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('상태', 'Status')}</th><th>${t('등급', 'Grade')}</th><th>${t('생성', 'Created')}</th></tr></thead><tbody>${d.recent.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)}</td><td>${fmtTime(r.createdAt)}</td></tr>`).join('') || `<tr><td colspan="6" class="empty">${t('아직 신청이 없습니다.', 'No applications yet.')}</td></tr>`}</tbody></table></div>
-    </section>`;
-    P.recent = h; h = '';
+    // excellent dealers: tier comparison, weekly volume per tier, and the dealer ranking
+    const tierOf = Object.fromEntries((d.dealerTiers || []).map(x => [x.tier, x]));
+    const ex = tierOf.EXCELLENT || { dealers: 0, metrics: {} }, st = tierOf.STANDARD || { dealers: 0, metrics: {} };
+    const em = ex.metrics, sm = st.metrics;
+    const exDealers = d.dealers.filter(x => x.tier === 'EXCELLENT');
+    const better = (a, b, lowerIsBetter) => a == null || b == null ? '' : (lowerIsBetter ? a < b : a > b) ? 'good' : (a === b ? '' : 'alert');
+    h += `<section class="card"><div class="tiles">
+      <div class="tile"><div class="k">${t('우수 딜러', 'Excellent dealers')} <small>${t('전체 딜러 중', 'of all dealers')}</small></div><div class="v">${ex.dealers} <span class="sub" style="display:inline;font-size:14px">/ ${d.dealers.length}</span></div></div>
+      <div class="tile"><div class="k">${t('우수 딜러 경유 신청', 'Via excellent dealers')}</div><div class="v">${em.applications ?? 0} <span class="sub" style="display:inline;font-size:14px">${pct(tt.applications ? (em.applications || 0) / tt.applications : null)}</span></div></div>
+      <div class="tile ${better(em.approvalRate, sm.approvalRate)}"><div class="k">${t('우수 딜러 승인율', 'Approval rate, excellent')} <small>${t('일반', 'standard')} ${pct(sm.approvalRate)}</small></div><div class="v">${pct(em.approvalRate)}</div></div>
+      <div class="tile ${better(em.highRiskRate, sm.highRiskRate, true)}"><div class="k">${t('우수 딜러 고위험 비율', 'High-risk share, excellent')} <small>${t('일반', 'standard')} ${pct(sm.highRiskRate)}</small></div><div class="v">${pct(em.highRiskRate)}</div></div>
+      <div class="tile ${better(em.fraudRate, sm.fraudRate, true)}"><div class="k">${t('우수 딜러 위조 경고 비율', 'Fraud-warning share, excellent')} <small>${t('일반', 'standard')} ${pct(sm.fraudRate)}</small></div><div class="v">${pct(em.fraudRate)}</div></div>
+      <div class="tile"><div class="k">${t('우수 딜러 유입 배지 고객', 'Referral badge customers')}</div><div class="v">${em.referralBadges ?? 0}</div></div>
+      <div class="tile"><div class="k">${t('최근 30일 신청', 'Applications, 30 days')} <small>${t('우수 / 일반', 'excellent / standard')}</small></div><div class="v">${em.applications30d ?? 0} <span class="sub" style="display:inline;font-size:14px">/ ${sm.applications30d ?? 0}</span></div></div>
+    </div></section>`;
+
+    const tierRow = (x, star) => { const m = x.metrics; return `<tr><td><b>${star ? '★ ' : ''}${esc(L(x))}</b></td><td class="num">${x.dealers}</td><td class="num">${m.applications ?? 0}</td><td class="num">${m.approved ?? 0}</td><td class="num">${m.rejected ?? 0}</td><td class="num">${pct(m.approvalRate)}</td><td class="num">${pct(m.highRiskRate)}</td><td class="num">${pct(m.fraudRate)}</td><td class="num">${m.avgRiskScore == null ? '–' : m.avgRiskScore.toFixed(0)}</td><td class="num">${num(m.avgCreditScore)}</td><td class="num">${pct(m.identityMatchRate)}</td></tr>`; };
+    h += `<div class="row">
+      <section class="card"><h2>${t('우수 딜러 vs 일반 딜러', 'Excellent vs standard dealers')} <small>${t('전체 기간 누적', 'all time')}</small></h2><div class="scroll"><table><thead><tr><th>${t('등급', 'Tier')}</th><th class="num">${t('딜러', 'Dealers')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('거절', 'Rejected')}</th><th class="num">${t('승인율', 'Approval')}</th><th class="num">${t('고위험', 'High risk')}</th><th class="num">${t('위조 경고', 'Fraud')}</th><th class="num">${t('평균 리스크', 'Avg risk')}</th><th class="num">${t('평균 신용', 'Avg credit')}</th><th class="num">${t('신원 일치', 'ID match')}</th></tr></thead><tbody>${tierRow(ex, true)}${tierRow(st, false)}</tbody></table></div>
+        <p class="sub" style="margin:8px 0 0">${t('고위험·위조 경고는 리스크 평가가 끝난 신청 중 비율, 승인율은 결정이 난 신청 중 비율이에요.', 'High-risk and fraud shares are over assessed applications; the approval rate is over decided ones.')}</p></section>
+      <section class="card"><h2>${t('주간 신청 추이 · 등급별', 'Weekly applications by tier')} <small>${t('최근 8주, 우수 딜러 vs 일반 딜러', 'last 8 weeks, excellent vs standard')}</small></h2>${tierTrendChart(d.trend)}</section>
+    </div>`;
+
+    h += `<section class="card"><h2>${t('딜러 순위', 'Dealer ranking')} <small>${t('우수 딜러 먼저, 신청 많은 순', 'excellent dealers first, most applications first')}</small></h2><div class="scroll"><table><thead><tr><th>${t('딜러', 'Dealer')}</th><th>${t('국가', 'Country')}</th><th>${t('등급', 'Tier')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('진행 중', 'Open')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('거절', 'Rejected')}</th><th class="num">${t('승인율', 'Approval')}</th><th class="num">${t('고위험', 'High risk')}</th><th class="num">${t('위조 경고', 'Fraud')}</th><th class="num">${t('평균 리스크', 'Avg risk')}</th><th class="num">${t('배지 고객', 'Badge')}</th><th class="num">${t('30일', '30 d')}</th><th>${t('최근 신청', 'Last application')}</th></tr></thead><tbody>${
+      d.dealers.map(x => { const m = x.metrics, exr = x.tier === 'EXCELLENT'; return `<tr${exr ? ' style="background:var(--info-bg)"' : ''}><td><b>${esc(x.name)}</b><br><span class="sub">${esc(x.code)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${exr ? `<span class="chip badge">★ ${esc(L(x, 'tierLabel'))}</span>` : `<span class="chip">${esc(L(x, 'tierLabel'))}</span>`}</td><td class="num">${m.applications}</td><td class="num">${m.open}</td><td class="num">${m.approved}</td><td class="num">${m.rejected}</td><td class="num">${pct(m.approvalRate)}</td><td class="num">${m.highRisk ? `<span style="color:var(--critical);font-weight:600">${m.highRisk}</span>` : '0'}</td><td class="num">${m.fraudWarnings ? `<span style="color:var(--critical);font-weight:600">⚠ ${m.fraudWarnings}</span>` : '0'}</td><td class="num">${m.avgRiskScore == null ? '–' : m.avgRiskScore.toFixed(0)}</td><td class="num">${m.referralBadges}</td><td class="num">${m.applications30d}</td><td><span class="sub">${m.lastApplicationAt ? fmtTime(m.lastApplicationAt) : '–'}</span></td></tr>`; }).join('') || `<tr><td colspan="14" class="empty">${t('등록된 딜러가 없습니다.', 'No dealers registered.')}</td></tr>`
+    }</tbody></table></div></section>`;
+
+    h += `<section class="card"><h2>${t('우수 딜러란', 'What an excellent dealer is')}</h2>
+      <p class="sub" style="display:block;margin:6px 0 0">${t('딜러마다 등급(일반 · 우수)이 있어요. 우수 딜러가 만든 신청의 고객은 리스크 평가에서 "우수 딜러 유입 고객" 배지를 받고, 심사 화면과 고객 리포트에 표시돼요. 배지는 참고 정보이며 등급 점수를 바꾸지는 않아요. 이 탭은 우수 딜러 경유 고객이 실제로 더 낮은 리스크와 더 높은 승인율을 보이는지 추적해, 딜러 등급을 유지하거나 조정하는 근거를 줘요.', 'Each dealer has a tier (standard or excellent). Customers filed by an excellent dealer receive the "referred by an excellent dealer" badge in the risk assessment, shown on the review page and the customer report. The badge is informational and does not change the grade score. This tab tracks whether customers from excellent dealers really come with lower risk and higher approval rates, as evidence for keeping or adjusting dealer tiers.')}</p></section>`;
+    P.dealers = h; h = '';
 
     const footer = `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${tt.demoApplications ? ` · ${t(`데모 데이터 ${tt.demoApplications}건 포함 (DELETE /admin/demo/seed 로 제거)`, `includes ${tt.demoApplications} demo applications (remove with DELETE /admin/demo/seed)`)}` : ''}</p>`;
-    const counts = { overview: openTotal, risk: tt.highRisk, agent: ag.steps };
+    const counts = { overview: openTotal, risk: tt.highRisk, agent: ag.steps, dealers: exDealers.length };
     const wasOpen = new Set([...main.querySelectorAll('details[open] > summary')].map(s => s.textContent.trim()));
     main.innerHTML = `<div class="tabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([id, ko, en]) =>
       `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}">${t(ko, en)}${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
