@@ -647,7 +647,7 @@
     h += `<div class="card" id="stage-panel" style="margin-top:16px"><div id="stage-body">${renderStages(a.progress)}</div>${renderTraceSection(trace, liveTrace, prevLastId)}</div>`;
 
     // actions
-    h += `<div class="card" style="margin-top:16px"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between"><h2 style="margin:0">${t('심사 결정', 'Decisions')} <small>${t('알림은 WhatsApp으로 딜러와 고객에게 전송됩니다', 'notifications go to the dealer and the customer on WhatsApp')}</small></h2><button type="button" id="btn-report" title="${t('이 고객의 리포트를 팝업으로 봅니다', 'Open this customer\'s report in a popup')}">📄 ${t('고객 리포트', 'Customer report')}</button></div>
+    h += `<div class="card" style="margin-top:16px"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between"><h2 style="margin:0">${t('심사 결정', 'Decisions')} <small>${t('알림은 WhatsApp으로 딜러와 고객에게 전송됩니다', 'notifications go to the dealer and the customer on WhatsApp')}</small></h2><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><button type="button" id="btn-report" title="${t('이 고객의 리포트를 팝업으로 봅니다', 'Open this customer\'s report in a popup')}">📄 ${t('고객 리포트', 'Customer report')}</button><button type="button" id="btn-decision-report" title="${a.decisionReport?.available ? t(`결정 시점에 자동 생성된 근거 보고서 (${fmtTime(a.decisionReport.generatedAt)})`, `Evidence report generated at decision time (${fmtTime(a.decisionReport.generatedAt)})`) : t('결정 전에는 현재 데이터로 임시본을 만듭니다', 'Before a decision this renders a draft from the current data')}">📑 ${t('근거 보고서 PDF', 'Evidence report PDF')}${a.decisionReport?.available ? '' : ` <span class="sub" style="color:inherit;opacity:.7">${t('임시본', 'draft')}</span>`}</button></div></div>
       ${final ? `<p class="empty">${t('결정이 완료된 신청입니다. 메모만 추가할 수 있습니다.', 'This application is decided. Only notes can be added.')}</p>` : ''}
       <div class="actions">
         <div class="action"><h3>${t('승인 / 거절', 'Approve / reject')}</h3>
@@ -786,6 +786,22 @@
   lightbox.addEventListener('click', () => { lightbox.style.display = 'none'; });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { lightbox.style.display = 'none'; closeReport(); } });
 
+  /* Decision evidence report (PDF): fetched with the admin key, then handed to the browser as a download. */
+  async function downloadDecisionReport(number, btn) {
+    if (btn) btn.disabled = true;
+    setStatus(t('근거 보고서를 만드는 중…', 'Preparing the evidence report…'));
+    try {
+      const res = await fetch('/admin/applications/' + encodeURIComponent(number) + '/decision-report.pdf', { headers: { 'X-Admin-Key': keyInput.value.trim() } });
+      if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.error || ('HTTP ' + res.status)); }
+      const name = (res.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)?.[1] || `decision-report-${number}.pdf`;
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setStatus(t('근거 보고서 내려받음: ', 'Evidence report downloaded: ') + name);
+    } catch (e) { errStatus(e); }
+    finally { if (btn) btn.disabled = false; }
+  }
+
   /* ---------- customer report popup ---------- */
   const sheet = $('#report .sheet');
   let reportNumber = null;                      // application shown in the popup, so a language switch can redraw it
@@ -804,6 +820,7 @@
       sheet.innerHTML = reportHtml(a);
       sheet.querySelectorAll('.rp-close').forEach(b => b.addEventListener('click', closeReport));
       sheet.querySelector('.rp-print').addEventListener('click', () => window.print());
+      sheet.querySelector('.rp-pdf').addEventListener('click', e => downloadDecisionReport(number, e.target.closest('button')));
       sheet.querySelector('.rp-open').addEventListener('click', () => { closeReport(); showTab('work'); open(number); });
       bindTips(sheet);
     } catch (e) {
@@ -829,7 +846,7 @@
     return `<div class="sheet-head">
         <div><h2 id="report-title">${esc(a.applicationNumber)} ${pill(a.status)}</h2>
           <div class="sub">${t('고객 리포트', 'Customer report')} · ${countryCell(a.country)} ${esc(countryName(a.country))} · ${t('딜러', 'dealer')} ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''}</div></div>
-        <div class="sheet-tools no-print"><button type="button" class="rp-open">${t('상세 열기', 'Open detail')}</button><button type="button" class="rp-print">🖨 ${t('인쇄', 'Print')}</button>${closeBtn()}</div>
+        <div class="sheet-tools no-print"><button type="button" class="rp-open">${t('상세 열기', 'Open detail')}</button><button type="button" class="rp-pdf">📑 ${t('근거 보고서 PDF', 'Evidence PDF')}</button><button type="button" class="rp-print">🖨 ${t('인쇄', 'Print')}</button>${closeBtn()}</div>
       </div>
       <div class="grid2">
         <div>${sec(t('고객', 'Customer'), '', `<dl class="kv"><dt>${t('이름', 'Name')}</dt><dd><b>${esc(customerName(a))}</b></dd><dt>${t('전화', 'Phone')}</dt><dd>${a.customerPhone ? '+' + esc(a.customerPhone) : `<span class="sub">${t('아직 없음', 'not yet')}</span>`}</dd><dt>${t('국가', 'Country')}</dt><dd>${esc(countryName(a.country) || a.country)}</dd><dt>${t('딜러', 'Dealer')}</dt><dd>${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}</dd><dt>${t('생성', 'Created')}</dt><dd>${fmtTime(a.createdAt)}</dd><dt>${t('최근 변경', 'Updated')}</dt><dd>${fmtTime(a.updatedAt)}</dd>${a.progress ? `<dt>${t('진행 단계', 'Stage')}</dt><dd>${esc(curStage(a.progress))} <span class="sub">${a.progress.done}/${a.progress.total}</span></dd>` : ''}</dl>`)}</div>
@@ -871,6 +888,7 @@
     }
     $('#btn-reassess').addEventListener('click', e => run(e.target, async () => { await api('/admin/applications/' + n + '/assess-risk' + (reviewer() ? '?reviewer=' + encodeURIComponent(reviewer()) : ''), { method: 'POST' }); after(t('리스크 재평가 완료', 'Risk re-assessed')); }));
     $('#btn-report').addEventListener('click', () => showReport(a.applicationNumber));
+    $('#btn-decision-report').addEventListener('click', e => downloadDecisionReport(a.applicationNumber, e.target.closest('button')));
     $('#btn-note').addEventListener('click', e => { const note = $('#note-text').value.trim(); if (!note) { setStatus(t('메모를 입력하세요.', 'Enter a note.'), true); return; } run(e.target, async () => { await api('/admin/applications/' + n + '/note', { method: 'POST', body: JSON.stringify({ note, reviewer: reviewer() }) }); after(t('메모 추가 완료', 'Note added')); }); });
   }
 

@@ -10,6 +10,8 @@ RUN ./gradlew --no-daemon -Pkotlin.compiler.execution.strategy=in-process bootJa
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
+# Korean-capable font for the decision evidence report (PDF); the JRE image ships no fonts.
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-nanum && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/build/libs/*.jar /app/app.jar
 # Favour fast startup over peak throughput on small CPU allocations.
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0 -XX:TieredStopAtLevel=1"

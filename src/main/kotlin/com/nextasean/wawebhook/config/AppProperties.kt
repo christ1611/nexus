@@ -9,6 +9,15 @@ data class AppProperties(
     val publicBaseUrl: String = "http://localhost:8080",
     val linkTtl: Duration = Duration.ofHours(24),
     val documentsDir: String = "./data/documents",
+    /** Where decision evidence reports (PDF) are kept, one folder per application. */
+    val reportsDir: String = "./data/reports",
+    /** Fonts with Hangul glyphs tried in order for the PDF (first one that exists and loads wins); a `.ttc` takes a `,index` suffix. */
+    val reportFonts: List<String> = listOf(
+        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+        "/System/Library/Fonts/AppleSDGothicNeo.ttc,0",
+        "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+        "C:/Windows/Fonts/malgun.ttf",
+    ),
     val timeZone: String = "Asia/Jakarta",
     val adminApiKey: String = "",
     /** `stub` (demo, default) or `claude` (Claude vision analysis + review agent). */
@@ -17,7 +26,7 @@ data class AppProperties(
     val zoneId: ZoneId get() = ZoneId.of(timeZone)
 
     override fun toString(): String =
-        "AppProperties(publicBaseUrl=$publicBaseUrl, linkTtl=$linkTtl, documentsDir=$documentsDir, timeZone=$timeZone, documentCheck=$documentCheck, adminApiKey=***)"
+        "AppProperties(publicBaseUrl=$publicBaseUrl, linkTtl=$linkTtl, documentsDir=$documentsDir, reportsDir=$reportsDir, timeZone=$timeZone, documentCheck=$documentCheck, adminApiKey=***)"
 }
 
 @ConfigurationProperties(prefix = "demo")

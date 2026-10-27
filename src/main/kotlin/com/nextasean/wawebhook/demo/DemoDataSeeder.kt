@@ -27,6 +27,7 @@ import com.nextasean.wawebhook.documents.analysis.TamperSignalType
 import com.nextasean.wawebhook.documents.analysis.QualityIssue
 import com.nextasean.wawebhook.documents.analysis.QualityIssueType
 import com.nextasean.wawebhook.documents.analysis.Severity
+import com.nextasean.wawebhook.review.DecisionReportService
 import com.nextasean.wawebhook.review.ReviewEvent
 import com.nextasean.wawebhook.review.ReviewEventKind
 import com.nextasean.wawebhook.review.ReviewEventRepository
@@ -79,6 +80,7 @@ class DemoDataSeeder(
     private val codec: DocumentAnalysisCodec,
     private val jdbcClient: JdbcClient,
     private val props: AppProperties,
+    private val reports: DecisionReportService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -156,9 +158,10 @@ class DemoDataSeeder(
             }
             sessions.deleteAll(sessions.findByApplicationIdOrderByCreatedAtDesc(id))
             applications.delete(app)
-            val dir = Path.of(props.documentsDir).resolve(app.applicationNumber)
-            if (Files.isDirectory(dir)) runCatching { Files.walk(dir).use { w -> w.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) } } }
-                .onFailure { log.warn("Demo document folder {} could not be removed: {}", dir, it.message) }
+            listOf(Path.of(props.documentsDir).resolve(app.applicationNumber), Path.of(props.reportsDir).resolve(app.applicationNumber)).filter { Files.isDirectory(it) }.forEach { dir ->
+                runCatching { Files.walk(dir).use { w -> w.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) } } }
+                    .onFailure { log.warn("Demo folder {} could not be removed: {}", dir, it.message) }
+            }
         }
         dealers.findAll().filter { it.dealerCode.startsWith(DEMO_DEALER_PREFIX) && applications.findByDealerIdOrderByCreatedAtDesc(it.id!!).isEmpty() }
             .forEach { dealers.delete(it) }
@@ -405,6 +408,8 @@ class DemoDataSeeder(
                 app = applications.save(app.copy(status = if (approve) ApplicationStatus.APPROVED else ApplicationStatus.REJECTED, decisionNote = note, decidedBy = officer, decidedAt = at, updatedAt = at))
                 event(app, if (approve) ReviewEventKind.APPROVED else ReviewEventKind.REJECTED, officer, note, at)
                 step(app, TraceKind.OFFICER_DECISION, if (approve) TraceStatus.OK else TraceStatus.FAIL, AgentTraceService.officer(officer), "Officer ${if (approve) "approved" else "rejected"} the application", note, at)
+                // As in production: every decision leaves a stored evidence report.
+                reports.generateAndStore(app)?.let { event(app, ReviewEventKind.REPORT_GENERATED, "system", it.fileName, at.plusSeconds(1)) }
             }
             else -> Unit
         }

@@ -203,7 +203,7 @@ class ReviewBackOfficeTest @Autowired constructor(
         assertNotNull(decided.decidedAt)
         assertEquals(
             listOf(ReviewEventKind.DOCUMENTS_COMPLETE, ReviewEventKind.RISK_ASSESSED, ReviewEventKind.DOCUMENTS_REQUESTED, ReviewEventKind.DOCUMENTS_COMPLETE,
-                ReviewEventKind.RISK_ASSESSED, ReviewEventKind.NOTE_ADDED, ReviewEventKind.APPROVED),
+                ReviewEventKind.RISK_ASSESSED, ReviewEventKind.NOTE_ADDED, ReviewEventKind.APPROVED, ReviewEventKind.REPORT_GENERATED),
             events.findByApplicationIdOrderByCreatedAtAsc(app.id).map { it.kind },
         )
 

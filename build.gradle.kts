@@ -29,6 +29,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.anthropic:anthropic-java:2.34.0")
+    // Decision evidence report (PDF) for regulators and audits.
+    implementation("com.github.librepdf:openpdf:2.2.2")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")

@@ -21,6 +21,7 @@ import com.nextasean.wawebhook.documents.DocumentRecord
 import com.nextasean.wawebhook.documents.DocumentRepository
 import com.nextasean.wawebhook.documents.DocumentType
 import com.nextasean.wawebhook.review.DocumentRequest
+import com.nextasean.wawebhook.review.DecisionReportService
 import com.nextasean.wawebhook.review.ReviewAuditService
 import com.nextasean.wawebhook.review.ReviewEvent
 import com.nextasean.wawebhook.review.ReviewEventKind
@@ -36,6 +37,7 @@ import org.springframework.http.CacheControl
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.http.HttpHeaders
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -67,6 +69,7 @@ class AdminApplicationController(
     private val stages: StageProgressService,
     private val copilot: ReviewCopilotService,
     private val businessPhone: BusinessPhoneHolder,
+    private val reports: DecisionReportService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     /** Back-office creation: no dealer phone needed. With a customer phone the customer is invited over WhatsApp. */
@@ -162,6 +165,8 @@ class AdminApplicationController(
         val agentTrace: List<StepView>? = null,
         /** Where the application is in the onboarding pipeline (stepper on the review page, mini bar in the queue). */
         val progress: StageProgress? = null,
+        /** Decision evidence report (PDF): whether one is stored for this application and where to fetch it. */
+        val decisionReport: DecisionReportService.Info? = null,
         val createdAt: Instant,
         val updatedAt: Instant,
     )
@@ -354,9 +359,21 @@ class AdminApplicationController(
             decided.id, TraceKind.OFFICER_DECISION, if (body.decision == Decision.APPROVED) TraceStatus.OK else TraceStatus.FAIL, AgentTraceService.officer(body.reviewer),
             "Officer ${if (body.decision == Decision.APPROVED) "approved" else "rejected"} the application", decided.decisionNote, round = decided.reviewRounds,
         )
+        // The evidence report is written the moment the decision is recorded, from the data as it stands now.
+        reports.generateAndStore(decided)?.let { audit.record(decided, ReviewEventKind.REPORT_GENERATED, ReviewAuditService.SYSTEM, it.fileName) }
         val dealerNotified = notifier.decision(decided)
         val customerNotified = customerNotifier.decision(decided)
         return ResponseEntity.ok(ActionResult(detail(decided), dealerNotified, customerNotified))
+    }
+
+    /** The decision evidence report (PDF): the stored one for a decided application, a draft rendered now otherwise. */
+    @GetMapping("/applications/{number}/decision-report.pdf")
+    fun decisionReport(@PathVariable number: String): ResponseEntity<Any> {
+        val app = service.findByNumber(number) ?: return notFound(number)
+        val stored = reports.stored(app)?.takeIf { app.status.isFinal }
+        val bytes = stored?.let { runCatching { Files.readAllBytes(it.path) }.getOrNull() } ?: reports.render(app, draft = !app.status.isFinal)
+        val name = stored?.fileName ?: "decision-report-${app.applicationNumber}${if (app.status.isFinal) "" else "-draft"}.pdf"
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"$name\"").body(bytes)
     }
 
     /** Adds an officer note to the timeline without changing the application. */
@@ -405,7 +422,7 @@ class AdminApplicationController(
     private fun detail(app: DealerApplication): ApplicationView {
         val docs = documents.findByApplicationIdOrderByCreatedAtAsc(app.id!!)
         return app.toView(dealers.findById(app.dealerId).orElse(null), docs.count { !it.superseded && it.checkPassed == true })
-            .copy(documents = docs.map { it.toView(app) }, events = audit.timeline(app).map(EventView::of), agentTrace = trace.steps(app.id).map(StepView::of), progress = stages.forApplication(app))
+            .copy(documents = docs.map { it.toView(app) }, events = audit.timeline(app).map(EventView::of), agentTrace = trace.steps(app.id).map(StepView::of), progress = stages.forApplication(app), decisionReport = reports.info(app))
     }
 
     private fun queueRank(status: ApplicationStatus) = when (status) {

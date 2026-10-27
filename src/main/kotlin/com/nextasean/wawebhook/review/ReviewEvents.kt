@@ -20,6 +20,7 @@ enum class ReviewEventKind(val label: String, val labelKo: String) {
     NOTE_ADDED("Officer note", "심사 메모"),
     APPROVED("Approved", "승인"),
     REJECTED("Rejected", "거절"),
+    REPORT_GENERATED("Decision evidence report generated", "심사 근거 보고서 생성"),
 }
 
 @Table("REVIEW_EVENTS")

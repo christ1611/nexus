@@ -77,7 +77,9 @@ class DemoSeedTest @Autowired constructor(
             status { isOk() }
             jsonPath("$.documents[0].fileAvailable") { value(true) }
             jsonPath("$.agentTrace.length()") { value(greaterThanOrEqualTo(6)) }
-            jsonPath("$.events[-1].kind") { value("APPROVED") }
+            jsonPath("$.events[-2].kind") { value("APPROVED") }
+            jsonPath("$.events[-1].kind") { value("REPORT_GENERATED") }
+            jsonPath("$.decisionReport.available") { value(true) }
             jsonPath("$.risk.grade") { value("A") }
         }
         mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", KEY) }.andExpect {
