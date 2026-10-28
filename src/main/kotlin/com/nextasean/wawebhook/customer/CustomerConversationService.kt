@@ -18,6 +18,7 @@ import com.nextasean.wawebhook.documents.analysis.FieldStatus
 import com.nextasean.wawebhook.documents.analysis.Severity
 import com.nextasean.wawebhook.review.DocumentRequest
 import com.nextasean.wawebhook.review.ReviewAgent
+import com.nextasean.wawebhook.review.RuleBasedReviewAgent
 import com.nextasean.wawebhook.review.ReviewAuditService
 import com.nextasean.wawebhook.review.ReviewContextBuilder
 import com.nextasean.wawebhook.review.ReviewDecision
@@ -41,8 +42,9 @@ import java.time.Instant
  * Customer journey: START -> consent -> KTP -> selfie -> (review agent) -> verification -> submitted.
  * State lives in CUSTOMER_SESSIONS; each step is persisted before the next prompt is sent.
  *
- * When a [ReviewAgent] bean exists (Claude mode), it runs once every document has been accepted and either sends the
- * customer back for specific documents or writes the one-page summary; without one the flow goes straight to verification.
+ * Once every document has been accepted the review agent runs and either sends the customer back for specific documents
+ * or writes the one-page summary for the officer: the Claude agent when its bean exists (Claude mode), otherwise the
+ * rule-based agent, so every application that gets past the documents carries a summary.
  */
 @Service
 class CustomerConversationService(
@@ -64,6 +66,8 @@ class CustomerConversationService(
     private val businessPhone: BusinessPhoneHolder,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+    /** The Claude agent when configured, otherwise the deterministic rules: the step never goes missing. */
+    private val agent: ReviewAgent = reviewAgent ?: RuleBasedReviewAgent()
 
     /** Outcome of the back office inviting a customer: [sent] is null when no message was requested. */
     data class InviteResult(val application: DealerApplication, val sent: Boolean?)
@@ -332,7 +336,7 @@ class CustomerConversationService(
     private fun completeAndVerify(session: CustomerSession, app: DealerApplication) {
         sessions.save(session.copy(state = CustomerSessionState.VERIFYING, updatedAt = Instant.now()))
         send(session.phone, CustomerMessages.checking())
-        val reviewed = if (reviewAgent != null) review(session, app) ?: return else app
+        val reviewed = review(session, app) ?: return
         if (reviewAgent != null && reviewed.extractedNik == null) {
             // Nothing confident enough to send to the providers: the officer takes it from here.
             val saved = applications.save(
@@ -387,7 +391,7 @@ class CustomerConversationService(
      */
     private fun review(session: CustomerSession, app: DealerApplication): DealerApplication? {
         val context = reviewContext.build(app)
-        val decision = reviewAgent!!.decide(context)
+        val decision = agent.decide(context)
         val now = Instant.now()
         return when (decision) {
             is ReviewDecision.RequestDocuments -> {

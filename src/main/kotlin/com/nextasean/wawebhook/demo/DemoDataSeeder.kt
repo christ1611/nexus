@@ -315,7 +315,7 @@ class DemoDataSeeder(
             step(app, TraceKind.QUALITY_CHECK, TraceStatus.OK, AgentTraceService.STUB, "Selfie with KTP: accepted", "Demo check (stub mode)", t.plusSeconds(2), 2000)
         }
 
-        // Review agent (Claude mode only).
+        // Review agent: Claude turns in Claude mode, the rule-based decision otherwise (both end with a summary).
         var summary: String? = null
         var officerReview: Boolean? = null
         if (claudeMode) {
@@ -331,6 +331,15 @@ class DemoDataSeeder(
             step(app, TraceKind.AGENT_TOOL_CALL, TraceStatus.DECISION, AgentTraceService.claude(MODEL), "write_summary(...)", "officer_review_required=$officerReview | " + summary.lineSequence().take(2).joinToString(" / "), t.plusMillis(turnMs), null, mapOf("tool" to "write_summary", "input" to mapOf("officer_review_required" to officerReview, "summary" to summary)))
             step(app, TraceKind.AGENT_DECISION, if (officerReview) TraceStatus.WARN else TraceStatus.OK, AgentTraceService.claude(MODEL), "Decision: write the officer summary" + (if (officerReview) " - officer review required" else " - no manual items"), summary.lineSequence().take(3).joinToString(" / "), t.plusMillis(turnMs), null, mapOf("tool" to "write_summary", "officerReviewRequired" to officerReview))
             t = t.plusMillis(turnMs)
+        } else {
+            t = t.plusSeconds(2)
+            officerReview = !nikUsable
+            summary = summaryText(number, persona, idNumber, null, officerReview)
+            step(
+                app, TraceKind.AGENT_DECISION, if (officerReview) TraceStatus.WARN else TraceStatus.OK, AgentTraceService.RULES,
+                "Decision: write the officer summary" + (if (officerReview) " - officer review required" else " - no manual items"),
+                summary.lineSequence().take(3).joinToString(" / ").take(300), t, data = mapOf("tool" to "write_summary", "officerReviewRequired" to officerReview, "chars" to summary.length),
+            )
         }
 
         // Verification (or hand-off when the NIK could not be used).
@@ -370,7 +379,7 @@ class DemoDataSeeder(
             app.copy(
                 status = ApplicationStatus.READY_FOR_REVIEW, idVerificationStatus = idStatus, idVerificationDetail = idDetail?.take(255), creditCheckStatus = creditStatus,
                 creditCheckDetail = creditDetail?.take(255), creditScore = score, verifiedAt = if (nikUsable) completedAt else null,
-                reviewDecision = if (claudeMode) "SUMMARY_WRITTEN" else null, reviewSummary = summary, officerReviewRequired = officerReview, reviewedAt = if (claudeMode) completedAt else null,
+                reviewDecision = "SUMMARY_WRITTEN", reviewSummary = summary, officerReviewRequired = officerReview, reviewedAt = completedAt,
                 reviewRounds = round, updatedAt = completedAt,
             ),
         )

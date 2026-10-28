@@ -252,6 +252,9 @@ class ReviewBackOfficeTest @Autowired constructor(
             .andExpect { status { isUnauthorized() } }
         // The case file the model would receive masks the ID number and carries the flags and timeline.
         val app = applications.findByApplicationNumber(number)!!
+        // Stub mode still runs the rule-based review agent, so the officer always gets a summary.
+        assertEquals("SUMMARY_WRITTEN", app.reviewDecision)
+        assertTrue(app.reviewSummary!!.contains("DOCUMENT INTAKE SUMMARY"), app.reviewSummary!!)
         val caseFile = copilot.caseFile(app)
         assertTrue(caseFile.contains("Score 0 / 100"), caseFile)
         assertTrue(caseFile.contains("## AI agent timeline"), caseFile)
