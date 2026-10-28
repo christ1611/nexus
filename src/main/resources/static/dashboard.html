@@ -202,6 +202,19 @@
   .copilot .ask { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; align-items: end; }
   .copilot .ask textarea { min-height: 42px; max-height: 140px; border-radius: 12px; }
   .copilot .foot { font-size: 11px; color: var(--text-3); margin-top: 6px; }
+  /* Standard dialog (excellent dealer criteria) */
+  dialog.standard { border: 1px solid var(--border); border-radius: 18px; padding: 0; width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); background: var(--surface); color: var(--text); box-shadow: 0 24px 64px rgba(13,45,119,.28); }
+  dialog.standard::backdrop { background: rgba(13,45,119,.35); backdrop-filter: blur(2px); }
+  dialog.standard .inner { padding: 20px 22px 18px; overflow-y: auto; max-height: calc(100vh - 48px); }
+  dialog.standard .head { display: flex; align-items: flex-start; gap: 12px; justify-content: space-between; margin-bottom: 8px; }
+  dialog.standard h2 { font-size: 17px; margin: 0; }
+  dialog.standard h3 { font-size: 13px; margin: 16px 0 6px; color: var(--brand); }
+  dialog.standard p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; }
+  dialog.standard th, dialog.standard td { padding: 7px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; text-align: left; }
+  dialog.standard td.th { font-weight: 600; white-space: nowrap; }
+  dialog.standard ul { margin: 4px 0; padding-left: 18px; font-size: 13px; } dialog.standard li { margin: 3px 0; }
+  dialog.standard .close { flex: none; width: 32px; height: 32px; padding: 0; border-radius: 50%; display: grid; place-items: center; font-size: 16px; }
+  .btn-standard::before { content: '📋'; margin-right: 6px; }
   .copilot .msg.ai .caret { display: inline-block; width: 7px; height: 14px; margin-left: 2px; vertical-align: -2px; background: var(--brand-3); animation: pulse .8s infinite; border-radius: 2px; }
   @media (max-width: 600px) { main, header, footer { padding-left: 16px; padding-right: 16px; } .tile .v { font-size: 22px; } }
 </style>
@@ -235,6 +248,7 @@
   <span data-ko="관리자 키는 이 브라우저 세션에만 저장됩니다" data-en="The admin key stays in this browser session">관리자 키는 이 브라우저 세션에만 저장됩니다</span>
 </footer>
 <div id="tip" role="tooltip"></div>
+<dialog class="standard" id="standard" aria-labelledby="standard-title"></dialog>
 
 <script>
 (function () {
@@ -559,7 +573,7 @@
     const em = ex.metrics, sm = st.metrics;
     const exDealers = d.dealers.filter(x => x.tier === 'EXCELLENT');
     const better = (a, b, lowerIsBetter) => a == null || b == null ? '' : (lowerIsBetter ? a < b : a > b) ? 'good' : (a === b ? '' : 'alert');
-    h += `<section class="card"><div class="tiles">
+    h += `<section class="card"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">${t('우수 딜러 현황', 'Excellent dealers')} <small>${t('등급은 아래 기준으로 분기마다 검토합니다', 'tiers are reviewed quarterly against the standard below')}</small></h2><button type="button" class="btn-standard" data-standard="1">${t('우수 딜러 기준 보기', 'Excellent dealer standard')}</button></div><div class="tiles">
       <div class="tile"><div class="k">${t('우수 딜러', 'Excellent dealers')} <small>${t('전체 딜러 중', 'of all dealers')}</small></div><div class="v">${ex.dealers} <span class="sub" style="display:inline;font-size:14px">/ ${d.dealers.length}</span></div></div>
       <div class="tile"><div class="k">${t('우수 딜러 경유 신청', 'Via excellent dealers')}</div><div class="v">${em.applications ?? 0} <span class="sub" style="display:inline;font-size:14px">${pct(tt.applications ? (em.applications || 0) / tt.applications : null)}</span></div></div>
       <div class="tile ${better(em.approvalRate, sm.approvalRate)}"><div class="k">${t('우수 딜러 승인율', 'Approval rate, excellent')} <small>${t('일반', 'standard')} ${pct(sm.approvalRate)}</small></div><div class="v">${pct(em.approvalRate)}</div></div>
@@ -581,7 +595,8 @@
     }</tbody></table></div></section>`;
 
     h += `<section class="card"><h2>${t('우수 딜러란', 'What an excellent dealer is')}</h2>
-      <p class="sub" style="display:block;margin:6px 0 0">${t('딜러마다 등급(일반 · 우수)이 있어요. 우수 딜러가 만든 신청의 고객은 리스크 평가에서 "우수 딜러 유입 고객" 배지를 받고, 심사 화면과 고객 리포트에 표시돼요. 배지는 참고 정보이며 등급 점수를 바꾸지는 않아요. 이 탭은 우수 딜러 경유 고객이 실제로 더 낮은 리스크와 더 높은 승인율을 보이는지 추적해, 딜러 등급을 유지하거나 조정하는 근거를 줘요.', 'Each dealer has a tier (standard or excellent). Customers filed by an excellent dealer receive the "referred by an excellent dealer" badge in the risk assessment, shown on the review page and the customer report. The badge is informational and does not change the grade score. This tab tracks whether customers from excellent dealers really come with lower risk and higher approval rates, as evidence for keeping or adjusting dealer tiers.')}</p></section>`;
+      <p class="sub" style="display:block;margin:6px 0 0">${t('딜러마다 등급(일반 · 우수)이 있어요. 우수 딜러가 만든 신청의 고객은 리스크 평가에서 "우수 딜러 유입 고객" 배지를 받고, 심사 화면과 고객 리포트에 표시돼요. 배지는 참고 정보이며 등급 점수를 바꾸지는 않아요. 이 탭은 우수 딜러 경유 고객이 실제로 더 낮은 리스크와 더 높은 승인율을 보이는지 추적해, 딜러 등급을 유지하거나 조정하는 근거를 줘요.', 'Each dealer has a tier (standard or excellent). Customers filed by an excellent dealer receive the "referred by an excellent dealer" badge in the risk assessment, shown on the review page and the customer report. The badge is informational and does not change the grade score. This tab tracks whether customers from excellent dealers really come with lower risk and higher approval rates, as evidence for keeping or adjusting dealer tiers.')}</p>
+      <p style="margin:10px 0 0"><button type="button" class="btn-standard" data-standard="1">${t('우수 딜러 기준 보기', 'Show the excellent dealer standard')}</button></p></section>`;
     P.dealers = h; h = '';
 
     const footer = `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${tt.demoApplications ? ` · ${t(`데모 데이터 ${tt.demoApplications}건 포함 (DELETE /admin/demo/seed 로 제거)`, `includes ${tt.demoApplications} demo applications (remove with DELETE /admin/demo/seed)`)}` : ''}</p>`;
@@ -686,6 +701,46 @@
       copilotLog.push({ role: 'assistant', content: t('오류: ', 'Error: ') + e.message, err: true });
     } finally { copilotBusy = false; paintCopilot(); }
   }
+
+  /* The excellent dealer standard: what the tier means, the criteria a dealer must meet, and how it is reviewed.
+     Rendered in the current language; the language switch re-renders it while open. */
+  const STANDARD_ROWS = [
+    ['신청 건수', 'Volume', '최근 12개월 결정 완료 20건 이상', '20+ decided applications in the last 12 months', '판단할 수 있을 만큼의 이력', 'enough history to judge'],
+    ['승인율', 'Approval rate', '70% 이상', '70% or higher', '심사를 통과하는 고객을 데려오는지', 'brings customers who pass review'],
+    ['고위험 비율 (C·D)', 'High-risk share (grade C or D)', '15% 이하', '15% or lower', '신청 전에 고객을 걸러내는지', 'screens customers before filing'],
+    ['위조·사기 경고', 'Fraud or forgery warnings', '검토 기간 내 0건', 'none in the review window', '위조 신분증 1건이면 자격 상실', 'one forged ID disqualifies'],
+    ['신원 일치율', 'Identity match rate', '90% 이상', '90% or higher', '정확한 고객 정보를 제출하는지', 'submits accurate customer data'],
+    ['서류 재요청 비율', 'Resubmission rate', '10% 이하', '10% or lower', '처음부터 선명하고 완전한 서류를 내는지', 'files complete, clear documents first time'],
+    ['활동 기간·준법', 'Tenure and conduct', '6개월 이상 활동, 준법 지적 없음', '6+ months active, no compliance findings', '안정성', 'stability'],
+  ];
+  function renderStandard() {
+    const ko = LANG.lang !== 'en';
+    return `<div class="inner">
+      <div class="head"><div><h2 id="standard-title">${t('우수 딜러 기준', 'Excellent dealer standard')}</h2><span class="sub">${t('딜러 등급(일반 · 우수)을 정하고 유지하는 기준', 'How a dealer earns and keeps the excellent tier')}</span></div><button type="button" class="close" data-close="1" aria-label="${t('닫기', 'Close')}">✕</button></div>
+      <h3>${t('우수 딜러란', 'What the tier means')}</h3>
+      <p>${t('우수 딜러는 최근 실적에서 검증된 고객, 낮은 리스크, 높은 승인율을 꾸준히 보여 준 딜러입니다. 우수 딜러가 만든 신청의 고객은 리스크 평가에서 "우수 딜러 유입 고객" 배지를 받고, 심사 화면과 고객 리포트에 표시됩니다.',
+             'An excellent dealer is one whose recent customers were consistently verified, low-risk and approved at a high rate. Customers filed by an excellent dealer receive the "referred by an excellent dealer" badge in the risk assessment, shown on the review page and the customer report.')}</p>
+      <p>${t('배지는 참고 정보입니다. 리스크 점수나 등급을 바꾸지 않으므로, 우수 딜러의 고객이라도 위조 신호가 있으면 그대로 C·D 등급이 됩니다.',
+             'The badge is informational. It does not change the risk score or grade, so an excellent dealer\'s customer with a forgery signal still lands in grade C or D.')}</p>
+      <h3>${t('기준 (최근 6~12개월 실적 기준)', 'Criteria (judged on the last 6 to 12 months)')}</h3>
+      <div class="scroll"><table><thead><tr><th>${t('항목', 'Criterion')}</th><th>${t('기준값', 'Threshold')}</th><th>${t('이유', 'Why')}</th></tr></thead><tbody>
+        ${STANDARD_ROWS.map(r => `<tr><td class="th">${esc(ko ? r[0] : r[1])}</td><td>${esc(ko ? r[2] : r[3])}</td><td class="sub" style="display:table-cell">${esc(ko ? r[4] : r[5])}</td></tr>`).join('')}
+      </tbody></table></div>
+      <h3>${t('적용 규칙', 'How it is applied')}</h3>
+      <ul>
+        <li>${t('모든 항목을 충족하면 우수 등급을 얻거나 유지합니다.', 'Meeting every criterion earns or keeps the excellent tier.')}</li>
+        <li>${t('위조·사기 경고가 1건이라도 나오거나, 두 분기 연속 기준에 미달하면 일반 등급으로 내려갑니다.', 'A single fraud or forgery warning, or two consecutive quarters below threshold, drops the dealer to standard.')}</li>
+        <li>${t('검토는 분기마다 하며, 이 탭의 승인율·고위험 비율·위조 경고·신원 일치율·30일 신청 수가 그 근거입니다.', 'The review runs quarterly, using the approval rate, high-risk share, fraud warnings, identity match rate and 30-day volume shown on this tab as evidence.')}</li>
+        <li>${t('등급 변경은 심사 책임자가 확정하고 사유를 기록합니다. 기준값은 국가별로 조정할 수 있습니다.', 'A tier change is confirmed by the review lead with the reason recorded. Thresholds can be tuned per country.')}</li>
+      </ul>
+      <p class="sub" style="display:block;margin-top:12px">${t('현재 데모에서는 딜러 등급이 설정값(DEMO_DEALER_n_TIER)으로 지정되어 있고, 이 기준은 백오피스가 등급을 검토할 때 적용하는 정책입니다.', 'In the current demo the tier is set in configuration (DEMO_DEALER_n_TIER); this standard is the policy the back office applies when it reviews tiers.')}</p>
+    </div>`;
+  }
+  const standardDlg = $('#standard');
+  function openStandard() { standardDlg.innerHTML = renderStandard(); if (!standardDlg.open) standardDlg.showModal(); }
+  main.addEventListener('click', e => { if (e.target.closest('[data-standard]')) openStandard(); });
+  standardDlg.addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target === standardDlg) standardDlg.close(); });
+  LANG.onChange(() => { if (standardDlg.open) standardDlg.innerHTML = renderStandard(); });
 
   function showTab(id) {
     if (!TABS.some(x => x[0] === id)) id = 'overview';
