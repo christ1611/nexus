@@ -110,6 +110,11 @@
   .gradebox { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border); }
   .gradebox .big { font-size: 26px; font-weight: 700; line-height: 1; }
   .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 13px; }
+  /* Review agent summary inside the basic-information card */
+  .summary { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .summary h3 { margin: 0 0 6px; font-size: 13px; font-weight: 700; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+  .summary h3 .sub { display: inline; font-weight: 400; }
+  .summary pre { margin: 0; max-height: 260px; overflow: auto; }
   .kv dt { color: var(--text-3); } .kv dd { margin: 0; word-break: break-word; }
   .grid2 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
   .docs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
@@ -642,6 +647,7 @@
       <div style="margin-top:8px">${(r?.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(L(b))}</span>`).join('')}${a.review?.officerReviewRequired ? `<span class="chip warn" data-tip="${t('자동 분석이 일부 데이터를 확신하지 못했습니다. 이미지와 대조해 주세요.', 'The automatic analysis was not confident about some fields. Compare with the images.')}">${t('담당자 검토 필요', 'Officer review required')}</span>` : ''}${a.linkOutstanding ? `<span class="chip">${t('딜러 폼 링크 유효', 'Dealer form link active')}</span>` : ''}</div>
       ${final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin-top:10px"><b>${esc(statusName(a.status))}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : ''}
       ${a.status === 'DOCUMENTS_REQUESTED' || a.status === 'RESUBMISSION_REQUESTED' ? `<div class="notice warn" style="margin-top:10px">${a.status === 'DOCUMENTS_REQUESTED' ? t('고객에게 서류를 다시 요청한 상태입니다. 새 사진이 접수되면 검사·조회가 다시 실행되고 심사 대기로 돌아옵니다.', 'The customer has been asked to resend documents. When new photos arrive, the checks and lookups run again and the application returns to the queue.') : t('딜러에게 폼 재제출을 요청한 상태입니다.', 'The dealer has been asked to resubmit the form.')}${a.resubmissionReason ? '<br><span class="sub">' + esc(a.resubmissionReason) + '</span>' : ''}</div>` : ''}
+      ${a.review ? `<div class="summary"><h3>${t('자동 리뷰 요약', 'Review agent summary')} <span class="sub">${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}${a.review.reviewedAt ? ' · ' + fmtTime(a.review.reviewedAt) : ''}</span></h3>${a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : `<p class="empty" style="padding:4px 0">${t('요약이 아직 없습니다.', 'No summary yet.')}</p>`}</div>` : ''}
     </div>`;
 
     // reviewer copilot, under the customer and grade header
@@ -697,9 +703,6 @@
 
     // fraud network: filled in asynchronously when this application is tied to others
     h += '<div id="fraud-links"></div>';
-
-    // review summary
-    if (a.review) h += `<div class="card" style="margin-top:16px"><h2>${t('자동 리뷰 요약', 'Review agent summary')} <small>${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}${a.review.reviewedAt ? ' · ' + fmtTime(a.review.reviewedAt) : ''}</small></h2>${a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : `<p class="empty">${t('요약이 아직 없습니다.', 'No summary yet.')}</p>`}</div>`;
 
     // timeline
     h += `<div class="card" style="margin-top:16px"><h2>${t('심사 이력', 'Timeline')}</h2>${(a.events || []).length ? `<ul class="timeline">${a.events.map(eventRow).join('')}</ul>` : `<p class="empty">${t('아직 이력이 없습니다.', 'No history yet.')}</p>`}</div>`;
