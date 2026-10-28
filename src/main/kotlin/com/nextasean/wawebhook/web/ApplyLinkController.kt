@@ -96,6 +96,7 @@ class ApplyLinkController(
             <!doctype html>
             <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
             <meta name="theme-color" content="#0a31a8">
+            <link rel="icon" type="image/svg+xml" href="/icons/icon.svg"><link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png"><link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
             <title>${esc(title)} · JB금융그룹 NEXT ASEAN</title>
             <style>
               body{font-family:"SUIT Variable",-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Segoe UI",Roboto,sans-serif;max-width:640px;margin:0 auto;padding:0 1rem 2rem;color:#1a1f2e;background:#f5f7fa;line-height:1.5}
