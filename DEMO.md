@@ -2,7 +2,7 @@
 
 Step-by-step script for a live demo of the dealer flow, the customer document journey, the automated checks and the
 back-office events. Total running time is about 10 minutes. Everything below assumes the Meta webhook is already
-registered on the ngrok domain `amaretto-tipoff-excess.ngrok-free.dev` (it is), so only the tunnel has to be up.
+registered on the axhub deployment `https://nexus.jbax.axhub.ai/webhook`, so the deployed app only has to be healthy.
 
 ---
 
@@ -11,7 +11,7 @@ registered on the ngrok domain `amaretto-tipoff-excess.ngrok-free.dev` (it is), 
 | Item | Why |
 | --- | --- |
 | Laptop with JDK 21+ and this repo | runs the app on port 8080 |
-| ngrok installed and logged in | exposes port 8080 on the reserved domain |
+| The deployed app at `https://nexus.jbax.axhub.ai` | serves the webhook, review page and dashboard (no ngrok tunnel needed) |
 | **Dealer phone**: WhatsApp number listed as `DEMO_DEALER_1_PHONE` in `wa.env` | plays the dealer |
 | **Customer phone**: any other WhatsApp number added as a test recipient in the Meta dashboard | plays the customer |
 | A KTP photo (or any card photo) and a selfie on the customer phone | in stub mode the content does not matter |
@@ -79,16 +79,17 @@ Wait for `Started WaWebhookApplicationKt` and the line `Verification providers |
 Also check the seeding log: `Demo dealer upserted | code=DLR-001 ...`. If it says a dealer was skipped, the phone in
 `wa.env` is blank.
 
-Terminal 2, the tunnel:
+Terminal 2 is no longer a tunnel: the app is deployed at `https://nexus.jbax.axhub.ai` (a push to `main` redeploys it,
+`axhub deploy create --app nexus --execute` redeploys the same code). Check it is up:
 
 ```bash
-ngrok http --url=amaretto-tipoff-excess.ngrok-free.dev 8080
+curl -i https://nexus.jbax.axhub.ai/healthz
 ```
 
-Terminal 3, smoke test the webhook through the tunnel (replace the token):
+Terminal 3, smoke test the webhook on the deployment (replace the token):
 
 ```bash
-curl -i "https://amaretto-tipoff-excess.ngrok-free.dev/webhook?hub.mode=subscribe&hub.verify_token=<WHATSAPP_VERIFY_TOKEN>&hub.challenge=42"
+curl -i "https://nexus.jbax.axhub.ai/webhook?hub.mode=subscribe&hub.verify_token=<WHATSAPP_VERIFY_TOKEN>&hub.challenge=42"
 ```
 
 Expected: `200` with body `42`. Then send `hi` from the dealer phone to the business number. If the main menu comes
@@ -159,7 +160,7 @@ call takes 1 to 3 seconds, so the pause after "Checking your data..." is deliber
 
 ## 5. Act 3 - the back office (3 minutes)
 
-**Preferred: the review page.** Open `https://amaretto-tipoff-excess.ngrok-free.dev/review` (or `http://localhost:8080/review`),
+**Preferred: the review page.** Open `https://nexus.jbax.axhub.ai/review` (or `http://localhost:8080/review`),
 paste `ADMIN_API_KEY`, type your name as reviewer and press **불러오기**.
 
 1. The queue lists the application you just created at the top (심사 대기, grade and fraud warnings visible). Click it.
@@ -267,7 +268,7 @@ Switch back to `DOCUMENT_CHECK=stub` afterwards if you want the caption tricks a
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Dealer sends `hi`, nothing comes back, no log line | tunnel down or webhook not subscribed | restart ngrok; Meta dashboard > Webhooks > `messages` subscribed |
+| Dealer sends `hi`, nothing comes back, no log line | deployment down or webhook not subscribed | check `https://nexus.jbax.axhub.ai/healthz` and `axhub deploy status --app nexus`; Meta dashboard > Webhooks > `messages` subscribed |
 | Log shows the message but reply fails with `401` from Graph API | access token expired | new System User token in `wa.env`, restart |
 | Reply fails with error `131030` | phone not in the test recipients list | add it in WhatsApp > API Setup |
 | Dealer gets the polite rejection instead of the menu | phone not seeded | check `DEMO_DEALER_1_PHONE` (digits only), restart, look for `Demo dealer upserted` |
@@ -289,7 +290,7 @@ java -cp "$(find ~/.gradle/caches -name 'h2-2*.jar' | head -1)" org.h2.tools.She
 
 ## 7. Dashboard: risk flags, customer risk grade and per-country statistics (2 minutes)
 
-Open `https://amaretto-tipoff-excess.ngrok-free.dev/dashboard` (or `http://localhost:8080/dashboard`) on the laptop, paste
+Open `https://nexus.jbax.axhub.ai/dashboard` (or `http://localhost:8080/dashboard`) on the laptop, paste
 `ADMIN_API_KEY` and press **불러오기**. Nothing is shown until the key is accepted; the page refreshes every minute.
 
 What to point at:

@@ -74,9 +74,9 @@ demo data in `demo-data.yml`.
 ## To do first next session (10 minutes)
 
 1. Fill `DEMO_DEALER_1_PHONE` / `DEMO_DEALER_2_PHONE` in `wa.env` (digits only, e.g. `62812xxxxxxx`).
-2. Start the app (`./gradlew bootRun`) and ngrok. With one phone only: create the application from `/review` ("➕ 새 신청 만들기") instead of the dealer flow.
-   (`ngrok http --url=amaretto-tipoff-excess.ngrok-free.dev 8080`). The Meta webhook is already registered
-   and verified; it only needs the tunnel to be up.
+2. The app runs on axhub at `https://nexus.jbax.axhub.ai` (a push to `main` redeploys it; no ngrok tunnel).
+   With one phone only: create the application from `/review` ("➕ 새 신청 만들기") instead of the dealer flow.
+   The Meta webhook callback URL is `https://nexus.jbax.axhub.ai/webhook`.
 3. Check the access token: the dashboard's temporary token expires after 24 h. If outgoing messages log
    HTTP 401 from the Graph API, generate a System User token and update `WHATSAPP_ACCESS_TOKEN`.
 4. Run the live demo from a dealer phone: `hi` -> New application -> Yes, create -> forward the wa.me message
@@ -135,7 +135,7 @@ demo data in `demo-data.yml`.
 - Document storage: encrypt at rest or move to object storage with short-lived signed URLs; define retention.
 - Observability: request IDs in logs, metrics for messages in/out, failed sends, check durations; health
   endpoint (Spring Actuator).
-- Deploy behind a stable HTTPS domain instead of ngrok; update the callback URL in the Meta dashboard.
+- ~~Deploy behind a stable HTTPS domain instead of ngrok~~ Done: deployed on axhub at `https://nexus.jbax.axhub.ai`; the Meta callback URL points there.
 
 ### E. Product polish
 - Localisation (Bahasa Indonesia first; wording is centralised in `DealerMessages` / `CustomerMessages`).

@@ -48,6 +48,19 @@ class WebhookControllerTest @Autowired constructor(
     }
 
     @Test
+    fun `GET accepts the handshake from a proxy header when the relay strips the query string`() {
+        mockMvc.get("/webhook") {
+            header("X-Original-URI", "/webhook?hub.mode=subscribe&hub.verify_token=$VERIFY_TOKEN&hub.challenge=777")
+        }.andExpect {
+            status { isOk() }
+            content { string("777") }
+        }
+        mockMvc.get("/webhook") {
+            header("X-Forwarded-Query", "hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=777")
+        }.andExpect { status { isForbidden() } }
+    }
+
+    @Test
     fun `GET returns 403 for a wrong verify token`() {
         mockMvc.get("/webhook") {
             param("hub.mode", "subscribe")

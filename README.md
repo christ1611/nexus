@@ -22,10 +22,10 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 | Step 4b | **AI Agent 판단 타임라인**: 파이프라인과 리뷰 에이전트가 한 일을 단계별로 저장(`AGENT_STEPS`)하고 심사 화면에 실시간 표시 — 서류 수신 → 비전 분석/품질 확인 → NIK 검증 → 필드 추출 → 에이전트 턴(stop reason·토큰·도구 호출) → 코드 가드레일 → 결정 → 고객 안내 → 신원·신용 조회 → 리스크 평가 → 심사 대기, 심사자 재요청·결정까지. 대시보드에 AI 에이전트 활동 카드 | ✅ 완료 (2026-10-20) |
 | Step 5 | 통계 대시보드(`/dashboard`): 국가별 통계(인도네시아·미얀마·캄보디아), **Fraud/위조 감지 Risk Flag**, **고객 리스크 등급(A~D) AI 표시**, 고객 배지(재무 정합성·우수 딜러 유입), 퍼널·딜러별 현황. 딜러 국가·등급, 국가별 조회 제공자(목업). 10-20 추가: 심사 대기 큐(대기 시간), 주간 추이 차트(8주, 국가별 누적 + 고위험 건수), 고객 서류 재요청·최장 대기·평균 결정 시간 타일, 신청번호 → 심사 화면 링크. 10-22: 페이지를 5개 탭(개요 · 리스크·사기 · 국가·딜러 · AI 에이전트 · 최근 신청)으로 분리, URL 해시(`/dashboard#risk`)로 탭 직접 열기 | ✅ 완료 (2026-10-19, 보강 10-22) |
 | Step 5b | **위변조·중복 제출 검증 강화** (2026-10-22): 비전 분석에 위조 증거 `tamper_signals`(글꼴 불일치·편집 흔적·사진 교체·레이아웃·보안 요소) 추가 → `FORGERY_SIGNS`; NIK 지역 코드 vs 카드 발급 지역 `ID_REGION_MISMATCH`; 셀피 얼굴 vs 카드 사진 `SELFIE_FACE_MISMATCH`; **동일 신분증 다수 제출** 교차 조회 `SHARED_ID_NUMBER` / `DUPLICATE_APPLICATION` / `PHONE_USED_WITH_OTHER_ID`(양쪽 신청 모두 재평가). 위조 의심은 재촬영 대신 담당자 검토. 스텁 NIK는 신청마다 고유, 캡션 `dup`으로 중복 시연. AI 활용 전체 설명은 **[AI_USAGE.md](AI_USAGE.md)** | ✅ 완료 (2026-10-22), 실 API 미검증 |
-| 운영 | 실 Meta 미디어 다운로드 검증, PostgreSQL + Flyway, 영속 중복 제거, 시크릿·문서 암호화, 관측성, ngrok 대신 고정 도메인 | ⬜ 미착수 |
+| 운영 | 실 Meta 미디어 다운로드 검증, PostgreSQL + Flyway, 영속 중복 제거, 시크릿·문서 암호화, 관측성 | ⬜ 미착수 (고정 도메인은 axhub 배포로 해결) |
 
 - 테스트: `./gradlew test` → **81개 통과, 1개 스킵** (라이브 Claude 테스트는 `ANTHROPIC_API_KEY`가 있을 때만 실행).
-- Meta 웹훅은 ngrok 예약 도메인(`amaretto-tipoff-excess.ngrok-free.dev`)에 이미 등록·검증되어 있어 터널만 올리면 됩니다.
+- 앱은 axhub에 `https://nexus.jbax.axhub.ai`로 배포되어 있고(`main` push 시 자동 배포), Meta 웹훅 Callback URL은 `https://nexus.jbax.axhub.ai/webhook`입니다. ngrok 터널은 더 이상 필요 없습니다.
 - 데모 진행 순서는 `DEMO.md`, 남은 작업의 우선순위는 `NEXT_STEPS.md`, **AI를 어디에 어떻게 쓰는지**는 `AI_USAGE.md`에 정리되어 있습니다.
 - **딜러 폰 없이 데모 시작 (10-22)**: 심사 화면 `/review`의 "➕ 새 신청 만들기 · 고객 WhatsApp 초대" 카드에 고객 번호를 넣으면 신청이 생성되고 고객에게 초대 메시지(START 링크)가 가며, QR 코드도 표시됩니다. 초대받은 번호는 아무 메시지나 보내면 바로 동의 단계로 들어갑니다.
 
@@ -175,7 +175,7 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 ### 5.5 대시보드 사용법
 
-1. 앱 실행 후 브라우저에서 `http://localhost:8080/dashboard` (또는 ngrok 도메인 `/dashboard`)을 엽니다. 페이지 자체는 공개지만 데이터가 없습니다.
+1. 앱 실행 후 브라우저에서 `http://localhost:8080/dashboard` (또는 `https://nexus.jbax.axhub.ai/dashboard`)을 엽니다. 페이지 자체는 공개지만 데이터가 없습니다.
 2. `ADMIN_API_KEY`를 입력하고 **불러오기**를 누르면 `GET /admin/dashboard/stats`를 `X-Admin-Key` 헤더로 호출합니다. 키는 브라우저 세션 저장소에만 남고 60초마다 자동 갱신됩니다.
 3. 섹션: 요약 타일(총 신청·진행 중·심사 대기·승인·거절·고위험·위조 경고·담당자 검토), 국가별 신청 현황(상태 누적 막대), 리스크 등급 분포, 국가별 통계 표,
    **Risk Flag · 위조/사기 감지 경고**(고위험 고객 목록: 등급·점수·플래그 칩·배지·평가 방식), Risk Flag 발생 건수, 고객 배지 요약, 온보딩 퍼널, 딜러별 현황, 최근 신청.
@@ -189,7 +189,7 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 ### 6.1 심사 화면 `/review`
 
-1. 앱 실행 후 `http://localhost:8080/review` (또는 ngrok 도메인 `/review`)를 엽니다. 대시보드와 같은 `ADMIN_API_KEY`를 쓰며 키는 브라우저 세션에만 남습니다.
+1. 앱 실행 후 `http://localhost:8080/review` (또는 `https://nexus.jbax.axhub.ai/review`)를 엽니다. 대시보드와 같은 `ADMIN_API_KEY`를 쓰며 키는 브라우저 세션에만 남습니다.
    **심사자 이름**을 입력하면 결정·메모·재요청에 기록됩니다(로그인이 아니라 기록용).
 2. **심사 큐(왼쪽)**: 기본은 열린 건만, 심사 대기 → 폼 제출 → 재요청 중 → 작성 중 순, 같은 상태 안에서는 리스크 점수 높은 순·오래된 순.
    상태 / 국가 / 등급 필터와 신청번호·고객·딜러 검색, 60초 자동 갱신. 대시보드의 신청번호를 누르면 `/review?app=번호`로 바로 열립니다.
@@ -322,7 +322,7 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 | `WHATSAPP_VERIFY_TOKEN` | GET 핸드셰이크의 `hub.verify_token`과 비교 |
 | `DEMO_DEALER_n_PHONE`, `_NAME`, `_COUNTRY`, `_TIER` (n = 1~4) | 데모 딜러 WhatsApp 번호(숫자만), 이름, 국가(ID/MM/KH), 등급(STANDARD/EXCELLENT) |
 | `ADMIN_API_KEY` | `/admin/**` 공유 키 |
-| `APP_PUBLIC_BASE_URL` | 1회용 링크의 기본 URL(기본값은 ngrok 도메인) |
+| `APP_PUBLIC_BASE_URL` | 1회용 링크의 기본 URL(기본값 `https://nexus.jbax.axhub.ai`) |
 | `WHATSAPP_BUSINESS_PHONE` | wa.me 링크용 비즈니스 번호(선택, 없으면 웹훅에서 학습) |
 | `VERIFICATION_COUNTRY` | 제공자가 없는 국가의 폴백 제공자 쌍(기본 `ID`); 평소에는 신청서 국가로 선택 |
 | `DOCUMENT_CHECK` | `stub`(기본) 또는 `claude` |
@@ -398,16 +398,16 @@ open http://localhost:8080/dashboard
 
 ---
 
-## 11. ngrok으로 Meta 연결
+## 11. Meta 연결 (axhub 배포 도메인)
 
-1. 앱 실행: `./gradlew bootRun`
-2. 다른 터미널에서 예약 도메인으로 ngrok 실행:
-   `ngrok http --url=amaretto-tipoff-excess.ngrok-free.dev 8080`
-   (구버전 ngrok은 `--url=` 대신 `--domain=`)
-3. 터널 확인: `curl -i "https://amaretto-tipoff-excess.ngrok-free.dev/webhook?hub.mode=subscribe&hub.verify_token=<verify-token>&hub.challenge=42"`
+1. 앱은 axhub에 `https://nexus.jbax.axhub.ai`로 배포됩니다. `main`에 push하면 자동 배포되고,
+   같은 코드로 다시 올리려면 `axhub deploy create --app nexus --execute`를 실행합니다.
+   `WHATSAPP_*` 등 환경변수는 `axhub env set --app nexus ...`로 넣고 재배포하면 반영됩니다(재컴파일 불필요).
+2. 배포 확인: `curl -i https://nexus.jbax.axhub.ai/healthz`
+3. 웹훅 확인: `curl -i "https://nexus.jbax.axhub.ai/webhook?hub.mode=subscribe&hub.verify_token=<verify-token>&hub.challenge=42"`
    가 `42`를 반환해야 합니다.
 4. Meta 대시보드(developers.facebook.com > My Apps > 앱 > WhatsApp > Configuration):
-   - Callback URL: `https://amaretto-tipoff-excess.ngrok-free.dev/webhook`
+   - Callback URL: `https://nexus.jbax.axhub.ai/webhook`
    - Verify token: `WHATSAPP_VERIFY_TOKEN` 값
    - "Verify and save" 클릭 → 앱 로그에 `Webhook verification succeeded`
    - Webhook fields에서 "Manage" → `messages` 구독
@@ -593,7 +593,7 @@ Put a `wa.env` (or `.env`) file in the working directory with plain `KEY=VALUE` 
 | `WHATSAPP_VERIFY_TOKEN` | Compared with `hub.verify_token` on the GET handshake |
 | `DEMO_DEALER_1_PHONE`, `DEMO_DEALER_2_PHONE` | WhatsApp numbers (digits only) of the two demo dealers |
 | `ADMIN_API_KEY` | Shared key for the `/admin/**` endpoints |
-| `APP_PUBLIC_BASE_URL` | Base URL in one-time links (defaults to the ngrok domain) |
+| `APP_PUBLIC_BASE_URL` | Base URL in one-time links (defaults to `https://nexus.jbax.axhub.ai`) |
 | `WHATSAPP_BUSINESS_PHONE` | Business number for wa.me links (optional, learned from webhooks otherwise) |
 | `VERIFICATION_COUNTRY` | Provider pair for identity and credit checks (default `ID`) |
 | `DOCUMENT_CHECK` | `stub` (default) or `claude` for Claude vision analysis and the review agent |
@@ -655,16 +655,16 @@ curl -i -X POST http://localhost:8080/webhook \
 Expected: `200 OK` and a `Status update | messageId=wamid.TEST | status=delivered ...` log line.
 Without a valid signature the endpoint returns `401`.
 
-## Connect to Meta via ngrok
+## Connect to Meta (axhub deployment)
 
-1. Start the app: `./gradlew bootRun`.
-2. In another terminal, start ngrok on your reserved domain:
-   `ngrok http --url=amaretto-tipoff-excess.ngrok-free.dev 8080`
-   (older ngrok versions use `--domain=` instead of `--url=`).
-3. Check the tunnel: `curl -i "https://amaretto-tipoff-excess.ngrok-free.dev/webhook?hub.mode=subscribe&hub.verify_token=<verify-token>&hub.challenge=42"`
+1. The app is deployed on axhub at `https://nexus.jbax.axhub.ai`. A push to `main` redeploys it;
+   to redeploy the same code run `axhub deploy create --app nexus --execute`.
+   Environment variables such as `WHATSAPP_*` are set with `axhub env set --app nexus ...` and take effect on the next deploy (no recompile).
+2. Check the deployment: `curl -i https://nexus.jbax.axhub.ai/healthz`.
+3. Check the webhook: `curl -i "https://nexus.jbax.axhub.ai/webhook?hub.mode=subscribe&hub.verify_token=<verify-token>&hub.challenge=42"`
    should return `42`.
 4. In the Meta dashboard (developers.facebook.com > My Apps > your app > WhatsApp > Configuration):
-   - Callback URL: `https://amaretto-tipoff-excess.ngrok-free.dev/webhook`
+   - Callback URL: `https://nexus.jbax.axhub.ai/webhook`
    - Verify token: the value of `WHATSAPP_VERIFY_TOKEN`
    - Click "Verify and save"; the app log prints `Webhook verification succeeded`.
    - Under Webhook fields click "Manage" and subscribe to `messages`.
