@@ -176,6 +176,18 @@
   .trace-details > summary h2 { margin: 0; }
   .trace-details .chev { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--brand); font-size: 12px; line-height: 1; transition: transform .15s; }
   .trace-details[open] .chev { transform: rotate(90deg); }
+  /* Evidence fold-out cards (documents, extracted data, lookups, risk flags): closed shows a one-line hint */
+  .fold { margin-top: 16px; }
+  .grid2 .fold { margin-top: 0; }
+  .fold > summary { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; cursor: pointer; border-radius: 8px; padding: 4px 6px; margin: -4px -6px; }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold > summary:hover { background: var(--surface-2); }
+  .fold > summary h2 { margin: 0; } .fold > summary h2 small { display: inline; margin-left: 6px; }
+  .fold > summary .hint { display: inline; margin-left: auto; font-size: 12px; }
+  .fold[open] > summary .hint { display: none; }
+  .fold .chev { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--brand); font-size: 12px; line-height: 1; transition: transform .15s; flex: none; }
+  .fold[open] .chev { transform: rotate(90deg); }
+  .fold-body { margin-top: 10px; }
   .trace-details .hint::after { content: "펼치기"; } .trace-details[open] .hint::after { content: "접기"; }
   html[lang="en"] .trace-details .hint::after { content: "expand"; } html[lang="en"] .trace-details[open] .hint::after { content: "collapse"; }
   .trace-details .hint { margin-left: auto; }
@@ -393,6 +405,11 @@
   const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
   let apps = [], queueLoaded = false, current = null, blobs = new Map(), tracePoll = null, traceLastId = 0, traceSeenUpdatedAt = null;
   let traceOpen = false;                       // AI timeline fold: closed by default, the officer's choice survives re-renders
+  const foldOpen = new Set();                  // evidence panels (docs, extracted, lookups, risk) the officer opened; remembered per browser
+  try { JSON.parse(localStorage.getItem('reviewFolds') || '[]').forEach(k => foldOpen.add(k)); } catch {}
+  const maskId = v => String(v).length <= 4 ? '****' : '*'.repeat(String(v).length - 4) + String(v).slice(-4);
+  /** Opening tag of a fold-out card: chevron, title and a one-line hint shown while it is closed. */
+  const fold = (key, title, hint) => `<details class="card fold" data-fold="${key}"${foldOpen.has(key) ? ' open' : ''}><summary><span class="chev" aria-hidden="true">▸</span><h2>${title}</h2>${hint ? `<span class="sub hint">${hint}</span>` : ''}</summary>`;
   const openSteps = new Set();                  // step ids whose "데이터" details are expanded; survives re-renders
   const MILESTONE_PHASES = new Set(['DOCUMENT', 'VERIFICATION', 'RISK', 'OUTCOME', 'OFFICER']); // steps that change other panels too
   const TRACE_POLL_MS = 2000;
@@ -551,7 +568,7 @@
     tracePoll = setInterval(() => traceTick(number), TRACE_POLL_MS);
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && current && tracePoll) traceTick(current.applicationNumber); });
-  detail.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details[data-sid]')) { const id = Number(d.dataset.sid); if (d.open) openSteps.add(id); else openSteps.delete(id); } else if (d.id === 'trace-details') traceOpen = d.open; }, true);
+  detail.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details[data-sid]')) { const id = Number(d.dataset.sid); if (d.open) openSteps.add(id); else openSteps.delete(id); } else if (d.id === 'trace-details') traceOpen = d.open; else if (d.matches && d.matches('details.fold')) { if (d.open) foldOpen.add(d.dataset.fold); else foldOpen.delete(d.dataset.fold); try { localStorage.setItem('reviewFolds', JSON.stringify([...foldOpen])); } catch {} } }, true);
 
   try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
   try { const r = localStorage.getItem('reviewerName'); if (r) reviewerInput.value = r; } catch {}
@@ -650,7 +667,32 @@
       ${a.review ? `<div class="summary"><h3>${t('자동 리뷰 요약', 'Review agent summary')} <span class="sub">${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}${a.review.reviewedAt ? ' · ' + fmtTime(a.review.reviewedAt) : ''}</span></h3>${a.review.summary ? `<pre>${esc(a.review.summary)}</pre>` : `<p class="empty" style="padding:4px 0">${t('요약이 아직 없습니다.', 'No summary yet.')}</p>`}</div>` : ''}
     </div>`;
 
-    // reviewer copilot, under the customer and grade header
+    // evidence panels, folded: documents, extracted data and lookups, risk flags. The officer's open/closed choice is remembered.
+    h += fold('docs', `${t('서류', 'Documents')} <small>${t(`현재 ${live.length}건${old.length ? ', 이전 제출본 ' + old.length + '건' : ''}`, `${live.length} current${old.length ? ', ' + old.length + ' superseded' : ''}`)}</small>`, '');
+    h += `<div class="fold-body">`;
+    h += live.length ? `<div class="docs">${live.map(docCard).join('')}</div>` : `<p class="empty">${t('아직 접수된 서류가 없습니다.', 'No documents received yet.')}</p>`;
+    if (old.length) h += `<details style="margin-top:10px"><summary>${t(`이전 제출본 ${old.length}건 보기`, `Show ${old.length} superseded upload(s)`)}</summary><div class="docs" style="margin-top:10px">${old.map(docCard).join('')}</div></details>`;
+    h += `</div></details>`;
+
+    // extracted + providers
+    h += `<div class="grid2" style="margin-top:16px">`;
+    h += fold('extracted', `${t('추출 데이터', 'Extracted data')} <small>${t('신분증에서 읽은 값', 'from the ID document')}</small>`, a.extracted ? `${esc(a.extracted.name || '')}${a.extracted.nik ? ' · NIK ' + esc(maskId(a.extracted.nik)) : ''}` : t('없음', 'none')) + `<div class="fold-body">`;
+    h += `${a.extracted ? extractedList(a.extracted) : `<p class="empty">${t('아직 추출된 데이터가 없습니다 (서류 미접수 또는 판독 신뢰도 부족).', 'No extracted data yet (no documents, or the reading was not confident enough).')}</p>`}</div></details>`;
+    h += fold('lookups', `${t('신원·신용 조회', 'Identity & credit checks')} <small>${t('기관 조회 결과', 'provider results')}</small>`, a.idVerification || a.creditCheck ? `${esc(L(a.idVerification || {}) || '–')} · ${esc(L(a.creditCheck || {}) || '–')}${a.creditCheck?.score != null ? ' ' + esc(a.creditCheck.score) : ''}` : t('미실행', 'not run')) + `<div class="fold-body">`;
+    h += `${a.idVerification || a.creditCheck ? lookupList(a) : `<p class="empty">${a.review?.officerReviewRequired ? t('NIK를 확신 있게 읽지 못해 조회를 건너뛰었습니다. 담당자가 확인 후 재평가하세요.', 'The NIK could not be read confidently, so the lookups were skipped. Verify it and re-assess.') : t('아직 조회가 실행되지 않았습니다.', 'Lookups have not run yet.')}</p>`}</div></details>`;
+    h += `</div>`;
+
+    // risk flags
+    h += fold('risk', `Risk Flag · ${t('근거', 'evidence')} <small>${t('⚠ = 위조·사기 신호', '⚠ = fraud / forgery signal')}</small>`, !r ? t('미평가', 'not assessed') : !r.flags.length ? t('경고 없음', 'no warnings') : `${r.flags.length}${t('건', '')}${r.fraudWarnings ? ` · <span class="bad">⚠ ${r.fraudWarnings}</span>` : ''}`) + `<div class="fold-body">`;
+    if (!r) h += `<p class="empty">${t('리스크 평가 전입니다.', 'Not assessed yet.')}</p>`;
+    else if (!r.flags.length) h += `<p class="notice ok">${t('경고 없음', 'No warnings')}</p>`;
+    else h += r.flags.map(flagRow).join('');
+    h += `<details style="margin-top:8px"><summary>${t('등급 산정 기준', 'How the grade is computed')}</summary><p class="sub" style="margin:6px 0 0">${t("점수 = 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A 0-14 · B 15-39 · C 40-69 · D 70+. 심각도 '높음'의 위조 신호가 하나라도 있으면 최소 C. 등급은 코드의 규칙이 계산하며 모델이 직접 정하지 않습니다.", 'Score = sum of flag severities (LOW 10 · MEDIUM 20 · HIGH 35, capped at 100). A 0-14 · B 15-39 · C 40-69 · D 70+. Any HIGH fraud signal floors the grade at C. The grade is computed by code rules, not by the model.')}</p></details></div></details>`;
+
+    // fraud network: filled in asynchronously when this application is tied to others
+    h += '<div id="fraud-links"></div>';
+
+    // reviewer copilot, under the evidence panels
     h += `<div class="card copilot" id="copilot" style="margin-top:16px">${renderCopilot(a)}</div>`;
 
     // onboarding stage stepper with the AI agent timeline (Step 4b) folded underneath; both kept fresh by the trace poll
@@ -683,27 +725,6 @@
       </div></div>`;
 
     // documents
-    h += `<div class="card" style="margin-top:16px"><h2>${t('서류', 'Documents')} <small>${t(`현재 ${live.length}건${old.length ? ', 이전 제출본 ' + old.length + '건' : ''}`, `${live.length} current${old.length ? ', ' + old.length + ' superseded' : ''}`)}</small></h2>`;
-    h += live.length ? `<div class="docs">${live.map(docCard).join('')}</div>` : `<p class="empty">${t('아직 접수된 서류가 없습니다.', 'No documents received yet.')}</p>`;
-    if (old.length) h += `<details style="margin-top:10px"><summary>${t(`이전 제출본 ${old.length}건 보기`, `Show ${old.length} superseded upload(s)`)}</summary><div class="docs" style="margin-top:10px">${old.map(docCard).join('')}</div></details>`;
-    h += `</div>`;
-
-    // extracted + providers
-    h += `<div class="grid2" style="margin-top:16px">
-      <div class="card"><h2>${t('추출 데이터', 'Extracted data')} <small>${t('신분증에서 읽은 값', 'from the ID document')}</small></h2>${a.extracted ? extractedList(a.extracted) : `<p class="empty">${t('아직 추출된 데이터가 없습니다 (서류 미접수 또는 판독 신뢰도 부족).', 'No extracted data yet (no documents, or the reading was not confident enough).')}</p>`}</div>
-      <div class="card"><h2>${t('신원·신용 조회', 'Identity & credit checks')} <small>${t('기관 조회 결과', 'provider results')}</small></h2>${a.idVerification || a.creditCheck ? lookupList(a) : `<p class="empty">${a.review?.officerReviewRequired ? t('NIK를 확신 있게 읽지 못해 조회를 건너뛰었습니다. 담당자가 확인 후 재평가하세요.', 'The NIK could not be read confidently, so the lookups were skipped. Verify it and re-assess.') : t('아직 조회가 실행되지 않았습니다.', 'Lookups have not run yet.')}</p>`}</div>
-    </div>`;
-
-    // risk flags
-    h += `<div class="card" style="margin-top:16px"><h2>Risk Flag · ${t('근거', 'evidence')} <small>${t('⚠ = 위조·사기 신호', '⚠ = fraud / forgery signal')}</small></h2>`;
-    if (!r) h += `<p class="empty">${t('리스크 평가 전입니다.', 'Not assessed yet.')}</p>`;
-    else if (!r.flags.length) h += `<p class="notice ok">${t('경고 없음', 'No warnings')}</p>`;
-    else h += r.flags.map(flagRow).join('');
-    h += `<details style="margin-top:8px"><summary>${t('등급 산정 기준', 'How the grade is computed')}</summary><p class="sub" style="margin:6px 0 0">${t("점수 = 심각도 합계(낮음 10 · 중간 20 · 높음 35, 최대 100). A 0-14 · B 15-39 · C 40-69 · D 70+. 심각도 '높음'의 위조 신호가 하나라도 있으면 최소 C. 등급은 코드의 규칙이 계산하며 모델이 직접 정하지 않습니다.", 'Score = sum of flag severities (LOW 10 · MEDIUM 20 · HIGH 35, capped at 100). A 0-14 · B 15-39 · C 40-69 · D 70+. Any HIGH fraud signal floors the grade at C. The grade is computed by code rules, not by the model.')}</p></details></div>`;
-
-    // fraud network: filled in asynchronously when this application is tied to others
-    h += '<div id="fraud-links"></div>';
-
     // timeline
     h += `<div class="card" style="margin-top:16px"><h2>${t('심사 이력', 'Timeline')}</h2>${(a.events || []).length ? `<ul class="timeline">${a.events.map(eventRow).join('')}</ul>` : `<p class="empty">${t('아직 이력이 없습니다.', 'No history yet.')}</p>`}</div>`;
 
