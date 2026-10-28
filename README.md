@@ -175,12 +175,13 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 ### 5.5 대시보드 사용법
 
-1. 앱 실행 후 브라우저에서 `http://localhost:8080/dashboard` (또는 `https://nexus.jbax.axhub.ai/dashboard`)을 엽니다. 페이지 자체는 공개지만 데이터가 없습니다.
+1. 앱 실행 후 브라우저에서 `http://localhost:8080/dashboard` (또는 `https://nexus.jbax.axhub.ai/dashboard`)을 엽니다. 페이지 자체는 공개지만 데이터가 없습니다. 헤더의 **대시보드 | 심사** 스위치로 심사 화면과 오가며, 관리자 키는 브라우저 세션에 공유됩니다.
 2. `ADMIN_API_KEY`를 입력하고 **불러오기**를 누르면 `GET /admin/dashboard/stats`를 `X-Admin-Key` 헤더로 호출합니다. 키는 브라우저 세션 저장소에만 남고 60초마다 자동 갱신됩니다.
 3. 섹션: 요약 타일(총 신청·진행 중·심사 대기·승인·거절·고위험·위조 경고·담당자 검토), 국가별 신청 현황(상태 누적 막대), 리스크 등급 분포, 국가별 통계 표,
    **Risk Flag · 위조/사기 감지 경고**(고위험 고객 목록: 등급·점수·플래그 칩·배지·평가 방식), Risk Flag 발생 건수, 고객 배지 요약, 온보딩 퍼널, 딜러별 현황, 최근 신청.
 4. 차트는 외부 라이브러리 없이 인라인 SVG로 그리며 라이트/다크 모드와 색각 이상 검증(국가 3색: 파랑·주황·청록, 등급은 상태색 + 아이콘 + 라벨)을 거쳤습니다.
-5. **AI 코파일럿** (개요 탭, 요약 타일과 진행 현황 사이): 심사 화면의 코파일럿과 같은 레이아웃으로, 대시보드가 보여주는 통계 전체(요약·파이프라인·심사 대기 큐·주간 추이·국가·Risk Flag·딜러·AI 에이전트 활동)를 포트폴리오 파일로 묶어 질문에 답합니다(`POST /admin/dashboard/copilot`).
+5. 탭 구성: **개요**(요약 타일 · AI 코파일럿 · 주간 추이 · 국가별 신청 현황), **진행·대기 큐**(온보딩 진행 현황 · 진행 중인 신청 · 심사 대기 큐), 리스크·사기, 국가·딜러, AI 에이전트, 우수 딜러.
+6. **AI 코파일럿** (개요 탭, 요약 타일 바로 아래): 심사 화면의 코파일럿과 같은 레이아웃으로, 대시보드가 보여주는 통계 전체(요약·파이프라인·심사 대기 큐·주간 추이·국가·Risk Flag·딜러·AI 에이전트 활동)를 포트폴리오 파일로 묶어 질문에 답합니다(`POST /admin/dashboard/copilot`).
    추천 질문(전체 현황 요약, 먼저 볼 신청, 국가별 고위험 비율, 최다 위조 Flag, 우수 딜러 vs 일반 딜러, 주간 추이, AI 에이전트 활동)을 누르거나 직접 입력하고, 답변 속 신청번호는 심사 화면 링크입니다.
    `DOCUMENT_CHECK=claude`면 Claude가, 아니면 규칙 기반 요약이 답하며, 대화와 입력 중인 질문은 15초 자동 갱신에도 유지됩니다. 개별 신청의 서류·근거는 보지 못하므로 심사 화면으로 안내합니다.
 
@@ -484,7 +485,7 @@ age out of range). The rules that turn evidence into flags and grades live in co
 explainable and can be recomputed with `POST /admin/risk/reassess-all`. In stub mode only the provider and behaviour rules apply,
 and the dashboard labels the method ("Claude vision + rules" vs "rules (stub)").
 
-The dashboard also has an **AI copilot card** (overview tab, between the summary tiles and the pipeline board) with the same layout as the review page's copilot: it answers portfolio-level
+The dashboard also has an **AI copilot card** (overview tab, right under the summary tiles; the pipeline board and the review queue have their own "Pipeline & queue" tab, and a header switch moves between the dashboard and the review page) with the same layout as the review page's copilot: it answers portfolio-level
 questions (what to review first, high-risk share by country, the most frequent fraud flags, excellent vs standard dealers, the
 weekly trend, what the AI agents did) from the same statistics the page shows, written out as a portfolio file for Claude
 (`POST /admin/dashboard/copilot`; a rule-based summary answers without an API key). Application numbers in the answers link to

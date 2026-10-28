@@ -20,6 +20,11 @@
   button.primary:hover:not(:disabled) { background: var(--brand-2); color: #fff; }
   button.approve:hover:not(:disabled), button.reject:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
   ::selection { background: var(--brand-tint); }
+  /* Page switch between the dashboard and the review page (the admin key is shared through session storage) */
+  .pages { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); margin-right: 12px; }
+  .pages a { padding: 5px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text-2); text-decoration: none; white-space: nowrap; }
+  .pages a:hover { color: var(--brand); }
+  .pages a[aria-current="page"] { background: var(--brand); color: #fff; }
   @media (max-width: 700px) { .brand .mark { width: 34px; height: 34px; font-size: 13px; border-radius: 9px; } h1 small { display: none; } }
   /* JB금융그룹 corporate palette: deep blue #0A31A8, accent #1C56FF, sky #00B2FF, navy #0D2D77, slate greys. */
   :root {
@@ -295,6 +300,10 @@
       <h1><span data-ko="심사" data-en="Review">심사</span> <small data-ko="심사 백오피스 · 서류, 근거, 결정" data-en="Reviewer back office · documents, evidence, decisions">심사 백오피스 · 서류, 근거, 결정</small></h1>
     </div>
   </div>
+  <nav class="pages" aria-label="Back-office pages">
+    <a href="/dashboard" data-ko="대시보드" data-en="Dashboard">대시보드</a>
+    <a href="/review" aria-current="page" data-ko="심사" data-en="Review">심사</a>
+  </nav>
   <div class="key">
     <input id="reviewer" type="text" data-ko-placeholder="심사자 이름" data-en-placeholder="Reviewer name" placeholder="심사자 이름" autocomplete="off" data-ko-title="결정과 이력에 기록됩니다" data-en-title="Recorded on decisions and the timeline" title="결정과 이력에 기록됩니다">
     <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">

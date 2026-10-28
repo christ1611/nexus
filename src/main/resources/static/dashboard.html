@@ -20,6 +20,11 @@
   button.primary:hover:not(:disabled) { background: var(--brand-2); color: #fff; }
   button.approve:hover:not(:disabled), button.reject:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
   ::selection { background: var(--brand-tint); }
+  /* Page switch between the dashboard and the review page (the admin key is shared through session storage) */
+  .pages { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); margin-right: 12px; }
+  .pages a { padding: 5px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text-2); text-decoration: none; white-space: nowrap; }
+  .pages a:hover { color: var(--brand); }
+  .pages a[aria-current="page"] { background: var(--brand); color: #fff; }
   @media (max-width: 700px) { .brand .mark { width: 34px; height: 34px; font-size: 13px; border-radius: 9px; } h1 small { display: none; } }
   /* JB금융그룹 corporate palette: deep blue #0A31A8, accent #1C56FF, sky #00B2FF, navy #0D2D77, slate greys. */
   :root {
@@ -205,6 +210,10 @@
       <h1><span data-ko="온보딩 대시보드" data-en="Onboarding dashboard">온보딩 대시보드</span> <small data-ko="WhatsApp 온보딩 현황 · 인도네시아 / 미얀마 / 캄보디아" data-en="WhatsApp onboarding · Indonesia / Myanmar / Cambodia">WhatsApp 온보딩 현황 · 인도네시아 / 미얀마 / 캄보디아</small></h1>
     </div>
   </div>
+  <nav class="pages" aria-label="Back-office pages">
+    <a href="/dashboard" aria-current="page" data-ko="대시보드" data-en="Dashboard">대시보드</a>
+    <a href="/review" data-ko="심사" data-en="Review">심사</a>
+  </nav>
   <div class="key">
     <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">
     <button class="primary" id="load" data-ko="불러오기" data-en="Load">불러오기</button>
@@ -431,7 +440,7 @@
   function gradeCell(g) { const m = GRADE[g] || { color: 'var(--text-3)', icon: '○', ko: '미평가', en: 'n/a' }; return `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g || '–')} <span class="sub" style="display:inline">${t(m.ko, m.en)}</span></span>`; }
 
   const TABS = [
-    ['overview', '개요', 'Overview'], ['risk', '리스크·사기', 'Risk & fraud'], ['country', '국가·딜러', 'Countries & dealers'],
+    ['overview', '개요', 'Overview'], ['pipeline', '진행·대기 큐', 'Pipeline & queue'], ['risk', '리스크·사기', 'Risk & fraud'], ['country', '국가·딜러', 'Countries & dealers'],
     ['agent', 'AI 에이전트', 'AI agent'], ['dealers', '우수 딜러', 'Excellent dealers'],
   ];
   let activeTab = 'overview';
@@ -455,8 +464,9 @@
     h += `<section class="card"><div class="tiles">${tiles.map(([label, v, alert]) =>
       `<div class="tile ${alert && v > 0 ? 'alert' : ''}"><div class="k">${label}</div><div class="v">${v}</div></div>`).join('')}</div></section>`;
     h += `<div id="copilot-slot"></div>`;   // the persistent copilot card is moved in here after every render (mountCopilot)
+    P.overview = h; h = '';
 
-    // live pipeline board: where every open application is right now
+    // pipeline tab: live pipeline board (where every open application is right now) and the review queue
     const pipe = d.pipeline || [], openTotal = pipe.reduce((s, x) => s + x.count, 0);
     h += `<section class="card"><h2>${t('온보딩 진행 현황', 'Pipeline')} <small>${t(`열린 신청 ${openTotal}건의 현재 단계 · 실시간`, `${openTotal} open applications by current stage · live`)}</small></h2>
       <div class="segbar" role="img" aria-label="Open applications by stage">${pipe.map((s, i) => s.count ? `<i style="width:${(s.count / Math.max(openTotal, 1)) * 100}%;background:${STAGE_COLORS[i]}" data-tip="${esc(L(s) + ': ' + s.count)}"></i>` : '').join('')}</div>
@@ -475,6 +485,7 @@
       d.reviewQueue.map(q => `<tr><td>${appLink(q.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[q.country] || 'var(--text-3)'}"></span>${esc(q.country)}</td><td>${esc(q.dealerCode || '–')}</td><td>${esc(q.customerName || '–')}</td><td>${gradeCell(q.grade)}${q.score != null ? ` <span class="sub">${q.score}</span>` : ''}</td><td class="num">${q.fraudWarnings ? `<span style="color:var(--critical);font-weight:600">⚠ ${q.fraudWarnings}</span>` : '–'}</td><td>${q.officerReviewRequired ? `<span class="chip">${t('필요', 'required')}</span>` : '–'}</td><td class="num" title="${esc(fmtTime(q.waitingSince))}">${hrs(q.waitingHours)}</td></tr>`).join('')
     }</tbody></table></div>`;
     h += `</section>`;
+    P.pipeline = h; h = P.overview;
 
     h += `<div class="row">
       <section class="card"><h2>${t('주간 추이', 'Weekly trend')} <small>${t('ISO 주별 신청 생성 (최근 8주)', 'applications created per ISO week (last 8 weeks)')}</small></h2>${trendChart(d.trend)}</section>
@@ -569,7 +580,7 @@
     P.dealers = h; h = '';
 
     const footer = `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${tt.demoApplications ? ` · ${t(`데모 데이터 ${tt.demoApplications}건 포함 (DELETE /admin/demo/seed 로 제거)`, `includes ${tt.demoApplications} demo applications (remove with DELETE /admin/demo/seed)`)}` : ''}</p>`;
-    const counts = { overview: openTotal, risk: tt.highRisk, agent: ag.steps, dealers: exDealers.length };
+    const counts = { pipeline: openTotal + d.reviewQueue.length, risk: tt.highRisk, agent: ag.steps, dealers: exDealers.length };
     const wasOpen = new Set([...main.querySelectorAll('details[open] > summary')].map(s => s.textContent.trim()));
     main.innerHTML = `<div class="tabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([id, ko, en]) =>
       `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}">${t(ko, en)}${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
