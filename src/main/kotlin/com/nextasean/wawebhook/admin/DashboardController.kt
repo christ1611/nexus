@@ -1,5 +1,6 @@
 package com.nextasean.wawebhook.admin
 
+import com.anthropic.errors.AnthropicException
 import com.nextasean.wawebhook.application.ApplicationRepository
 import com.nextasean.wawebhook.application.ApplicationStatus
 import com.nextasean.wawebhook.application.DealerApplication
@@ -20,8 +21,13 @@ import com.nextasean.wawebhook.trace.AgentTraceService
 import com.nextasean.wawebhook.trace.TraceKind
 import com.nextasean.wawebhook.trace.TraceStatus
 import com.nextasean.wawebhook.verification.ProviderOutcome
+import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseBody
 import java.time.DayOfWeek
@@ -44,8 +50,10 @@ class DashboardController(
     private val risk: RiskAssessmentService,
     private val trace: AgentTraceService,
     private val stages: StageProgressService,
+    private val copilot: DashboardCopilotService,
     props: AppProperties,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
     private val zone: ZoneId = props.zoneId
 
     data class Totals(
@@ -347,6 +355,24 @@ class DashboardController(
                 RecentStep(app?.applicationNumber ?: "?", app?.country ?: "", s.kind.name, s.kind.label, s.kind.labelKo, s.kind.phase.name, s.status.name, s.actor, s.title, s.createdAt)
             }
         return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, dealerTiers, queue, trend(apps, assessments, dealerById, now), agentActivity(), pipeline, inProgress, recentSteps)
+    }
+
+    /**
+     * The dashboard's copilot: a portfolio-level question answered from the statistics above (Claude when configured,
+     * rule-based summary otherwise). Nothing is written; the conversation lives in the browser.
+     */
+    @PostMapping("/copilot")
+    @ResponseBody
+    fun copilot(@RequestBody body: DashboardCopilotService.Request): ResponseEntity<Any> {
+        val question = body.question.trim()
+        if (question.isEmpty()) return ResponseEntity.badRequest().body(mapOf("error" to "question is required"))
+        if (question.length > DashboardCopilotService.MAX_QUESTION) return ResponseEntity.badRequest().body(mapOf("error" to "question is too long (max ${DashboardCopilotService.MAX_QUESTION} characters)"))
+        return try {
+            ResponseEntity.ok(copilot.ask(stats(), question, body.history, body.reviewer))
+        } catch (e: AnthropicException) {
+            log.warn("Dashboard copilot failed | {}", e.toString())
+            ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(mapOf("error" to "Claude API error: ${e.message}"))
+        }
     }
 
     private fun agentActivity(): AgentActivity {

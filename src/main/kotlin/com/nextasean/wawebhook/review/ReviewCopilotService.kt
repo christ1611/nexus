@@ -3,7 +3,6 @@ package com.nextasean.wawebhook.review
 import com.anthropic.client.AnthropicClient
 import com.anthropic.models.messages.CacheControlEphemeral
 import com.anthropic.models.messages.MessageCreateParams
-import com.anthropic.models.messages.MessageParam
 import com.anthropic.models.messages.OutputConfig
 import com.anthropic.models.messages.StopReason
 import com.anthropic.models.messages.TextBlockParam
@@ -73,7 +72,7 @@ class ReviewCopilotService(
             TextBlockParam.builder().text(SYSTEM).cacheControl(CacheControlEphemeral.builder().build()).build(),
             TextBlockParam.builder().text("# Case file\n\n$caseFile").cacheControl(CacheControlEphemeral.builder().build()).build(),
         )
-        val messages = conversation(history, question, reviewer)
+        val messages = copilotConversation(history, question, reviewer, MAX_HISTORY)
         val params = MessageCreateParams.builder()
             .model(props.model)
             .maxTokens(4_000L)
@@ -94,25 +93,6 @@ class ReviewCopilotService(
                 .ifBlank { "답변을 생성하지 못했습니다. 다시 시도해 주세요." }
         }
         return Answer(text, "claude", response.model().asString(), response.usage().inputTokens(), response.usage().outputTokens(), ms)
-    }
-
-    /** Alternating user/assistant turns ending with the new question; consecutive same-role turns are merged. */
-    private fun conversation(history: List<Turn>, question: String, reviewer: String?): List<MessageParam> {
-        val turns = mutableListOf<Pair<Boolean, String>>()
-        for (t in history.takeLast(MAX_HISTORY)) {
-            val content = t.content.trim()
-            if (content.isEmpty()) continue
-            val user = t.role != "assistant"
-            if (turns.isNotEmpty() && turns.last().first == user) turns[turns.lastIndex] = user to (turns.last().second + "\n\n" + content)
-            else turns += user to content
-        }
-        if (turns.isNotEmpty() && !turns.first().first) turns.removeAt(0)
-        if (turns.isNotEmpty() && turns.last().first) turns.removeAt(turns.lastIndex)
-        val asked = reviewer?.trim()?.ifBlank { null }?.let { "[Reviewer: $it] $question" } ?: question
-        turns += true to asked
-        return turns.map { (user, content) ->
-            MessageParam.builder().role(if (user) MessageParam.Role.USER else MessageParam.Role.ASSISTANT).content(content).build()
-        }
     }
 
     /** Everything the reviewer can see on the screen, as text. ID numbers are masked to their last four digits. */

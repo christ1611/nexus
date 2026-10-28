@@ -1,5 +1,7 @@
 package com.nextasean.wawebhook.risk
 
+import com.nextasean.wawebhook.admin.DashboardController
+import com.nextasean.wawebhook.admin.DashboardCopilotService
 import com.nextasean.wawebhook.application.ApplicationRepository
 import com.nextasean.wawebhook.conversation.ReplyIds
 import com.nextasean.wawebhook.customer.CustomerReplyIds
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
@@ -53,6 +56,8 @@ class DashboardAndRiskFlowTest @Autowired constructor(
     private val applications: ApplicationRepository,
     private val dealers: DealerRepository,
     private val mockMvc: MockMvc,
+    private val dashboard: DashboardController,
+    private val copilot: DashboardCopilotService,
 ) {
     private fun id() = "wamid." + UUID.randomUUID()
     private fun text(from: String, body: String) = processor.process(textMessagePayload(id(), from, body).toByteArray())
@@ -139,6 +144,32 @@ class DashboardAndRiskFlowTest @Autowired constructor(
             status { isOk() }
             jsonPath("$.reassessed") { value(greaterThanOrEqualTo(3)) }
         }
+    }
+
+    @Test
+    fun `the dashboard copilot summarises the portfolio from the statistics without an API key`() {
+        onboard(DEALER_ID, "6286000000006", "")
+        val ask = { body: String ->
+            mockMvc.post("/admin/dashboard/copilot") { header("X-Admin-Key", "test-admin-key"); contentType = MediaType.APPLICATION_JSON; content = body }
+        }
+        // Stub mode: rule-based summaries built from the same statistics the page shows, by topic of the question.
+        ask("""{"question":"국가별 현황을 요약해줘"}""").andExpect {
+            status { isOk() }
+            jsonPath("$.mode") { value("rules") }
+            jsonPath("$.answer") { value(containsString("인도네시아")) }
+        }
+        ask("""{"question":"심사 대기 큐에서 먼저 볼 신청은?","history":[{"role":"user","content":"현황"},{"role":"assistant","content":"요약"}]}""").andExpect {
+            status { isOk() }
+            jsonPath("$.answer") { value(containsString("APP-")) }
+        }
+        ask("""{"question":"what did the AI agents do?"}""").andExpect { status { isOk() }; jsonPath("$.answer") { value(containsString("비전 분석")) } }
+        ask("""{"question":"   "}""").andExpect { status { isBadRequest() } }
+        mockMvc.post("/admin/dashboard/copilot") { contentType = MediaType.APPLICATION_JSON; content = """{"question":"x"}""" }
+            .andExpect { status { isUnauthorized() } }
+        // The portfolio file the model would receive carries every section of the dashboard and no customer names.
+        val file = copilot.portfolioFile(dashboard.stats())
+        for (section in listOf("## Snapshot", "## Review queue", "## Weekly trend", "## Countries", "## Risk flags", "## Dealers", "## AI agent activity"))
+            assertTrue(file.contains(section), "missing $section in:\n$file")
     }
 
     @Test

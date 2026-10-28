@@ -171,6 +171,28 @@
   .tabs button[aria-selected="true"] .n { background: var(--brand); color: #fff; }
   .panel { display: grid; gap: 16px; }
   .panel[hidden] { display: none; }
+  textarea { font: inherit; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); width: 100%; min-height: 56px; resize: vertical; }
+  /* Dashboard copilot: chat about the portfolio figures this page shows */
+  .copilot h2 .mode { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--brand-tint); color: var(--brand); vertical-align: middle; margin-left: 6px; }
+  .copilot h2 .mode.rules { background: var(--surface-2); color: var(--text-2); }
+  .copilot .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+  .copilot .chips button { font-size: 12px; font-weight: 500; padding: 5px 11px; background: var(--surface); }
+  .copilot .log { display: grid; gap: 8px; max-height: 480px; overflow-y: auto; padding: 2px 2px 6px; }
+  .copilot .msg { max-width: 88%; padding: 9px 12px; border-radius: 14px; font-size: 13px; line-height: 1.5; white-space: normal; }
+  .copilot .msg.user { background: var(--brand); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+  .copilot .msg.ai { background: var(--surface-2); border-bottom-left-radius: 4px; }
+  .copilot .msg.ai.err { background: var(--critical-bg); color: var(--critical); }
+  .copilot .msg p { margin: 0 0 6px; } .copilot .msg p:last-child { margin-bottom: 0; }
+  .copilot .msg ul { margin: 4px 0; padding-left: 18px; } .copilot .msg li { margin: 2px 0; }
+  .copilot .msg code { font-size: 12px; background: rgba(127,127,127,.15); padding: 0 4px; border-radius: 4px; }
+  .copilot .msg .meta { display: block; font-size: 11px; color: var(--text-3); margin-top: 4px; }
+  .copilot .msg.user .meta { color: rgba(255,255,255,.75); }
+  .copilot .thinking { display: inline-flex; gap: 4px; align-items: center; color: var(--text-3); font-size: 13px; }
+  .copilot .thinking i { width: 6px; height: 6px; border-radius: 50%; background: var(--brand-3); animation: pulse 1s infinite; }
+  .copilot .thinking i:nth-child(2) { animation-delay: .2s; } .copilot .thinking i:nth-child(3) { animation-delay: .4s; }
+  .copilot .ask { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; align-items: end; }
+  .copilot .ask textarea { min-height: 42px; max-height: 140px; border-radius: 12px; }
+  .copilot .foot { font-size: 11px; color: var(--text-3); margin-top: 6px; }
   @media (max-width: 600px) { main, header, footer { padding-left: 16px; padding-right: 16px; } .tile .v { font-size: 22px; } }
 </style>
 </head>
@@ -410,7 +432,7 @@
 
   const TABS = [
     ['overview', '개요', 'Overview'], ['risk', '리스크·사기', 'Risk & fraud'], ['country', '국가·딜러', 'Countries & dealers'],
-    ['agent', 'AI 에이전트', 'AI agent'], ['dealers', '우수 딜러', 'Excellent dealers'],
+    ['agent', 'AI 에이전트', 'AI agent'], ['dealers', '우수 딜러', 'Excellent dealers'], ['copilot', 'AI 코파일럿', 'AI copilot'],
   ];
   let activeTab = 'overview';
   try { activeTab = sessionStorage.getItem('dashboardTab') || activeTab; } catch {}
@@ -544,15 +566,90 @@
       <p class="sub" style="display:block;margin:6px 0 0">${t('딜러마다 등급(일반 · 우수)이 있어요. 우수 딜러가 만든 신청의 고객은 리스크 평가에서 "우수 딜러 유입 고객" 배지를 받고, 심사 화면과 고객 리포트에 표시돼요. 배지는 참고 정보이며 등급 점수를 바꾸지는 않아요. 이 탭은 우수 딜러 경유 고객이 실제로 더 낮은 리스크와 더 높은 승인율을 보이는지 추적해, 딜러 등급을 유지하거나 조정하는 근거를 줘요.', 'Each dealer has a tier (standard or excellent). Customers filed by an excellent dealer receive the "referred by an excellent dealer" badge in the risk assessment, shown on the review page and the customer report. The badge is informational and does not change the grade score. This tab tracks whether customers from excellent dealers really come with lower risk and higher approval rates, as evidence for keeping or adjusting dealer tiers.')}</p></section>`;
     P.dealers = h; h = '';
 
+    P.copilot = '';
+
     const footer = `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${tt.demoApplications ? ` · ${t(`데모 데이터 ${tt.demoApplications}건 포함 (DELETE /admin/demo/seed 로 제거)`, `includes ${tt.demoApplications} demo applications (remove with DELETE /admin/demo/seed)`)}` : ''}</p>`;
-    const counts = { overview: openTotal, risk: tt.highRisk, agent: ag.steps, dealers: exDealers.length };
+    const counts = { overview: openTotal, risk: tt.highRisk, agent: ag.steps, dealers: exDealers.length, copilot: copilotLog.filter(m => m.role === 'assistant' && !m.err).length };
     const wasOpen = new Set([...main.querySelectorAll('details[open] > summary')].map(s => s.textContent.trim()));
     main.innerHTML = `<div class="tabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([id, ko, en]) =>
       `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}">${t(ko, en)}${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
       + TABS.map(([id]) => `<div class="panel" role="tabpanel" id="panel-${id}" aria-labelledby="tab-${id}" data-panel="${id}"${id === activeTab ? '' : ' hidden'}>${P[id]}</div>`).join('')
       + footer;
+    mountCopilot();
     main.querySelectorAll('details > summary').forEach(s => { if (wasOpen.has(s.textContent.trim())) s.parentElement.open = true; });
     bindTips(main);
+  }
+
+  /* AI dashboard copilot: portfolio-level questions answered from the same statistics this page shows
+     (POST /admin/dashboard/copilot). The panel is one persistent element that is moved into the copilot tab on
+     every render, so the conversation and a half-typed question survive the 15-second refreshes. */
+  const copilotLog = [];   // [{ role, content, mode, model, ms, err, inputTokens, outputTokens }]
+  let copilotBusy = false;
+  const copilotEl = document.createElement('section'); copilotEl.className = 'card copilot'; copilotEl.id = 'copilot';
+  const COPILOT_PROMPTS = [
+    ['지금 전체 현황을 요약해줘', 'Summarise the portfolio right now'], ['심사 대기 큐에서 먼저 볼 신청은?', 'Which applications should officers look at first?'],
+    ['국가별 고위험 비율을 비교해줘', 'Compare the high-risk share by country'], ['가장 많이 발생한 위조·사기 Flag는?', 'Which fraud flags occur most?'],
+    ['우수 딜러와 일반 딜러의 차이는?', 'How do excellent dealers differ from standard ones?'], ['주간 추이를 해석해줘', 'Interpret the weekly trend'], ['AI 에이전트가 한 일을 정리해줘', 'What did the AI agents do?'],
+  ];
+  const md = text => {
+    const lines = esc(text).split(/\r?\n/); let h = '', list = false;
+    const inline = s => s.replace(/(?<!\*)\*\*([^*\n]+?)\*\*(?!\*)/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\b(APP-\d{4}-\d{6})\b/g, (m, n) => appLink(n));
+    for (const raw of lines) {
+      const m = raw.match(/^\s*(?:[-•*]|\d+[.)])\s+(.*)$/);
+      if (m) { if (!list) { h += '<ul>'; list = true; } h += `<li>${inline(m[1])}</li>`; continue; }
+      if (list) { h += '</ul>'; list = false; }
+      if (raw.trim()) h += `<p>${inline(raw)}</p>`;
+    }
+    return h + (list ? '</ul>' : '');
+  };
+  function renderCopilot() {
+    const last = [...copilotLog].reverse().find(m => m.role === 'assistant' && !m.err);
+    const mode = last ? (last.mode === 'claude' ? `<span class="mode">Claude ${esc(last.model || '')}</span>` : `<span class="mode rules">${t('규칙 기반 · API 키 없음', 'rule-based · no API key')}</span>`) : '';
+    const tt = lastData && lastData.totals;
+    const intro = tt
+      ? t(`신청 ${tt.applications}건 · 심사 대기 ${tt.readyForReview}건 · 고위험 ${tt.highRisk}건 · 위조 경고 ${tt.fraudWarnings}건 기준으로 답합니다 (${fmtShort(lastData.generatedAt)} 집계).`, `Answers are based on ${tt.applications} applications, ${tt.readyForReview} ready for review, ${tt.highRisk} high risk and ${tt.fraudWarnings} fraud warnings (as of ${fmtShort(lastData.generatedAt)}).`)
+      : t('대시보드 데이터를 불러오면 질문할 수 있습니다.', 'Load the dashboard data first.');
+    return `<h2>${t('AI 대시보드 코파일럿', 'AI dashboard copilot')} <small>${t('추이·국가·딜러·리스크·심사 대기 큐·AI 에이전트 활동에 대해 물어보세요 · 결정은 심사원이 합니다', 'Ask about trends, countries, dealers, risk, the review queue and the AI agents · the officer decides')}</small>${mode}</h2>
+      <div class="chips">${COPILOT_PROMPTS.map(([ko, en]) => `<button type="button" data-q="${esc(t(ko, en))}">${esc(t(ko, en))}</button>`).join('')}${copilotLog.length ? `<button type="button" data-clear="1" title="${t('이 대화를 지웁니다', 'Clear this conversation')}">${t('대화 지우기', 'Clear chat')}</button>` : ''}</div>
+      <div class="log" id="copilot-log">${copilotLog.length ? copilotLog.map(m => m.role === 'user'
+        ? `<div class="msg user">${esc(m.content)}</div>`
+        : `<div class="msg ai ${m.err ? 'err' : ''}">${m.err ? esc(m.content) : md(m.content)}${m.ms != null ? `<span class="meta">${m.mode === 'claude' ? esc(m.model || 'Claude') : t('규칙 기반', 'rule-based')} · ${(m.ms / 1000).toFixed(1)}s${m.inputTokens != null ? ` · in ${m.inputTokens.toLocaleString()} · out ${m.outputTokens.toLocaleString()}` : ''}</span>` : ''}</div>`).join('')
+        : `<p class="empty" style="padding:4px 0">${esc(intro)} <span class="sub">${t('위의 추천 질문을 누르거나 직접 입력하세요.', 'Use a suggested question above, or type your own.')}</span></p>`}
+        ${copilotBusy ? `<div class="thinking"><i></i><i></i><i></i> ${t('생각 중', 'thinking')}</div>` : ''}</div>
+      <div class="ask"><textarea id="copilot-q" placeholder="${t('질문 입력 · Enter 전송, Shift+Enter 줄바꿈', 'Type a question · Enter to send, Shift+Enter for a new line')}" ${copilotBusy ? 'disabled' : ''}></textarea><button class="primary" id="copilot-send" ${copilotBusy ? 'disabled' : ''}>${t('질문', 'Ask')}</button></div>
+      <div class="foot">${t('답변은 이 대시보드가 보여주는 통계만 근거로 합니다. 개별 신청의 서류·근거는 심사 화면에서 확인하세요.', 'Answers are grounded only in the statistics this dashboard shows. For one application\'s documents and evidence, open the review page.')}</div>`;
+  }
+  function paintCopilot() {
+    const old = copilotEl.querySelector('#copilot-q');
+    const draft = old ? old.value : '', hadFocus = old && document.activeElement === old;
+    copilotEl.innerHTML = renderCopilot();
+    copilotEl.querySelectorAll('.chips button[data-q]').forEach(b => b.addEventListener('click', () => askCopilot(b.dataset.q)));
+    const clear = copilotEl.querySelector('.chips button[data-clear]'); if (clear) clear.addEventListener('click', () => { copilotLog.length = 0; paintCopilot(); });
+    const q = copilotEl.querySelector('#copilot-q'), send = copilotEl.querySelector('#copilot-send');
+    q.value = draft; if (hadFocus && !q.disabled) q.focus();
+    const go = () => { const v = q.value.trim(); if (v) { q.value = ''; askCopilot(v); } };
+    send.addEventListener('click', go);
+    q.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); } });
+    const log = copilotEl.querySelector('#copilot-log'); if (log) log.scrollTop = log.scrollHeight;
+  }
+  function mountCopilot() {
+    const panel = main.querySelector('#panel-copilot'); if (!panel) return;
+    if (!copilotEl.innerHTML || !copilotLog.length) paintCopilot();   // first paint, or refresh the intro figures while the chat is empty
+    panel.appendChild(copilotEl);
+  }
+  async function askCopilot(question) {
+    if (copilotBusy || !lastData) return;
+    const history = copilotLog.filter(m => !m.err).map(m => ({ role: m.role, content: m.content }));
+    copilotLog.push({ role: 'user', content: question });
+    copilotBusy = true; paintCopilot();
+    try {
+      const res = await fetch('/admin/dashboard/copilot', { method: 'POST', headers: { 'X-Admin-Key': keyInput.value.trim(), 'Content-Type': 'application/json' }, body: JSON.stringify({ question, history }) });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
+      copilotLog.push({ role: 'assistant', content: body.answer, mode: body.mode, model: body.model, ms: body.durationMs, inputTokens: body.inputTokens, outputTokens: body.outputTokens });
+    } catch (e) {
+      copilotLog.push({ role: 'assistant', content: t('오류: ', 'Error: ') + e.message, err: true });
+    } finally { copilotBusy = false; paintCopilot(); }
   }
 
   function showTab(id) {
@@ -592,7 +689,7 @@
   $('#refresh').addEventListener('click', load);
   keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
   // Language switch: redraw the last payload; the static markup is swapped by lang.js itself.
-  LANG.onChange(() => { if (lastData) render(lastData); });
+  LANG.onChange(() => { if (lastData) render(lastData); if (copilotEl.innerHTML) paintCopilot(); });
   if (keyInput.value) load();
   setInterval(() => { if (keyInput.value.trim() && !document.hidden) load(); }, AUTO_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && keyInput.value.trim()) load(); });
