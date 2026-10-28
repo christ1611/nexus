@@ -235,6 +235,7 @@
   .copilot .ask { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; align-items: end; }
   .copilot .ask textarea { min-height: 42px; max-height: 140px; border-radius: 12px; }
   .copilot .foot { font-size: 11px; color: var(--text-3); margin-top: 6px; }
+  .copilot .msg.ai .caret { display: inline-block; width: 7px; height: 14px; margin-left: 2px; vertical-align: -2px; background: var(--brand-3); animation: pulse .8s infinite; border-radius: 2px; }
   .live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--good); font-weight: 600; }
   .trace li.new .body { animation: arrive 3s ease-out; border-radius: 8px; margin: -4px -8px; padding: 4px 8px; }
   .trace li.new .node { animation: ring 1.6s ease-out; }
@@ -393,7 +394,7 @@
   const statusName = s => pair(STATUS, s);
   const countryName = c => pair(COUNTRY, c);
   const gradeName = g => { const m = GRADE[g]; return m ? t(m.ko, m.en) : t('미평가', 'not assessed'); };
-  const methodName = m => m === 'CLAUDE_VISION_RULES' ? t('Claude 비전 + 규칙', 'Claude vision + rules') : t('규칙 (스텁)', 'rules (stub)');
+  const methodName = m => m === 'CLAUDE_VISION_RULES' ? t('Claude 비전 + 규칙', 'Claude vision + rules') : t('NEXUS AI 규칙 엔진', 'NEXUS AI rules engine');
   const customerName = a => a.extracted?.name || a.customerName || t('고객 미연결', 'customer not linked');
   const curStage = p => p ? (LANG.lang === 'en' ? (p.stages.find(s => s.code === p.current)?.label || p.current) : p.currentKo) : '';
   const noteOf = s => (LANG.lang === 'en' ? (s.noteEn ?? s.note) : s.note) || '';
@@ -417,15 +418,30 @@
   const FLOW_HIDDEN = new Set(['AGENT_TURN', 'AGENT_TOOL_CALL', 'AGENT_RETRY']);
   function actorChip(actor) {
     const [kind, rest] = actor.split(/:(.+)/);
-    const m = { claude: ['Claude ' + (rest || ''), 'claude'], rules: [t('코드 규칙', 'code rules'), ''], stub: [t('스텁 (데모)', 'stub (demo)'), ''], provider: [rest || 'provider', ''], customer: [t('고객', 'customer'), ''], officer: [t('심사자 ', 'officer ') + (rest || ''), ''], system: [t('시스템', 'system'), ''] }[kind] || [actor, ''];
+    const m = { claude: ['Claude ' + (rest || ''), 'claude'], rules: [t('NEXUS AI 규칙 엔진', 'NEXUS AI rules engine'), ''], stub: [t('자동 검사 (데모)', 'automatic check (demo)'), ''], provider: [rest || 'provider', ''], customer: [t('고객', 'customer'), ''], officer: [t('심사자 ', 'officer ') + (rest || ''), ''], system: [t('시스템', 'system'), ''] }[kind] || [actor, ''];
     return `<span class="actor ${m[1]}">${esc(m[0])}</span>`;
   }
   const fmtClock = iso => { try { return new Date(iso).toLocaleTimeString(LANG.locale, { hour12: false }); } catch { return iso; } };
   const fmtMs = ms => ms == null ? '' : ms >= 1000 ? (ms / 1000).toFixed(1) + 's' : ms + 'ms';
 
   /* Reviewer copilot: per-application chat kept in memory, so re-renders and milestone reloads keep the conversation. */
-  const copilotLog = new Map();   // application number -> [{ role, content, mode, model, ms, err }]
+  const copilotLog = new Map();   // application number -> [{ role, content, mode, model, ms, err, label, showEngine, typing }]
   const copilotBusy = new Set();
+  const AI_NAME = 'NEXUS AI';     // default assistant name; answers carry the server's label (app.copilot-label)
+  const engineOf = m => m.mode === 'claude' ? esc(m.model || 'Claude') : t('규칙 엔진', 'rules engine');
+  const labelOf = m => esc(m.label || AI_NAME) + (m.showEngine ? ' · ' + engineOf(m) : '');
+  const thinkPause = () => new Promise(r => setTimeout(r, 700 + Math.random() * 900));   // a beat before the answer, even when the engine is instant
+  /** Reveals an answer progressively in its bubble, then repaints with the footer. */
+  function typeOut(el, m, done) {
+    const total = m.content.length, step = Math.max(6, Math.round(total / 70)); let n = 0;
+    const timer = setInterval(() => {
+      if (!el.isConnected) { clearInterval(timer); m.typing = false; return; }
+      n = Math.min(total, n + step);
+      el.innerHTML = md(m.content.slice(0, n)) + (n < total ? '<span class="caret"></span>' : '');
+      const log = el.closest('.log'); if (log) log.scrollTop = log.scrollHeight;
+      if (n >= total) { clearInterval(timer); m.typing = false; done(); }
+    }, 28);
+  }
   const COPILOT_PROMPTS = [
     ['이 등급·점수가 나온 이유를 설명해줘', 'Explain why this grade and score came out'], ['위조·사기 경고의 근거는?', 'What is the evidence behind the fraud warnings?'],
     ['승인해도 될까? 조건은?', 'Can this be approved? Under what conditions?'], ['고객에게 추가로 요청할 서류는?', 'What should we ask the customer for?'], ['신원·신용 조회 결과를 해석해줘', 'Interpret the identity and credit lookups'],
@@ -444,12 +460,12 @@
   function renderCopilot(a) {
     const n = a.applicationNumber, log = copilotLog.get(n) || [], busy = copilotBusy.has(n);
     const last = [...log].reverse().find(m => m.role === 'assistant' && !m.err);
-    const mode = last ? (last.mode === 'claude' ? `<span class="mode">Claude ${esc(last.model || '')}</span>` : `<span class="mode rules">${t('규칙 기반 · API 키 없음', 'rule-based · no API key')}</span>`) : '';
+    const mode = `<span class="mode">${last ? labelOf(last) : AI_NAME}</span>`;
     return `<h2>${t('AI 심사 코파일럿', 'AI review copilot')} <small>${t('이 신청의 점수·Flag·근거에 대해 물어보세요 · 결정은 심사원이 합니다', "Ask about this application's score, flags and evidence · the officer decides")}</small>${mode}</h2>
       <div class="chips">${COPILOT_PROMPTS.map(([ko, en]) => `<button type="button" data-q="${esc(t(ko, en))}">${esc(t(ko, en))}</button>`).join('')}${log.length ? `<button type="button" data-clear="1" title="${t('이 대화를 지웁니다', 'Clear this conversation')}">${t('대화 지우기', 'Clear chat')}</button>` : ''}</div>
       <div class="log" id="copilot-log">${log.length ? log.map(m => m.role === 'user'
         ? `<div class="msg user">${esc(m.content)}</div>`
-        : `<div class="msg ai ${m.err ? 'err' : ''}">${m.err ? esc(m.content) : md(m.content)}${m.ms != null ? `<span class="meta">${m.mode === 'claude' ? esc(m.model || 'Claude') : t('규칙 기반', 'rule-based')} · ${(m.ms / 1000).toFixed(1)}s${m.inputTokens != null ? ` · in ${m.inputTokens.toLocaleString()} · out ${m.outputTokens.toLocaleString()}` : ''}</span>` : ''}</div>`).join('')
+        : `<div class="msg ai ${m.err ? 'err' : ''}"${m.typing ? ' data-typing="1"' : ''}>${m.typing ? '<span class="caret"></span>' : m.err ? esc(m.content) : md(m.content)}${m.ms != null && !m.typing ? `<span class="meta">${labelOf(m)} · ${(m.ms / 1000).toFixed(1)}s${m.showEngine && m.inputTokens != null ? ` · in ${m.inputTokens.toLocaleString()} · out ${m.outputTokens.toLocaleString()}` : ''}</span>` : ''}</div>`).join('')
         : `<p class="empty" style="padding:4px 0">${esc(a.risk ? t(`등급 ${a.risk.grade} · ${a.risk.score}점의 근거, Risk Flag의 의미, 추가 확인 사항을 물어보세요.`, `Ask why grade ${a.risk.grade} with ${a.risk.score} points, what the risk flags mean, or what to check next.`) : t('리스크 평가 전에도 서류·진행 상황에 대해 물어볼 수 있습니다.', 'Before the risk assessment you can still ask about the documents and the progress.'))} <span class="sub">${t('위의 추천 질문을 누르거나 직접 입력하세요.', 'Use a suggested question above, or type your own.')}</span></p>`}
         ${busy ? `<div class="thinking"><i></i><i></i><i></i> ${t('생각 중', 'thinking')}</div>` : ''}</div>
       <div class="ask"><textarea id="copilot-q" placeholder="${t('질문 입력 · Enter 전송, Shift+Enter 줄바꿈', 'Type a question · Enter to send, Shift+Enter for a new line')}" ${busy ? 'disabled' : ''}></textarea><button class="primary" id="copilot-send" ${busy ? 'disabled' : ''}>${t('질문', 'Ask')}</button></div>
@@ -466,16 +482,23 @@
     q.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); } });
     const log = root.querySelector('#copilot-log'); if (log) log.scrollTop = log.scrollHeight;
   }
-  function repaintCopilot(n) { if (current && current.applicationNumber === n) { const root = $('#copilot'); if (root) { root.innerHTML = renderCopilot(current); bindCopilot(current); } } }
+  function repaintCopilot(n) {
+    if (!current || current.applicationNumber !== n) return;
+    const root = $('#copilot'); if (!root) return;
+    root.innerHTML = renderCopilot(current); bindCopilot(current);
+    const log = copilotLog.get(n) || [], typing = log.find(m => m.typing), el = root.querySelector('.msg.ai[data-typing]');
+    if (typing && el) typeOut(el, typing, () => repaintCopilot(n));
+  }
   async function askCopilot(n, question) {
     if (copilotBusy.has(n)) return;
     const log = copilotLog.get(n) || []; copilotLog.set(n, log);
     const history = log.filter(m => !m.err).map(m => ({ role: m.role, content: m.content }));
     log.push({ role: 'user', content: question });
     copilotBusy.add(n); repaintCopilot(n);
+    const started = Date.now();
     try {
-      const r = await api('/admin/applications/' + encodeURIComponent(n) + '/copilot', { method: 'POST', body: JSON.stringify({ question, history, reviewer: reviewerInput.value.trim() || null }) });
-      log.push({ role: 'assistant', content: r.answer, mode: r.mode, model: r.model, ms: r.durationMs, inputTokens: r.inputTokens, outputTokens: r.outputTokens });
+      const [r] = await Promise.all([api('/admin/applications/' + encodeURIComponent(n) + '/copilot', { method: 'POST', body: JSON.stringify({ question, history, reviewer: reviewerInput.value.trim() || null }) }), thinkPause()]);
+      log.push({ role: 'assistant', content: r.answer, mode: r.mode, model: r.model, ms: Date.now() - started, inputTokens: r.inputTokens, outputTokens: r.outputTokens, label: r.label, showEngine: r.showEngine, typing: true });
     } catch (e) {
       log.push({ role: 'assistant', content: t('오류: ', 'Error: ') + e.message, err: true });
     } finally { copilotBusy.delete(n); repaintCopilot(n); }

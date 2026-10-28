@@ -8,6 +8,7 @@ import com.anthropic.models.messages.StopReason
 import com.anthropic.models.messages.TextBlockParam
 import com.nextasean.wawebhook.application.DealerApplication
 import com.nextasean.wawebhook.application.StageProgressService
+import com.nextasean.wawebhook.config.AppProperties
 import com.nextasean.wawebhook.config.ClaudeProperties
 import com.nextasean.wawebhook.dealer.DealerRepository
 import com.nextasean.wawebhook.documents.DocumentRecord
@@ -36,6 +37,7 @@ import kotlin.jvm.optionals.getOrNull
 class ReviewCopilotService(
     private val client: ObjectProvider<AnthropicClient>,
     private val props: ClaudeProperties,
+    private val appProps: AppProperties,
     private val documents: DocumentRepository,
     private val dealers: DealerRepository,
     private val risk: RiskAssessmentService,
@@ -55,6 +57,9 @@ class ReviewCopilotService(
         val inputTokens: Long? = null,
         val outputTokens: Long? = null,
         val durationMs: Long,
+        /** Name shown on the answer (app.copilot-label) and whether the engine behind it is disclosed in the UI. */
+        val label: String = "NEXUS AI",
+        val showEngine: Boolean = false,
     )
 
     val enabled: Boolean get() = client.ifAvailable != null
@@ -65,7 +70,7 @@ class ReviewCopilotService(
         val c = client.ifAvailable
         if (c == null) {
             val text = RulesCopilot.answer(app, assessment, question)
-            return Answer(text, "rules", null, durationMs = System.currentTimeMillis() - started)
+            return Answer(text, "rules", null, durationMs = System.currentTimeMillis() - started, label = appProps.copilotLabel, showEngine = appProps.copilotShowEngine)
         }
         val caseFile = caseFile(app, assessment)
         val system = listOf(
@@ -92,7 +97,7 @@ class ReviewCopilotService(
             else -> response.content().mapNotNull { it.text().getOrNull()?.text() }.joinToString("\n").trim()
                 .ifBlank { "답변을 생성하지 못했습니다. 다시 시도해 주세요." }
         }
-        return Answer(text, "claude", response.model().asString(), response.usage().inputTokens(), response.usage().outputTokens(), ms)
+        return Answer(text, "claude", response.model().asString(), response.usage().inputTokens(), response.usage().outputTokens(), ms, appProps.copilotLabel, appProps.copilotShowEngine)
     }
 
     /** Everything the reviewer can see on the screen, as text. ID numbers are masked to their last four digits. */
@@ -215,8 +220,7 @@ object RulesCopilot {
     private val DOCS = Regex("서류|문서|사진|재요청|추가|document|photo|selfie|ktp|request", RegexOption.IGNORE_CASE)
 
     fun answer(app: DealerApplication, a: RiskAssessment?, question: String): String {
-        val head = "규칙 기반 답변입니다 (Claude API 키가 설정되지 않아 저장된 평가 결과만으로 설명합니다).\n\n"
-        if (a == null) return head + "아직 리스크 평가가 없습니다. 고객 서류와 신원·신용 조회가 끝나면 점수와 등급이 계산됩니다."
+        if (a == null) return CopilotVoice.open(question, app.applicationNumber) + "아직 리스크 평가가 없습니다. 고객 서류와 신원·신용 조회가 끝나면 점수와 등급이 계산되고, 그때 근거를 바로 설명해 드릴게요." + CopilotVoice.close(question)
         val body = when {
             RECOMMEND.containsMatchIn(question) -> recommendation(app, a)
             FRAUD.containsMatchIn(question) -> fraud(a)
@@ -224,7 +228,7 @@ object RulesCopilot {
             DOCS.containsMatchIn(question) -> documentsAdvice(app, a)
             else -> scoreBreakdown(a)
         }
-        return head + body
+        return CopilotVoice.open(question, app.applicationNumber) + body.trimEnd() + CopilotVoice.close(question)
     }
 
     fun scoreBreakdown(a: RiskAssessment): String = buildString {

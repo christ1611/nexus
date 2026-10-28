@@ -48,6 +48,9 @@ app:
   admin-api-key: ${ADMIN_API_KEY:}
   # stub = demo document check (default); claude = Claude vision analysis + review agent (needs ANTHROPIC_API_KEY).
   document-check: ${DOCUMENT_CHECK:stub}
+  # How copilot answers are labelled in the back office. The engine (Claude model or rules) is only shown when COPILOT_SHOW_ENGINE=true.
+  copilot-label: ${COPILOT_LABEL:NEXUS AI}
+  copilot-show-engine: ${COPILOT_SHOW_ENGINE:false}
 
 # Claude API (used only when app.document-check=claude).
 claude:

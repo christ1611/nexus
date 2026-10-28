@@ -8,10 +8,12 @@ import com.anthropic.models.messages.StopReason
 import com.anthropic.models.messages.TextBlockParam
 import com.nextasean.wawebhook.admin.DashboardController.Metrics
 import com.nextasean.wawebhook.admin.DashboardController.Stats
+import com.nextasean.wawebhook.config.AppProperties
 import com.nextasean.wawebhook.config.ClaudeProperties
 import com.nextasean.wawebhook.review.ReviewCopilotService
 import com.nextasean.wawebhook.review.ReviewCopilotService.Answer
 import com.nextasean.wawebhook.review.ReviewCopilotService.Turn
+import com.nextasean.wawebhook.review.CopilotVoice
 import com.nextasean.wawebhook.review.copilotConversation
 import com.nextasean.wawebhook.risk.RiskGrade
 import com.nextasean.wawebhook.risk.RiskSeverity
@@ -34,6 +36,7 @@ import kotlin.jvm.optionals.getOrNull
 class DashboardCopilotService(
     private val client: ObjectProvider<AnthropicClient>,
     private val props: ClaudeProperties,
+    private val appProps: AppProperties,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -44,7 +47,7 @@ class DashboardCopilotService(
         val started = System.currentTimeMillis()
         val c = client.ifAvailable
         if (c == null) {
-            return Answer(RulesDashboardCopilot.answer(stats, question), "rules", null, durationMs = System.currentTimeMillis() - started)
+            return Answer(RulesDashboardCopilot.answer(stats, question), "rules", null, durationMs = System.currentTimeMillis() - started, label = appProps.copilotLabel, showEngine = appProps.copilotShowEngine)
         }
         val system = listOf(
             TextBlockParam.builder().text(SYSTEM).cacheControl(CacheControlEphemeral.builder().build()).build(),
@@ -66,7 +69,7 @@ class DashboardCopilotService(
             else -> response.content().mapNotNull { it.text().getOrNull()?.text() }.joinToString("\n").trim()
                 .ifBlank { "답변을 생성하지 못했습니다. 다시 시도해 주세요." }
         }
-        return Answer(text, "claude", response.model().asString(), response.usage().inputTokens(), response.usage().outputTokens(), ms)
+        return Answer(text, "claude", response.model().asString(), response.usage().inputTokens(), response.usage().outputTokens(), ms, appProps.copilotLabel, appProps.copilotShowEngine)
     }
 
     /** Everything the dashboard shows, as text. Customer names stay out; applications are referred to by number. */
@@ -213,7 +216,6 @@ object RulesDashboardCopilot {
     private val hours = DashboardCopilotService.Companion::hours
 
     fun answer(s: Stats, question: String): String {
-        val head = "규칙 기반 답변입니다 (Claude API 키가 설정되지 않아 대시보드 통계만으로 요약합니다).\n\n"
         val body = when {
             QUEUE.containsMatchIn(question) -> queue(s)
             TREND.containsMatchIn(question) -> trend(s)
@@ -223,7 +225,7 @@ object RulesDashboardCopilot {
             RISK.containsMatchIn(question) -> risk(s)
             else -> overview(s)
         }
-        return head + body
+        return CopilotVoice.openPortfolio(question) + body.trimEnd() + CopilotVoice.closePortfolio(question)
     }
 
     fun overview(s: Stats): String = buildString {
@@ -233,7 +235,6 @@ object RulesDashboardCopilot {
         appendLine("- 리스크 평가 ${t.assessed}건 중 고위험(C·D) ${t.highRisk}건, 위조·사기 경고 ${t.fraudWarnings}건, 담당자 검토 필요 ${t.officerReviewRequired}건")
         appendLine("- 최장 대기 ${hours(t.oldestWaitingHours)} · 평균 결정 시간 ${hours(t.avgDecisionHours)}")
         if (s.pipeline.isNotEmpty()) appendLine("- 진행 단계: " + s.pipeline.filter { it.count > 0 }.joinToString(", ") { "${it.labelKo} ${it.count}" }.ifBlank { "열린 신청 없음" })
-        appendLine("- 국가별·딜러별·리스크·주간 추이·AI 에이전트 활동을 물어보면 해당 수치를 정리해 드립니다.")
     }
 
     fun countries(s: Stats): String = buildString {

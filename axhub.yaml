@@ -29,6 +29,8 @@ env:
     - name: WHATSAPP_BUSINESS_ACCOUNT_ID
     - name: WHATSAPP_BUSINESS_PHONE
     - name: DOCUMENT_CHECK
+    - name: COPILOT_LABEL
+    - name: COPILOT_SHOW_ENGINE
     - name: ANTHROPIC_API_KEY
     - name: CLAUDE_MODEL
     - name: DEMO_SEED_APPLICATIONS

@@ -198,6 +198,7 @@
   .copilot .ask { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; align-items: end; }
   .copilot .ask textarea { min-height: 42px; max-height: 140px; border-radius: 12px; }
   .copilot .foot { font-size: 11px; color: var(--text-3); margin-top: 6px; }
+  .copilot .msg.ai .caret { display: inline-block; width: 7px; height: 14px; margin-left: 2px; vertical-align: -2px; background: var(--brand-3); animation: pulse .8s infinite; border-radius: 2px; }
   @media (max-width: 600px) { main, header, footer { padding-left: 16px; padding-right: 16px; } .tile .v { font-size: 22px; } }
 </style>
 </head>
@@ -506,7 +507,7 @@
     h += `<section class="card"><h2>${t('Risk Flag · 위조/사기 감지 경고', 'Fraud / forgery warnings')} <small>${t('고위험 고객 (등급 C·D)', 'high-risk customers (grade C or D)')}</small></h2>`;
     if (!d.highRiskApplications.length) h += `<p class="empty">${t('현재 고위험(C·D) 고객이 없습니다.', 'No high-risk customers right now.')}</p>`;
     else h += `<div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('국가', 'Country')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('고객', 'Customer')}</th><th>${t('상태', 'Status')}</th><th>${t('AI 리스크 등급', 'AI risk grade')}</th><th>Risk Flags</th><th>${t('배지', 'Badges')}</th><th>${t('평가 방식', 'Method')}</th></tr></thead><tbody>${
-      d.highRiskApplications.map(r => `<tr><td>${appLink(r.applicationNumber)}<br><span class="sub">${fmtTime(r.assessedAt)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)} <span class="sub">${t('점수', 'score')} ${r.score}${r.fraudWarnings ? ` · ⚠ ${t('위조 경고', 'fraud')} ${r.fraudWarnings}` : ''}</span></td><td>${r.flags.map(f => `<span class="chip ${f.fraud ? 'fraud' : ''}" data-tip="${esc(L(f, 'title') + ' — ' + f.detail)}">${f.fraud ? '⚠ ' : ''}${esc(L(f, 'title'))} · ${esc(f.severity)}</span>`).join('')}</td><td>${(LANG.lang === 'en' ? (r.badges || r.badgesKo) : r.badgesKo).map(b => `<span class="chip badge">✓ ${esc(b)}</span>`).join('') || '–'}</td><td><span class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? t('Claude 비전 + 규칙', 'Claude vision + rules') : t('규칙 (스텁)', 'rules (stub)'))}</span></td></tr>`).join('')
+      d.highRiskApplications.map(r => `<tr><td>${appLink(r.applicationNumber)}<br><span class="sub">${fmtTime(r.assessedAt)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td>${gradeCell(r.grade)} <span class="sub">${t('점수', 'score')} ${r.score}${r.fraudWarnings ? ` · ⚠ ${t('위조 경고', 'fraud')} ${r.fraudWarnings}` : ''}</span></td><td>${r.flags.map(f => `<span class="chip ${f.fraud ? 'fraud' : ''}" data-tip="${esc(L(f, 'title') + ' — ' + f.detail)}">${f.fraud ? '⚠ ' : ''}${esc(L(f, 'title'))} · ${esc(f.severity)}</span>`).join('')}</td><td>${(LANG.lang === 'en' ? (r.badges || r.badgesKo) : r.badgesKo).map(b => `<span class="chip badge">✓ ${esc(b)}</span>`).join('') || '–'}</td><td><span class="sub">${esc(r.method === 'CLAUDE_VISION_RULES' ? t('Claude 비전 + 규칙', 'Claude vision + rules') : t('NEXUS AI 규칙 엔진', 'NEXUS AI rules engine'))}</span></td></tr>`).join('')
     }</tbody></table></div>`;
     h += `</section>`;
 
@@ -595,8 +596,23 @@
      (POST /admin/dashboard/copilot). The card sits in the overview between the summary tiles and the pipeline board. It is
      one persistent element moved into place on every render, so the conversation and a half-typed question survive the
      15-second refreshes. */
-  const copilotLog = [];   // [{ role, content, mode, model, ms, err, inputTokens, outputTokens }]
+  const copilotLog = [];   // [{ role, content, mode, model, ms, err, inputTokens, outputTokens, label, showEngine, typing }]
   let copilotBusy = false;
+  const AI_NAME = 'NEXUS AI';     // default assistant name; answers carry the server's label (app.copilot-label)
+  const engineOf = m => m.mode === 'claude' ? esc(m.model || 'Claude') : t('규칙 엔진', 'rules engine');
+  const labelOf = m => esc(m.label || AI_NAME) + (m.showEngine ? ' · ' + engineOf(m) : '');
+  const thinkPause = () => new Promise(r => setTimeout(r, 700 + Math.random() * 900));   // a beat before the answer, even when the engine is instant
+  /** Reveals an answer progressively in its bubble, then repaints with the footer. */
+  function typeOut(el, m, done) {
+    const total = m.content.length, step = Math.max(6, Math.round(total / 70)); let n = 0;
+    const timer = setInterval(() => {
+      if (!el.isConnected) { clearInterval(timer); m.typing = false; return; }
+      n = Math.min(total, n + step);
+      el.innerHTML = md(m.content.slice(0, n)) + (n < total ? '<span class="caret"></span>' : '');
+      const log = el.closest('.log'); if (log) log.scrollTop = log.scrollHeight;
+      if (n >= total) { clearInterval(timer); m.typing = false; done(); }
+    }, 28);
+  }
   const copilotEl = document.createElement('section'); copilotEl.className = 'card copilot'; copilotEl.id = 'copilot';
   const COPILOT_PROMPTS = [
     ['지금 전체 현황을 요약해줘', 'Summarise the portfolio right now'], ['심사 대기 큐에서 먼저 볼 신청은?', 'Which applications should officers look at first?'],
@@ -616,7 +632,7 @@
   };
   function renderCopilot() {
     const last = [...copilotLog].reverse().find(m => m.role === 'assistant' && !m.err);
-    const mode = last ? (last.mode === 'claude' ? `<span class="mode">Claude ${esc(last.model || '')}</span>` : `<span class="mode rules">${t('규칙 기반 · API 키 없음', 'rule-based · no API key')}</span>`) : '';
+    const mode = `<span class="mode">${last ? labelOf(last) : AI_NAME}</span>`;
     const tt = lastData && lastData.totals;
     const intro = tt
       ? t(`신청 ${tt.applications}건 · 심사 대기 ${tt.readyForReview}건 · 고위험 ${tt.highRisk}건 · 위조 경고 ${tt.fraudWarnings}건 기준으로 답합니다 (${fmtShort(lastData.generatedAt)} 집계).`, `Answers are based on ${tt.applications} applications, ${tt.readyForReview} ready for review, ${tt.highRisk} high risk and ${tt.fraudWarnings} fraud warnings (as of ${fmtShort(lastData.generatedAt)}).`)
@@ -625,7 +641,7 @@
       <div class="chips">${COPILOT_PROMPTS.map(([ko, en]) => `<button type="button" data-q="${esc(t(ko, en))}">${esc(t(ko, en))}</button>`).join('')}${copilotLog.length ? `<button type="button" data-clear="1" title="${t('이 대화를 지웁니다', 'Clear this conversation')}">${t('대화 지우기', 'Clear chat')}</button>` : ''}</div>
       <div class="log" id="copilot-log">${copilotLog.length ? copilotLog.map(m => m.role === 'user'
         ? `<div class="msg user">${esc(m.content)}</div>`
-        : `<div class="msg ai ${m.err ? 'err' : ''}">${m.err ? esc(m.content) : md(m.content)}${m.ms != null ? `<span class="meta">${m.mode === 'claude' ? esc(m.model || 'Claude') : t('규칙 기반', 'rule-based')} · ${(m.ms / 1000).toFixed(1)}s${m.inputTokens != null ? ` · in ${m.inputTokens.toLocaleString()} · out ${m.outputTokens.toLocaleString()}` : ''}</span>` : ''}</div>`).join('')
+        : `<div class="msg ai ${m.err ? 'err' : ''}"${m.typing ? ' data-typing="1"' : ''}>${m.typing ? '<span class="caret"></span>' : m.err ? esc(m.content) : md(m.content)}${m.ms != null && !m.typing ? `<span class="meta">${labelOf(m)} · ${(m.ms / 1000).toFixed(1)}s${m.showEngine && m.inputTokens != null ? ` · in ${m.inputTokens.toLocaleString()} · out ${m.outputTokens.toLocaleString()}` : ''}</span>` : ''}</div>`).join('')
         : `<p class="empty" style="padding:4px 0">${esc(intro)} <span class="sub">${t('위의 추천 질문을 누르거나 직접 입력하세요.', 'Use a suggested question above, or type your own.')}</span></p>`}
         ${copilotBusy ? `<div class="thinking"><i></i><i></i><i></i> ${t('생각 중', 'thinking')}</div>` : ''}</div>
       <div class="ask"><textarea id="copilot-q" placeholder="${t('질문 입력 · Enter 전송, Shift+Enter 줄바꿈', 'Type a question · Enter to send, Shift+Enter for a new line')}" ${copilotBusy ? 'disabled' : ''}></textarea><button class="primary" id="copilot-send" ${copilotBusy ? 'disabled' : ''}>${t('질문', 'Ask')}</button></div>
@@ -643,6 +659,8 @@
     send.addEventListener('click', go);
     q.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); } });
     const log = copilotEl.querySelector('#copilot-log'); if (log) log.scrollTop = log.scrollHeight;
+    const typing = copilotLog.find(m => m.typing), el = copilotEl.querySelector('.msg.ai[data-typing]');
+    if (typing && el) typeOut(el, typing, paintCopilot);
   }
   function mountCopilot() {
     const slot = main.querySelector('#copilot-slot'); if (!slot) return;
@@ -654,11 +672,12 @@
     const history = copilotLog.filter(m => !m.err).map(m => ({ role: m.role, content: m.content }));
     copilotLog.push({ role: 'user', content: question });
     copilotBusy = true; paintCopilot();
+    const started = Date.now();
     try {
-      const res = await fetch('/admin/dashboard/copilot', { method: 'POST', headers: { 'X-Admin-Key': keyInput.value.trim(), 'Content-Type': 'application/json' }, body: JSON.stringify({ question, history }) });
+      const [res] = await Promise.all([fetch('/admin/dashboard/copilot', { method: 'POST', headers: { 'X-Admin-Key': keyInput.value.trim(), 'Content-Type': 'application/json' }, body: JSON.stringify({ question, history }) }), thinkPause()]);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
-      copilotLog.push({ role: 'assistant', content: body.answer, mode: body.mode, model: body.model, ms: body.durationMs, inputTokens: body.inputTokens, outputTokens: body.outputTokens });
+      copilotLog.push({ role: 'assistant', content: body.answer, mode: body.mode, model: body.model, ms: Date.now() - started, inputTokens: body.inputTokens, outputTokens: body.outputTokens, label: body.label, showEngine: body.showEngine, typing: true });
     } catch (e) {
       copilotLog.push({ role: 'assistant', content: t('오류: ', 'Error: ') + e.message, err: true });
     } finally { copilotBusy = false; paintCopilot(); }

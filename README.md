@@ -183,7 +183,7 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 5. 탭 구성: **개요**(요약 타일 · AI 코파일럿 · 주간 추이 · 국가별 신청 현황), **진행·대기 큐**(온보딩 진행 현황 · 진행 중인 신청 · 심사 대기 큐), 리스크·사기, 국가·딜러, AI 에이전트, 우수 딜러.
 6. **AI 코파일럿** (개요 탭, 요약 타일 바로 아래): 심사 화면의 코파일럿과 같은 레이아웃으로, 대시보드가 보여주는 통계 전체(요약·파이프라인·심사 대기 큐·주간 추이·국가·Risk Flag·딜러·AI 에이전트 활동)를 포트폴리오 파일로 묶어 질문에 답합니다(`POST /admin/dashboard/copilot`).
    추천 질문(전체 현황 요약, 먼저 볼 신청, 국가별 고위험 비율, 최다 위조 Flag, 우수 딜러 vs 일반 딜러, 주간 추이, AI 에이전트 활동)을 누르거나 직접 입력하고, 답변 속 신청번호는 심사 화면 링크입니다.
-   `DOCUMENT_CHECK=claude`면 Claude가, 아니면 규칙 기반 요약이 답하며, 대화와 입력 중인 질문은 15초 자동 갱신에도 유지됩니다. 개별 신청의 서류·근거는 보지 못하므로 심사 화면으로 안내합니다.
+   `DOCUMENT_CHECK=claude`면 Claude가, 아니면 규칙 엔진이 답합니다. 두 경우 모두 `NEXUS AI` 이름으로 표시되고(`COPILOT_LABEL`), 잠깐의 생각 시간과 타이핑 효과 뒤에 답이 나타나며, 엔진 표시는 `COPILOT_SHOW_ENGINE=true`일 때만 붙습니다. 대화와 입력 중인 질문은 15초 자동 갱신에도 유지됩니다. 개별 신청의 서류·근거는 보지 못하므로 심사 화면으로 안내합니다.
 
 통계 JSON(`GET /admin/dashboard/stats`) 최상위 키: `totals`, `funnel`, `byCountry`, `riskGrades`, `flagCounts`, `badges`, `dealers`, `highRiskApplications`, `recent`.
 
@@ -329,6 +329,8 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 | `DEMO_DEALER_n_PHONE`, `_NAME`, `_COUNTRY`, `_TIER` (n = 1~4) | 데모 딜러 WhatsApp 번호(숫자만), 이름, 국가(ID/MM/KH), 등급(STANDARD/EXCELLENT) |
 | `ADMIN_API_KEY` | `/admin/**` 공유 키 |
 | `APP_PUBLIC_BASE_URL` | 1회용 링크의 기본 URL(기본값 `https://nexus.jbax.axhub.ai`) |
+| `COPILOT_LABEL` | 코파일럿 답변에 붙는 이름(기본 `NEXUS AI`) |
+| `COPILOT_SHOW_ENGINE` | `true`면 답변 옆에 엔진(Claude 모델 또는 규칙 엔진)을 표시. 기본 `false`: 스텁 모드에서도 답변이 `NEXUS AI`로만 표시되고 API 응답의 `mode` 필드에만 엔진이 남음 |
 | `WHATSAPP_BUSINESS_PHONE` | wa.me 링크용 비즈니스 번호(선택, 없으면 웹훅에서 학습) |
 | `VERIFICATION_COUNTRY` | 제공자가 없는 국가의 폴백 제공자 쌍(기본 `ID`); 평소에는 신청서 국가로 선택 |
 | `DOCUMENT_CHECK` | `stub`(기본) 또는 `claude` |
@@ -606,6 +608,8 @@ Put a `wa.env` (or `.env`) file in the working directory with plain `KEY=VALUE` 
 | `DEMO_DEALER_1_PHONE`, `DEMO_DEALER_2_PHONE` | WhatsApp numbers (digits only) of the two demo dealers |
 | `ADMIN_API_KEY` | Shared key for the `/admin/**` endpoints |
 | `APP_PUBLIC_BASE_URL` | Base URL in one-time links (defaults to `https://nexus.jbax.axhub.ai`) |
+| `COPILOT_LABEL` | Name shown on copilot answers (default `NEXUS AI`) |
+| `COPILOT_SHOW_ENGINE` | `true` shows the engine (Claude model or rules engine) next to the label. Default `false`: stub-mode answers are presented as `NEXUS AI` and the engine stays in the API's `mode` field only |
 | `WHATSAPP_BUSINESS_PHONE` | Business number for wa.me links (optional, learned from webhooks otherwise) |
 | `VERIFICATION_COUNTRY` | Provider pair for identity and credit checks (default `ID`) |
 | `DOCUMENT_CHECK` | `stub` (default) or `claude` for Claude vision analysis and the review agent |

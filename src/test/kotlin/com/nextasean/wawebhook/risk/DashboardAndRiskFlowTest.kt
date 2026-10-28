@@ -162,7 +162,14 @@ class DashboardAndRiskFlowTest @Autowired constructor(
             status { isOk() }
             jsonPath("$.answer") { value(containsString("APP-")) }
         }
-        ask("""{"question":"what did the AI agents do?"}""").andExpect { status { isOk() }; jsonPath("$.answer") { value(containsString("비전 분석")) } }
+        ask("""{"question":"what did the AI agents do?"}""").andExpect {
+            status { isOk() }
+            jsonPath("$.answer") { value(containsString("비전 분석")) }
+            // The engine is never disclosed in the answer text; the badge name comes from app.copilot-label.
+            jsonPath("$.answer") { value(org.hamcrest.Matchers.not(containsString("규칙 기반"))) }
+            jsonPath("$.label") { value("NEXUS AI") }
+            jsonPath("$.showEngine") { value(false) }
+        }
         ask("""{"question":"   "}""").andExpect { status { isBadRequest() } }
         mockMvc.post("/admin/dashboard/copilot") { contentType = MediaType.APPLICATION_JSON; content = """{"question":"x"}""" }
             .andExpect { status { isUnauthorized() } }

@@ -22,11 +22,15 @@ data class AppProperties(
     val adminApiKey: String = "",
     /** `stub` (demo, default) or `claude` (Claude vision analysis + review agent). */
     val documentCheck: String = "stub",
+    /** Name the copilots answer under in the back office (badge and message footer). */
+    val copilotLabel: String = "NEXUS AI",
+    /** Show which engine produced a copilot answer (Claude model or rules) next to the label. Off for demos. */
+    val copilotShowEngine: Boolean = false,
 ) {
     val zoneId: ZoneId get() = ZoneId.of(timeZone)
 
     override fun toString(): String =
-        "AppProperties(publicBaseUrl=$publicBaseUrl, linkTtl=$linkTtl, documentsDir=$documentsDir, reportsDir=$reportsDir, timeZone=$timeZone, documentCheck=$documentCheck, adminApiKey=***)"
+        "AppProperties(publicBaseUrl=$publicBaseUrl, linkTtl=$linkTtl, documentsDir=$documentsDir, reportsDir=$reportsDir, timeZone=$timeZone, documentCheck=$documentCheck, copilotLabel=$copilotLabel, copilotShowEngine=$copilotShowEngine, adminApiKey=***)"
 }
 
 @ConfigurationProperties(prefix = "demo")

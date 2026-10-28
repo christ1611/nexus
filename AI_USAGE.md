@@ -21,7 +21,7 @@ _기준일: 2026-10-22. 코드 기준으로 작성했으며, 각 항목에 구�
 | ⑦ Risk Flag·등급·배지 | **코드** `risk/RiskRules.kt` | ①~⑥의 근거를 점수화: 낮음 10·중간 20·높음 35, A/B/C/D, 위조 신호 HIGH 하나면 최소 C | 근거 → 플래그 목록(코드·출처·심각도·근거 문장), 점수, 등급, 배지 | 결정은 전부 코드. 대시보드에 평가 방식("Claude 비전 + 규칙" / "규칙(스텁)") 표시 | 조회 결과·행동·중복 규칙만 적용 |
 | ⑧ 기록 | 코드 `trace/`, `review/ReviewEvents.kt` | 모델 호출마다 토큰·지연·stop reason, 도구 호출, 폴백, 가드레일 개입을 `AGENT_STEPS`에 기록 | — | 심사 화면 "AI Agent 판단 타임라인", 대시보드 "AI 에이전트 활동", 심사 통계 "에이전트 판단 vs 심사 결과" | — |
 
-⑨ **코파일럿 (질문 답변)** — 심사 화면(`review/ReviewCopilotService.kt`, 한 신청의 케이스 파일)과 대시보드(`admin/DashboardCopilotService.kt`, 통계 전체의 포트폴리오 파일)에서 심사원의 질문에 Claude가 답합니다. 근거는 시스템 블록으로 캐시해 넣고, 모델은 설명·비교·우선순위 제안만 하며 아무것도 저장·결정하지 않습니다. API 키가 없으면 같은 데이터를 규칙으로 요약합니다.
+⑨ **코파일럿 (질문 답변)** — 심사 화면(`review/ReviewCopilotService.kt`, 한 신청의 케이스 파일)과 대시보드(`admin/DashboardCopilotService.kt`, 통계 전체의 포트폴리오 파일)에서 심사원의 질문에 Claude가 답합니다. 근거는 시스템 블록으로 캐시해 넣고, 모델은 설명·비교·우선순위 제안만 하며 아무것도 저장·결정하지 않습니다. API 키가 없으면 같은 데이터를 규칙으로 요약합니다. 화면에서는 두 경우 모두 `NEXUS AI`(`COPILOT_LABEL`)로 표시되고 엔진 구분은 `COPILOT_SHOW_ENGINE=true`일 때만 보입니다 — 감사·API 응답(`mode`: `claude`/`rules`)과 로그에는 어느 엔진이 답했는지 항상 남습니다.
 
 모델·키 설정: `DOCUMENT_CHECK=claude`, `ANTHROPIC_API_KEY`, `CLAUDE_MODEL`(기본 `claude-opus-5-5`), `CLAUDE_MIN_FIELD_CONFIDENCE`, `CLAUDE_MAX_REVIEW_ROUNDS`. 기본은 `stub`.
 
