@@ -432,10 +432,11 @@
 
   const TABS = [
     ['overview', '개요', 'Overview'], ['risk', '리스크·사기', 'Risk & fraud'], ['country', '국가·딜러', 'Countries & dealers'],
-    ['agent', 'AI 에이전트', 'AI agent'], ['dealers', '우수 딜러', 'Excellent dealers'], ['copilot', 'AI 코파일럿', 'AI copilot'],
+    ['agent', 'AI 에이전트', 'AI agent'], ['dealers', '우수 딜러', 'Excellent dealers'],
   ];
   let activeTab = 'overview';
   try { activeTab = sessionStorage.getItem('dashboardTab') || activeTab; } catch {}
+  if (!TABS.some(x => x[0] === activeTab)) activeTab = 'overview';
   if (location.hash.length > 1 && TABS.some(x => x[0] === location.hash.slice(1))) activeTab = location.hash.slice(1);
 
   function render(d) {
@@ -453,6 +454,7 @@
     let h = '';
     h += `<section class="card"><div class="tiles">${tiles.map(([label, v, alert]) =>
       `<div class="tile ${alert && v > 0 ? 'alert' : ''}"><div class="k">${label}</div><div class="v">${v}</div></div>`).join('')}</div></section>`;
+    h += `<div id="copilot-slot"></div>`;   // the persistent copilot card is moved in here after every render (mountCopilot)
 
     // live pipeline board: where every open application is right now
     const pipe = d.pipeline || [], openTotal = pipe.reduce((s, x) => s + x.count, 0);
@@ -566,10 +568,8 @@
       <p class="sub" style="display:block;margin:6px 0 0">${t('딜러마다 등급(일반 · 우수)이 있어요. 우수 딜러가 만든 신청의 고객은 리스크 평가에서 "우수 딜러 유입 고객" 배지를 받고, 심사 화면과 고객 리포트에 표시돼요. 배지는 참고 정보이며 등급 점수를 바꾸지는 않아요. 이 탭은 우수 딜러 경유 고객이 실제로 더 낮은 리스크와 더 높은 승인율을 보이는지 추적해, 딜러 등급을 유지하거나 조정하는 근거를 줘요.', 'Each dealer has a tier (standard or excellent). Customers filed by an excellent dealer receive the "referred by an excellent dealer" badge in the risk assessment, shown on the review page and the customer report. The badge is informational and does not change the grade score. This tab tracks whether customers from excellent dealers really come with lower risk and higher approval rates, as evidence for keeping or adjusting dealer tiers.')}</p></section>`;
     P.dealers = h; h = '';
 
-    P.copilot = '';
-
     const footer = `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${tt.demoApplications ? ` · ${t(`데모 데이터 ${tt.demoApplications}건 포함 (DELETE /admin/demo/seed 로 제거)`, `includes ${tt.demoApplications} demo applications (remove with DELETE /admin/demo/seed)`)}` : ''}</p>`;
-    const counts = { overview: openTotal, risk: tt.highRisk, agent: ag.steps, dealers: exDealers.length, copilot: copilotLog.filter(m => m.role === 'assistant' && !m.err).length };
+    const counts = { overview: openTotal, risk: tt.highRisk, agent: ag.steps, dealers: exDealers.length };
     const wasOpen = new Set([...main.querySelectorAll('details[open] > summary')].map(s => s.textContent.trim()));
     main.innerHTML = `<div class="tabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([id, ko, en]) =>
       `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}">${t(ko, en)}${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
@@ -581,8 +581,9 @@
   }
 
   /* AI dashboard copilot: portfolio-level questions answered from the same statistics this page shows
-     (POST /admin/dashboard/copilot). The panel is one persistent element that is moved into the copilot tab on
-     every render, so the conversation and a half-typed question survive the 15-second refreshes. */
+     (POST /admin/dashboard/copilot). The card sits in the overview between the summary tiles and the pipeline board. It is
+     one persistent element moved into place on every render, so the conversation and a half-typed question survive the
+     15-second refreshes. */
   const copilotLog = [];   // [{ role, content, mode, model, ms, err, inputTokens, outputTokens }]
   let copilotBusy = false;
   const copilotEl = document.createElement('section'); copilotEl.className = 'card copilot'; copilotEl.id = 'copilot';
@@ -633,9 +634,9 @@
     const log = copilotEl.querySelector('#copilot-log'); if (log) log.scrollTop = log.scrollHeight;
   }
   function mountCopilot() {
-    const panel = main.querySelector('#panel-copilot'); if (!panel) return;
+    const slot = main.querySelector('#copilot-slot'); if (!slot) return;
     if (!copilotEl.innerHTML || !copilotLog.length) paintCopilot();   // first paint, or refresh the intro figures while the chat is empty
-    panel.appendChild(copilotEl);
+    slot.replaceWith(copilotEl);
   }
   async function askCopilot(question) {
     if (copilotBusy || !lastData) return;
