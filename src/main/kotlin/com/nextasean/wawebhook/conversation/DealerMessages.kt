@@ -40,13 +40,13 @@ class DealerMessages(private val zone: ZoneId) {
     private val mainMenuButton = Button(ReplyIds.MAIN_MENU, "Main menu")
 
     fun notRegistered(contactName: String?): OutboundMessage = Text(
-        "Hello${contactName?.let { " $it" } ?: ""}, thank you for contacting NEXT ASEAN.\n\n" +
+        "Hello${contactName?.let { " $it" } ?: ""}, thank you for contacting NEXUS ASEAN.\n\n" +
             "This WhatsApp number is not registered as a dealer, so we are unable to assist you through this channel. " +
             "If you are a dealer, please ask your account manager to register this number. Thank you for understanding.",
     )
 
     fun mainMenu(dealer: Dealer, intro: String? = null): OutboundMessage = ListMenu(
-        header = "NEXT ASEAN Dealer Desk",
+        header = "NEXUS ASEAN Dealer Desk",
         body = (intro?.let { "$it\n\n" } ?: "") + "Hi ${dealer.name} (${dealer.dealerCode}), what would you like to do?",
         footer = "Type MENU at any time to come back here",
         buttonText = "Open menu",

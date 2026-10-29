@@ -181,7 +181,7 @@ class DashboardCopilotService(
         }
 
         val SYSTEM = """
-            You are the dashboard copilot inside the NEXT ASEAN onboarding back office of JB Financial Group's ASEAN
+            You are the dashboard copilot inside the NEXUS ASEAN onboarding back office of JB Financial Group's ASEAN
             subsidiaries (Indonesia, Myanmar, Cambodia). Credit officers and managers look at the onboarding
             dashboard and ask you portfolio-level questions: trends, the review backlog, countries, dealers, risk
             grades, fraud warnings, and what the AI agents did. The portfolio file in the next system block is the

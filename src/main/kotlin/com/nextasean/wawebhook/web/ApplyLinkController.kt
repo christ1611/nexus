@@ -97,7 +97,7 @@ class ApplyLinkController(
             <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
             <meta name="theme-color" content="#0a31a8">
             <link rel="icon" type="image/svg+xml" href="/icons/icon.svg"><link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png"><link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
-            <title>${esc(title)} · JB금융그룹 NEXT ASEAN</title>
+            <title>${esc(title)} · JB금융그룹 NEXUS ASEAN</title>
             <style>
               body{font-family:"SUIT Variable",-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Segoe UI",Roboto,sans-serif;max-width:640px;margin:0 auto;padding:0 1rem 2rem;color:#1a1f2e;background:#f5f7fa;line-height:1.5}
               .brand{display:flex;align-items:center;gap:.6rem;padding:1.1rem 0 1.25rem;border-top:4px solid #0a31a8;margin:0 -1rem 1.25rem;padding-left:1rem;padding-right:1rem;background:#fff;border-bottom:1px solid #e1e5ee}
@@ -110,9 +110,9 @@ class ApplyLinkController(
               footer{margin-top:1.25rem;font-size:.75rem;color:#728197}
             </style></head>
             <body>
-            <div class="brand"><span class="mark" aria-hidden="true">JB</span><div class="group">JB금융그룹 <span class="svc">NEXT ASEAN</span></div></div>
+            <div class="brand"><span class="mark" aria-hidden="true">JB</span><div class="group">JB금융그룹 <span class="svc">NEXUS ASEAN</span></div></div>
             <div class="card"><h1>${esc(title)}</h1>$body</div>
-            <footer>JB금융그룹 · NEXT ASEAN dealer onboarding</footer>
+            <footer>JB금융그룹 · NEXUS ASEAN dealer onboarding</footer>
             </body></html>
             """.trimIndent(),
         )

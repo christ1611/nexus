@@ -1,4 +1,4 @@
-# NEXT ASEAN 온보딩 — AI 활용 설명서 (AI usage in this project)
+# NEXUS ASEAN 온보딩 — AI 활용 설명서 (AI usage in this project)
 
 _기준일: 2026-10-22. 코드 기준으로 작성했으며, 각 항목에 구현 파일을 적어 두었습니다. 영어 요약은 맨 아래에 있습니다._
 

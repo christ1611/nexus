@@ -1,4 +1,4 @@
-# NEXT ASEAN WhatsApp onboarding - demo runbook
+# NEXUS ASEAN WhatsApp onboarding - demo runbook
 
 Step-by-step script for a live demo of the dealer flow, the customer document journey, the automated checks and the
 back-office events. Total running time is about 10 minutes. Everything below assumes the Meta webhook is already
@@ -117,7 +117,7 @@ right away. The QR code / link works regardless.
 
 | # | On the dealer phone | What comes back | Say |
 | --- | --- | --- | --- |
-| 1 | send `hi` | list menu "NEXT ASEAN Dealer Desk": New application / Check status / Help | "Only registered dealer numbers get this menu; anyone else gets a polite rejection." |
+| 1 | send `hi` | list menu "NEXUS ASEAN Dealer Desk": New application / Check status / Help | "Only registered dealer numbers get this menu; anyone else gets a polite rejection." |
 | 2 | tap **New application** | buttons Yes, create / Cancel | |
 | 3 | tap **Yes, create** | application number `APP-2026-001001` plus a one-time form link, then a second message to forward to the customer with a `wa.me/...?text=START APP-2026-001001` link | "The dealer never types anything; the link pre-fills the START message for the customer." |
 | 4 | forward that second message to the customer phone | | |

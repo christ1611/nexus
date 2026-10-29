@@ -192,7 +192,7 @@ class ReviewCopilotService(
         private val FMT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("Asia/Jakarta"))
 
         val SYSTEM = """
-            You are the review copilot inside the NEXT ASEAN onboarding back office of JB Financial Group's ASEAN
+            You are the review copilot inside the NEXUS ASEAN onboarding back office of JB Financial Group's ASEAN
             subsidiaries. A credit reviewing officer (심사원) is looking at one customer application and asks you
             questions about it. The case file in the next system block is everything the back office knows.
 

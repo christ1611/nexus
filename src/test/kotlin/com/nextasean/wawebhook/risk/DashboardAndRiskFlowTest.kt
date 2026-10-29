@@ -183,7 +183,7 @@ class DashboardAndRiskFlowTest @Autowired constructor(
     fun `dashboard page is public but its data needs the admin key`() {
         mockMvc.get("/dashboard").andExpect {
             status { isOk() }
-            content { string(containsString("NEXT ASEAN 온보딩 대시보드")) }
+            content { string(containsString("NEXUS ASEAN 온보딩 대시보드")) }
         }
         mockMvc.get("/admin/dashboard/stats").andExpect { status { isUnauthorized() } }
     }
