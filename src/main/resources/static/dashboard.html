@@ -159,6 +159,8 @@
   svg .lbl { fill: var(--text); font-size: 11px; }
   svg .grid { stroke: var(--grid); stroke-width: 1; }
   .bar { cursor: default; }
+  .fraudnet .netnode { cursor: grab; } .fraudnet .netnode.dragging { cursor: grabbing; }
+  .netreset { background: none; border: 0; padding: 0; color: var(--brand); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
   .bar:hover { filter: brightness(0.9); }
   #tip { position: fixed; pointer-events: none; background: var(--brand-navy); color: #fff; font-size: 12px; padding: 6px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s; z-index: 10; max-width: 260px; }
   .empty { color: var(--text-3); font-size: 13px; padding: 12px 0; }
@@ -281,6 +283,9 @@
   let seenStepKeys = null;   // activity-feed keys already shown, to highlight what is new on each refresh
   let lastData = null;       // last payload, redrawn as is when the language changes
   let lastNetwork = null;    // fraud network, loaded alongside the stats
+  const netPinned = new Map(); // fraud-network nodes the user dragged: id → {x, y}; kept across refreshes and page loads in this tab
+  try { for (const [k, v] of Object.entries(JSON.parse(sessionStorage.getItem('fraudNetPins') || '{}'))) netPinned.set(k, v); } catch {}
+  function saveNetPins() { try { sessionStorage.setItem('fraudNetPins', JSON.stringify(Object.fromEntries(netPinned))); } catch {} }
 
   try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
 
@@ -293,6 +298,48 @@
       el.addEventListener('mousemove', moveTip);
       el.addEventListener('mouseleave', hideTip);
     });
+  }
+
+  /* Fraud network: a node can be dragged. Its lines follow while dragging, the place is remembered (netPinned) so the
+     next refresh keeps it, and the moved node stays fixed while the layout settles the others around it. A plain click
+     on a circle still opens the review page: a click right after a drag is swallowed. */
+  function bindNetworkDrag(root) {
+    const svg = root.querySelector('svg.fraudnet'); if (!svg) return;
+    const W = +svg.dataset.w, H = +svg.dataset.h;
+    const toSvg = e => { const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse()); return { x: pt.x, y: pt.y }; };
+    const lines = [...svg.querySelectorAll('line[data-src]')];
+    const place = (g, id, x, y) => {
+      g.setAttribute('transform', `translate(${(x - +g.dataset.x).toFixed(1)} ${(y - +g.dataset.y).toFixed(1)})`);
+      for (const l of lines) {
+        if (l.dataset.src === id) { l.setAttribute('x1', x.toFixed(1)); l.setAttribute('y1', y.toFixed(1)); }
+        if (l.dataset.dst === id) { l.setAttribute('x2', x.toFixed(1)); l.setAttribute('y2', y.toFixed(1)); }
+      }
+    };
+    let drag = null, justDragged = false;
+    svg.addEventListener('pointerdown', e => {
+      const g = e.target.closest('.netnode'); if (!g || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const id = g.dataset.node, cur = netPinned.get(id) || { x: +g.dataset.x, y: +g.dataset.y }, p = toSvg(e);
+      drag = { g, id, dx: cur.x - p.x, dy: cur.y - p.y, x: cur.x, y: cur.y, moved: false, sx: e.clientX, sy: e.clientY };
+      justDragged = false;
+      try { g.setPointerCapture(e.pointerId); } catch {}
+      e.preventDefault();
+    });
+    svg.addEventListener('pointermove', e => {
+      if (!drag) return;
+      if (!drag.moved) { if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 3) return; drag.moved = true; drag.g.classList.add('dragging'); hideTip(); }
+      const p = toSvg(e);
+      drag.x = Math.max(16, Math.min(W - 16, p.x + drag.dx)); drag.y = Math.max(12, Math.min(H - 26, p.y + drag.dy));
+      place(drag.g, drag.id, drag.x, drag.y);
+    });
+    const end = () => {
+      if (!drag) return;
+      drag.g.classList.remove('dragging');
+      if (drag.moved) { netPinned.set(drag.id, { x: drag.x, y: drag.y }); saveNetPins(); root.querySelector('.netreset')?.removeAttribute('hidden'); justDragged = true; setTimeout(() => { justDragged = false; }, 0); }
+      drag = null;
+    };
+    svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+    svg.addEventListener('click', e => { if (justDragged) { e.preventDefault(); e.stopPropagation(); } }, true);
+    root.querySelector('.netreset')?.addEventListener('click', () => { netPinned.clear(); saveNetPins(); if (lastData) render(lastData); });
   }
 
   /* Horizontal bar chart: rows = [{label, value, color, tip}] ; one axis, thin marks, rounded data-end, gaps between bars. */
@@ -395,7 +442,7 @@
     SAME_NAME: { color: 'var(--warn)', width: 1.5, dash: '2 3', ko: '같은 이름·생년월일', en: 'same name & DOB' },
     DEALER: { color: 'var(--border)', width: 1, dash: '', ko: '접수 딜러', en: 'filed by dealer' },
   };
-  function layoutNetwork(nodes, links, W, H) {
+  function layoutNetwork(nodes, links, W, H, pinned) {
     let seed = 20261027; const rnd = () => { seed = (seed + 0x6D2B79F5) | 0; let x = Math.imul(seed ^ (seed >>> 15), 1 | seed); x ^= x + Math.imul(x ^ (x >>> 7), 61 | x); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
     const idx = new Map(nodes.map((x, i) => [x.id, i])), n = nodes.length;
     const px = new Float64Array(n), py = new Float64Array(n), vx = new Float64Array(n), vy = new Float64Array(n);
@@ -405,7 +452,9 @@
       const c = clusters.indexOf(x.cluster ?? clusterOfDealer(x.id));
       const ang = ((c >= 0 ? c : i) / Math.max(clusters.length, 1)) * Math.PI * 2;
       px[i] = W / 2 + Math.cos(ang) * W / 3.2 + (rnd() - .5) * 50; py[i] = H / 2 + Math.sin(ang) * H / 3.2 + (rnd() - .5) * 50;
+      const pin = pinned && pinned.get(x.id); if (pin) { px[i] = pin.x; py[i] = pin.y; }
     });
+    const fixed = nodes.map(x => !!(pinned && pinned.has(x.id)));
     const L = links.map(l => [idx.get(l.source), idx.get(l.target), l.kind === 'DEALER' ? 80 : 50, l.kind === 'DEALER' ? 0.03 : 0.08]).filter(l => l[0] != null && l[1] != null);
     for (let it = 0; it < 320; it++) {
       const alpha = 1 - it / 320;
@@ -418,6 +467,7 @@
         vx[a] += dx / d * f; vy[a] += dy / d * f; vx[b] -= dx / d * f; vy[b] -= dy / d * f;
       }
       for (let i = 0; i < n; i++) {
+        if (fixed[i]) { vx[i] = vy[i] = 0; continue; }
         vx[i] += (W / 2 - px[i]) * 0.012; vy[i] += (H / 2 - py[i]) * 0.012;
         px[i] = Math.max(24, Math.min(W - 24, px[i] + vx[i] * alpha * 0.5)); py[i] = Math.max(20, Math.min(H - 20, py[i] + vy[i] * alpha * 0.5));
         vx[i] *= 0.55; vy[i] *= 0.55;
@@ -426,33 +476,33 @@
     return nodes.map((x, i) => ({ x: px[i], y: py[i] }));
   }
   function fraudNetworkCard(net) {
-    const title = `<h2>${t('사기 연결망 탐지', 'Fraud network detection')} <small>${t('같은 신분증 번호 · 같은 전화번호 · 같은 이름을 선으로 이어 의심 묶음을 보여줘요', 'applications tied by the same ID number, phone or name, with the dealers they came through')}</small></h2>`;
+    const title = `<div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">${t('사기 연결망 탐지', 'Fraud network detection')} <small>${t('같은 신분증 번호 · 같은 전화번호 · 같은 이름을 선으로 이어 의심 묶음을 보여줘요', 'applications tied by the same ID number, phone or name, with the dealers they came through')}</small></h2><button type="button" class="btn-standard" data-standard="fraud">${t('연결망 설명 보기', 'How this works')}</button></div>`;
     if (!net) return `<section class="card">${title}<p class="empty">${t('연결망을 불러오지 못했어요.', 'The network could not be loaded.')}</p></section>`;
     if (!net.clusters.length) return `<section class="card">${title}<p class="notice ok">${t(`신청 ${net.scanned}건을 대조했지만 신분증 번호·전화번호·이름이 겹치는 묶음이 없어요.`, `${net.scanned} applications compared; no shared ID numbers, phones or names.`)}</p></section>`;
-    const W = 660, H = 440, pos = layoutNetwork(net.nodes, net.links, W, H), at = Object.fromEntries(net.nodes.map((x, i) => [x.id, pos[i]]));
+    const W = 660, H = 440, pos = layoutNetwork(net.nodes, net.links, W, H, netPinned), at = Object.fromEntries(net.nodes.map((x, i) => [x.id, pos[i]]));
     const label = x => x.type === 'dealer' ? x.label : x.label.replace(/^APP-\d{4}-/, '');
-    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fraud network" style="max-height:460px">`;
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fraud network" class="fraudnet" data-w="${W}" data-h="${H}" style="max-height:460px;touch-action:none">`;
     [...net.links].sort((a, b) => (a.kind === 'DEALER' ? 0 : 1) - (b.kind === 'DEALER' ? 0 : 1)).forEach(l => {
       const a = at[l.source], b = at[l.target], st = LINK_STYLE[l.kind] || LINK_STYLE.DEALER; if (!a || !b) return;
-      s += `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="${st.color}" stroke-width="${st.width}"${st.dash ? ` stroke-dasharray="${st.dash}"` : ''} stroke-linecap="round" data-tip="${esc(t(st.ko, st.en) + (l.detail ? ' · ' + l.detail : ''))}"/>`;
+      s += `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="${st.color}" stroke-width="${st.width}"${st.dash ? ` stroke-dasharray="${st.dash}"` : ''} stroke-linecap="round" data-src="${esc(l.source)}" data-dst="${esc(l.target)}" data-tip="${esc(t(st.ko, st.en) + (l.detail ? ' · ' + l.detail : ''))}"/>`;
     });
     net.nodes.forEach(x => {
       const p = at[x.id];
       if (x.type === 'dealer') {
-        s += `<g data-tip="${esc(`${x.label} · ${x.name} · ${x.tier === 'EXCELLENT' ? t('우수 딜러', 'excellent dealer') : t('일반 딜러', 'standard dealer')} · ${t(`연결 신청 ${x.applications}건`, `${x.applications} linked applications`)}`)}"><rect x="${(p.x - 9).toFixed(1)}" y="${(p.y - 9).toFixed(1)}" width="18" height="18" rx="4" fill="var(--surface)" stroke="${x.tier === 'EXCELLENT' ? 'var(--good)' : 'var(--text-2)'}" stroke-width="2"/><text x="${p.x.toFixed(1)}" y="${(p.y + 22).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:10px">${esc(label(x))}</text></g>`;
+        s += `<g class="netnode" data-node="${esc(x.id)}" data-x="${p.x.toFixed(1)}" data-y="${p.y.toFixed(1)}" data-tip="${esc(`${x.label} · ${x.name} · ${x.tier === 'EXCELLENT' ? t('우수 딜러', 'excellent dealer') : t('일반 딜러', 'standard dealer')} · ${t(`연결 신청 ${x.applications}건`, `${x.applications} linked applications`)}`)}"><rect x="${(p.x - 9).toFixed(1)}" y="${(p.y - 9).toFixed(1)}" width="18" height="18" rx="4" fill="var(--surface)" stroke="${x.tier === 'EXCELLENT' ? 'var(--good)' : 'var(--text-2)'}" stroke-width="2"/><text x="${p.x.toFixed(1)}" y="${(p.y + 22).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:10px">${esc(label(x))}</text></g>`;
       } else {
         const g = GRADE[x.grade], fill = g ? g.color : 'var(--text-3)';
-        s += `<a href="/review?app=${encodeURIComponent(x.number)}"><g data-tip="${esc(`${x.number} · ${x.name || t('고객 미연결', 'no customer')} · ${x.country} · ${statusName(x.status)}${x.grade ? ` · ${t('등급', 'grade')} ${x.grade} ${x.score ?? ''}` : ''} · ID ${x.idMasked || '–'} · ${t('전화', 'phone')} ${x.phoneMasked || '–'} · ${t('딜러', 'dealer')} ${x.dealerCode || '–'}`)}"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${x.highRisk ? 11 : 9}" fill="${fill}" stroke="var(--surface)" stroke-width="2"${x.highRisk ? ' style="filter:drop-shadow(0 0 4px var(--critical))"' : ''}/><text x="${p.x.toFixed(1)}" y="${(p.y + 22).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:10px">${esc(label(x))}</text></g></a>`;
+        s += `<a href="/review?app=${encodeURIComponent(x.number)}"><g class="netnode" data-node="${esc(x.id)}" data-x="${p.x.toFixed(1)}" data-y="${p.y.toFixed(1)}" data-tip="${esc(`${x.number} · ${x.name || t('고객 미연결', 'no customer')} · ${x.country} · ${statusName(x.status)}${x.grade ? ` · ${t('등급', 'grade')} ${x.grade} ${x.score ?? ''}` : ''} · ID ${x.idMasked || '–'} · ${t('전화', 'phone')} ${x.phoneMasked || '–'} · ${t('딜러', 'dealer')} ${x.dealerCode || '–'}`)}"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${x.highRisk ? 11 : 9}" fill="${fill}" stroke="var(--surface)" stroke-width="2"${x.highRisk ? ' style="filter:drop-shadow(0 0 4px var(--critical))"' : ''}/><text x="${p.x.toFixed(1)}" y="${(p.y + 22).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:10px">${esc(label(x))}</text></g></a>`;
       }
     });
     s += '</svg>';
-    const legend = `<div class="legend">${['SAME_ID', 'SAME_PHONE', 'DUPLICATE', 'SAME_NAME', 'DEALER'].map(k => { const st = LINK_STYLE[k]; return `<span><span style="display:inline-block;width:18px;border-top:${st.width}px ${st.dash ? 'dashed' : 'solid'} ${st.color};vertical-align:middle;margin-right:4px"></span>${t(st.ko, st.en)}</span>`; }).join('')}<span><span class="dot" style="background:var(--critical)"></span>${t('원 = 신청 (색은 등급)', 'circle = application (colour = grade)')}</span><span><span style="display:inline-block;width:10px;height:10px;border:2px solid var(--text-2);border-radius:2px;vertical-align:-1px;margin-right:4px"></span>${t('사각형 = 딜러', 'square = dealer')}</span></div>`;
+    const legend = `<div class="legend">${['SAME_ID', 'SAME_PHONE', 'DUPLICATE', 'SAME_NAME', 'DEALER'].map(k => { const st = LINK_STYLE[k]; return `<span><span style="display:inline-block;width:18px;border-top:${st.width}px ${st.dash ? 'dashed' : 'solid'} ${st.color};vertical-align:middle;margin-right:4px"></span>${t(st.ko, st.en)}</span>`; }).join('')}<span><span class="dot" style="background:var(--critical)"></span>${t('원 = 신청 (색은 등급)', 'circle = application (colour = grade)')}</span><span><span style="display:inline-block;width:10px;height:10px;border:2px solid var(--text-2);border-radius:2px;vertical-align:-1px;margin-right:4px"></span>${t('사각형 = 딜러', 'square = dealer')}</span><button type="button" class="netreset"${netPinned.size ? '' : ' hidden'}>${t('배치 초기화', 'Reset layout')}</button></div>`;
     const clusters = net.clusters.map(c => `<div class="action" style="border-left:3px solid ${c.severity === 'HIGH' ? 'var(--critical)' : 'var(--warn)'};padding:8px 10px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b>${t('묶음', 'Ring')} ${c.id}</b><span class="chip ${c.severity === 'HIGH' ? 'fraud' : ''}">${c.severity === 'HIGH' ? t('높음', 'high') : t('중간', 'medium')}</span>${c.singleDealer ? `<span class="chip">${t('단일 딜러', 'single dealer')}</span>` : ''}</div><div class="sub" style="display:block;margin-top:2px">${esc(LANG.lang === 'en' ? c.summary : c.summaryKo)}</div><div style="margin-top:4px">${c.applications.map(n => appLink(n)).join(' · ')}</div></div>`).join('');
     const high = net.clusters.filter(c => c.severity === 'HIGH').length;
     return `<section class="card">${title}
       <div class="tiles" style="margin:6px 0 10px"><div class="tile ${high ? 'alert' : ''}"><div class="k">${t('의심 묶음', 'Suspicious rings')}</div><div class="v">${net.clusters.length} <span class="sub" style="display:inline;font-size:14px">${t('높음', 'high')} ${high}</span></div></div><div class="tile"><div class="k">${t('연결된 신청', 'Linked applications')} <small>${t(`대조 ${net.scanned}건 중`, `of ${net.scanned} compared`)}</small></div><div class="v">${net.linkedApplications}</div></div><div class="tile"><div class="k">${t('신분증 번호 공유', 'Shared ID numbers')}</div><div class="v">${net.clusters.reduce((a, c) => a + c.sharedIds, 0)}</div></div><div class="tile"><div class="k">${t('전화번호 공유', 'Shared phones')}</div><div class="v">${net.clusters.reduce((a, c) => a + c.sharedPhones, 0)}</div></div></div>
       <div style="display:grid;gap:14px;grid-template-columns:minmax(0,1fr) minmax(260px,320px)" class="netgrid"><div>${s}${legend}</div><div style="max-height:520px;overflow-y:auto">${clusters}</div></div>
-      <p class="sub" style="display:block;margin:8px 0 0">${t('리스크 규칙은 나중에 들어온 신청에만 "동일 신분증 번호" 플래그를 올려요. 이 그림은 먼저 들어온 신청까지 묶어 사람이 한 건씩 볼 때는 놓치는 연결을 보여줘요. 원을 누르면 심사 화면이 열려요.', 'The risk rules flag only the later application of a pair. This picture ties the earlier ones in too, so a ring an officer would miss case by case becomes visible. Click a circle to open the review page.')}</p>
+      <p class="sub" style="display:block;margin:8px 0 0">${t('리스크 규칙은 나중에 들어온 신청에만 "동일 신분증 번호" 플래그를 올려요. 이 그림은 먼저 들어온 신청까지 묶어 사람이 한 건씩 볼 때는 놓치는 연결을 보여줘요. 원을 누르면 심사 화면이 열리고, 원이나 사각형을 끌어서 옮길 수 있어요.', 'The risk rules flag only the later application of a pair. This picture ties the earlier ones in too, so a ring an officer would miss case by case becomes visible. Click a circle to open the review page; drag a circle or square to move it.')}</p>
     </section>`;
   }
 
@@ -573,7 +623,7 @@
     const em = ex.metrics, sm = st.metrics;
     const exDealers = d.dealers.filter(x => x.tier === 'EXCELLENT');
     const better = (a, b, lowerIsBetter) => a == null || b == null ? '' : (lowerIsBetter ? a < b : a > b) ? 'good' : (a === b ? '' : 'alert');
-    h += `<section class="card"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">${t('우수 딜러 현황', 'Excellent dealers')} <small>${t('등급은 아래 기준으로 분기마다 검토합니다', 'tiers are reviewed quarterly against the standard below')}</small></h2><button type="button" class="btn-standard" data-standard="1">${t('우수 딜러 기준 보기', 'Excellent dealer standard')}</button></div><div class="tiles">
+    h += `<section class="card"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">${t('우수 딜러 현황', 'Excellent dealers')} <small>${t('등급은 아래 기준으로 분기마다 검토합니다', 'tiers are reviewed quarterly against the standard below')}</small></h2><button type="button" class="btn-standard" data-standard="dealer">${t('우수 딜러 기준 보기', 'Excellent dealer standard')}</button></div><div class="tiles">
       <div class="tile"><div class="k">${t('우수 딜러', 'Excellent dealers')} <small>${t('전체 딜러 중', 'of all dealers')}</small></div><div class="v">${ex.dealers} <span class="sub" style="display:inline;font-size:14px">/ ${d.dealers.length}</span></div></div>
       <div class="tile"><div class="k">${t('우수 딜러 경유 신청', 'Via excellent dealers')}</div><div class="v">${em.applications ?? 0} <span class="sub" style="display:inline;font-size:14px">${pct(tt.applications ? (em.applications || 0) / tt.applications : null)}</span></div></div>
       <div class="tile ${better(em.approvalRate, sm.approvalRate)}"><div class="k">${t('우수 딜러 승인율', 'Approval rate, excellent')} <small>${t('일반', 'standard')} ${pct(sm.approvalRate)}</small></div><div class="v">${pct(em.approvalRate)}</div></div>
@@ -596,7 +646,7 @@
 
     h += `<section class="card"><h2>${t('우수 딜러란', 'What an excellent dealer is')}</h2>
       <p class="sub" style="display:block;margin:6px 0 0">${t('딜러마다 등급(일반 · 우수)이 있어요. 우수 딜러가 만든 신청의 고객은 리스크 평가에서 "우수 딜러 유입 고객" 배지를 받고, 심사 화면과 고객 리포트에 표시돼요. 배지는 참고 정보이며 등급 점수를 바꾸지는 않아요. 이 탭은 우수 딜러 경유 고객이 실제로 더 낮은 리스크와 더 높은 승인율을 보이는지 추적해, 딜러 등급을 유지하거나 조정하는 근거를 줘요.', 'Each dealer has a tier (standard or excellent). Customers filed by an excellent dealer receive the "referred by an excellent dealer" badge in the risk assessment, shown on the review page and the customer report. The badge is informational and does not change the grade score. This tab tracks whether customers from excellent dealers really come with lower risk and higher approval rates, as evidence for keeping or adjusting dealer tiers.')}</p>
-      <p style="margin:10px 0 0"><button type="button" class="btn-standard" data-standard="1">${t('우수 딜러 기준 보기', 'Show the excellent dealer standard')}</button></p></section>`;
+      <p style="margin:10px 0 0"><button type="button" class="btn-standard" data-standard="dealer">${t('우수 딜러 기준 보기', 'Show the excellent dealer standard')}</button></p></section>`;
     P.dealers = h; h = '';
 
     const footer = `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${tt.demoApplications ? ` · ${t(`데모 데이터 ${tt.demoApplications}건 포함 (DELETE /admin/demo/seed 로 제거)`, `includes ${tt.demoApplications} demo applications (remove with DELETE /admin/demo/seed)`)}` : ''}</p>`;
@@ -609,6 +659,7 @@
     mountCopilot();
     main.querySelectorAll('details > summary').forEach(s => { if (wasOpen.has(s.textContent.trim())) s.parentElement.open = true; });
     bindTips(main);
+    bindNetworkDrag(main);
   }
 
   /* AI dashboard copilot: portfolio-level questions answered from the same statistics this page shows
@@ -713,7 +764,54 @@
     ['서류 재요청 비율', 'Resubmission rate', '10% 이하', '10% or lower', '처음부터 선명하고 완전한 서류를 내는지', 'files complete, clear documents first time'],
     ['활동 기간·준법', 'Tenure and conduct', '6개월 이상 활동, 준법 지적 없음', '6+ months active, no compliance findings', '안정성', 'stability'],
   ];
-  function renderStandard() {
+  /* The fraud network explained: what the picture shows, how two applications get tied, how a ring is graded, how to
+     use it, and what to keep in mind. Mirrors FraudNetworkService. */
+  const FRAUD_ROWS = [
+    ['SAME_ID', '같은 신분증 번호', 'Same ID number', '신분증 번호가 같은데 전화번호나 이름이 달라요', 'same ID number, but a different phone or name', '다른 사람이 같은 신분증을 쓰고 있어요 — 신원 도용 의심', 'another person is using the same ID — possible identity misuse'],
+    ['SAME_PHONE', '같은 전화번호', 'Same phone', '전화번호가 같은데 신분증 번호가 달라요', 'same phone, but different ID numbers', '한 전화로 여러 신원을 제출하고 있어요', 'one phone is submitting several identities'],
+    ['DUPLICATE', '중복 신청', 'Duplicate application', '신분증 번호가 같고 전화번호(와 이름)도 같아요', 'same ID number and the same phone (and name)', '같은 고객의 두 번째 신청 — 사기보다는 중복', 'the same customer filed twice — a duplicate rather than fraud'],
+    ['SAME_NAME', '같은 이름·생년월일', 'Same name & date of birth', '이름과 생년월일이 같은데 신분증 번호와 전화번호가 모두 달라요', 'same name and date of birth, but different ID numbers and phones', '가장 약한 신호 — 참고용', 'the weakest signal — for reference'],
+    ['DEALER', '접수 딜러', 'Filed by dealer', '신청과 그 신청을 접수한 딜러', 'an application and the dealer who filed it', '의심이 아니라 경로예요. 한 딜러에 여러 묶음이 모이면 딜러를 봐요', 'not a suspicion, a route; many rings through one dealer point at the dealer'],
+  ];
+  function renderFraudStandard() {
+    const ko = LANG.lang !== 'en';
+    const line = k => { const st = LINK_STYLE[k]; return `<span style="display:inline-block;width:22px;border-top:${st.width}px ${st.dash ? 'dashed' : 'solid'} ${st.color};vertical-align:middle;margin-right:6px"></span>`; };
+    return `<div class="inner">
+      <div class="head"><div><h2 id="standard-title">${t('사기 연결망 탐지 안내', 'How fraud network detection works')}</h2><span class="sub">${t('이 그림이 무엇을 보여 주고 어떻게 읽는지', 'What the picture shows and how to read it')}</span></div><button type="button" class="close" data-close="1" aria-label="${t('닫기', 'Close')}">✕</button></div>
+      <h3>${t('무엇을 보여 주나', 'What it shows')}</h3>
+      <p>${t('신청서끼리 같은 신분증 번호, 같은 전화번호, 같은 이름·생년월일이 겹치면 선으로 잇고, 이어진 신청을 하나의 "묶음"으로 모읍니다. 접수한 딜러도 사각형으로 함께 그려, 한 딜러를 통해 여러 신원이 들어오는 패턴까지 보이게 합니다.',
+             'Applications that share an ID number, a phone number, or a name and date of birth are joined by a line, and everything joined together forms one "ring". The dealers who filed them are drawn as squares, so several identities arriving through one dealer also become visible.')}</p>
+      <p>${t('리스크 규칙(Risk Flag)은 두 신청이 겹칠 때 나중에 들어온 신청에만 플래그를 올립니다. 이 그림은 먼저 들어온 신청까지 함께 묶어, 한 건씩 심사할 때는 보이지 않는 연결을 드러냅니다.',
+             'The risk rules flag only the later application of an overlapping pair. This picture ties the earlier ones in as well, so a connection that stays hidden when cases are reviewed one at a time becomes visible.')}</p>
+      <h3>${t('연결 규칙', 'How two applications get tied')}</h3>
+      <div class="scroll"><table><thead><tr><th>${t('선', 'Line')}</th><th>${t('조건', 'Condition')}</th><th>${t('의미', 'What it means')}</th></tr></thead><tbody>
+        ${FRAUD_ROWS.map(r => `<tr><td class="th">${line(r[0])}${esc(ko ? r[1] : r[2])}</td><td>${esc(ko ? r[3] : r[4])}</td><td class="sub" style="display:table-cell">${esc(ko ? r[5] : r[6])}</td></tr>`).join('')}
+      </tbody></table></div>
+      <h3>${t('묶음 등급', 'Ring severity')}</h3>
+      <ul>
+        <li>${t('<b>높음</b>: 묶음 안에 "같은 신분증 번호" 또는 "같은 전화번호" 연결이 하나라도 있을 때. 서로 다른 사람이 신원 요소를 공유하는 상태입니다.', '<b>High</b>: the ring contains at least one "same ID number" or "same phone" tie, so different people are sharing identity details.')}</li>
+        <li>${t('<b>중간</b>: 중복 신청과 이름·생년월일 일치만 있을 때.', '<b>Medium</b>: only duplicate applications and name-and-date-of-birth matches.')}</li>
+        <li>${t('<b>단일 딜러</b>: 묶음의 모든 신청이 한 딜러를 통해 들어왔다는 표시입니다. 딜러 쪽을 먼저 확인하세요.', '<b>Single dealer</b>: every application in the ring came through one dealer. Check the dealer first.')}</li>
+        <li>${t('원의 색은 AI 리스크 등급(A~D)이고, 큰 원과 붉은 테두리는 고위험(C·D)입니다.', 'A circle\'s colour is the AI risk grade (A to D); a larger circle with a red glow is high risk (C or D).')}</li>
+      </ul>
+      <h3>${t('사용 방법', 'How to use it')}</h3>
+      <ul>
+        <li>${t('원을 누르면 그 신청의 심사 화면이 열립니다. 오른쪽 묶음 목록의 신청번호도 같은 곳으로 갑니다.', 'Click a circle to open that application\'s review page. The application numbers in the ring list on the right go to the same place.')}</li>
+        <li>${t('원이나 사각형을 끌어서 겹친 부분을 풀 수 있습니다. 옮긴 위치는 이 탭에서 유지되고, "배치 초기화"로 되돌립니다.', 'Drag a circle or square to untangle the picture. The new position is kept in this tab; "Reset layout" restores the default.')}</li>
+        <li>${t('선이나 원 위에 마우스를 올리면 연결 사유와 마스킹된 번호가 보입니다.', 'Hover over a line or circle to see why it is tied and the masked number.')}</li>
+        <li>${t('심사할 때는 묶음 전체를 같이 보세요. 한 건을 승인하기 전에 같은 묶음의 다른 신청이 어떻게 결정됐는지 확인합니다.', 'Review a ring as a whole. Before approving one application, check how the others in the same ring were decided.')}</li>
+      </ul>
+      <h3>${t('알아 둘 것', 'Good to know')}</h3>
+      <ul>
+        <li>${t('신분증 번호와 전화번호는 뒤 4자리만 표시됩니다. 전체 번호는 심사 화면에서 권한 있는 담당자만 봅니다.', 'ID and phone numbers show only their last four digits. The full numbers are visible only to authorised officers on the review page.')}</li>
+        <li>${t('그림은 새로 고칠 때마다 전체 신청을 다시 대조합니다. 저장된 판단이 아니라 현재 데이터의 결과입니다.', 'The picture is recomputed from every application on each refresh. It is the current data, not a stored verdict.')}</li>
+        <li>${t('묶음은 의심 신호이지 결론이 아닙니다. 가족이 전화번호를 공유하는 것처럼 정당한 사유도 있으니, 결정은 담당자가 합니다.', 'A ring is a signal, not a conclusion. There are legitimate cases, such as a family sharing one phone, so the officer decides.')}</li>
+      </ul>
+      <p class="sub" style="display:block;margin-top:12px">${t('대조 대상은 신분증에서 추출한 번호·이름·생년월일과 고객 전화번호입니다. 현재 데모 데이터에는 일부러 넣은 묶음이 포함되어 있습니다.', 'The comparison uses the number, name and date of birth extracted from the ID card and the customer phone. The current demo data includes rings planted on purpose.')}</p>
+    </div>`;
+  }
+  function renderStandard(kind) {
+    if (kind === 'fraud') return renderFraudStandard();
     const ko = LANG.lang !== 'en';
     return `<div class="inner">
       <div class="head"><div><h2 id="standard-title">${t('우수 딜러 기준', 'Excellent dealer standard')}</h2><span class="sub">${t('딜러 등급(일반 · 우수)을 정하고 유지하는 기준', 'How a dealer earns and keeps the excellent tier')}</span></div><button type="button" class="close" data-close="1" aria-label="${t('닫기', 'Close')}">✕</button></div>
@@ -737,10 +835,11 @@
     </div>`;
   }
   const standardDlg = $('#standard');
-  function openStandard() { standardDlg.innerHTML = renderStandard(); if (!standardDlg.open) standardDlg.showModal(); }
-  main.addEventListener('click', e => { if (e.target.closest('[data-standard]')) openStandard(); });
+  let standardKind = 'dealer';
+  function openStandard(kind) { standardKind = kind; standardDlg.innerHTML = renderStandard(kind); if (!standardDlg.open) standardDlg.showModal(); }
+  main.addEventListener('click', e => { const b = e.target.closest('[data-standard]'); if (b) openStandard(b.dataset.standard); });
   standardDlg.addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target === standardDlg) standardDlg.close(); });
-  LANG.onChange(() => { if (standardDlg.open) standardDlg.innerHTML = renderStandard(); });
+  LANG.onChange(() => { if (standardDlg.open) standardDlg.innerHTML = renderStandard(standardKind); });
 
   function showTab(id) {
     if (!TABS.some(x => x[0] === id)) id = 'overview';
