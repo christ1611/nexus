@@ -87,6 +87,14 @@ class DashboardCopilotService(
         appendLine("- Risk score = sum of the points of every risk flag: LOW ${RiskSeverity.LOW.points}, MEDIUM ${RiskSeverity.MEDIUM.points}, HIGH ${RiskSeverity.HIGH.points}; capped at 100.")
         appendLine("- Grade thresholds: " + RiskGrade.entries.joinToString(", ") { "${it.name} (${it.labelKo} · ${it.label}) from ${it.minScore}" } + ". Any HIGH fraud signal floors the grade at C. C and D are high risk.")
         appendLine("- The officer decides each application; grades are advisory.")
+        appendLine("- High-risk share = high-risk (grade C or D) applications / assessed applications.")
+
+        appendLine()
+        appendLine("## Excellent dealer standard (criteria a dealer must meet; reviewed quarterly)")
+        appendLine("- 20+ decided applications in the last 12 months · approval rate 70% or higher · high-risk share (grade C or D) ${HIGH_RISK_SHARE_STANDARD}% or lower · no fraud or forgery warning in the review window · identity match rate 90% or higher · resubmission rate 10% or lower · 6+ months active with no compliance findings.")
+        appendLine("- Current high-risk share: overall ${share(t.highRisk, t.assessed)} (${t.highRisk}/${t.assessed})" +
+            s.dealerTiers.joinToString("") { " · ${it.label} dealers ${pct(it.metrics.highRiskRate)} (${it.metrics.highRisk}/${it.metrics.assessed})" } +
+            s.byCountry.joinToString("") { " · ${it.code} ${share(it.highRisk, it.assessed)} (${it.highRisk}/${it.assessed})" })
 
         appendLine()
         appendLine("## Pipeline (open applications by current stage)")
@@ -172,6 +180,9 @@ class DashboardCopilotService(
         private val FMT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.of("Asia/Jakarta"))
 
         fun pct(v: Double?): String = v?.let { "${Math.round(it * 100)}%" } ?: "n/a"
+        fun share(part: Int, whole: Int): String = if (whole > 0) pct(part.toDouble() / whole) else "n/a"
+        /** Excellent dealer standard: share of assessed applications that may be high risk (grade C or D), in percent. */
+        const val HIGH_RISK_SHARE_STANDARD = 15
         fun num(v: Double?): String = v?.let { if (it == Math.rint(it)) it.toLong().toString() else "%.1f".format(it) } ?: "n/a"
         fun hours(h: Double?): String = when {
             h == null -> "n/a"
@@ -210,6 +221,8 @@ object RulesDashboardCopilot {
     private val TREND = Regex("추이|주간|이번 주|지난주|주별|trend|week|weekly|growth", RegexOption.IGNORE_CASE)
     private val AGENT = Regex("에이전트|자동화|자동|agent|automation|pipeline|vision|claude|AI", RegexOption.IGNORE_CASE)
     private val RISK = Regex("위조|사기|리스크|위험|등급|flag|플래그|배지|fraud|forg|risk|grade|badge|tamper|duplicate|중복", RegexOption.IGNORE_CASE)
+    /** "What is the high-risk share standard?": the excellent dealer bar and where the portfolio stands against it. */
+    private val STANDARD = Regex("(고위험|high.?risk).*(기준|비율|threshold|standard|criteria|share|rate)|(기준|threshold|standard|criteria).*(고위험|high.?risk)", RegexOption.IGNORE_CASE)
 
     private val pct = DashboardCopilotService.Companion::pct
     private val num = DashboardCopilotService.Companion::num
@@ -217,6 +230,7 @@ object RulesDashboardCopilot {
 
     fun answer(s: Stats, question: String): String {
         val body = when {
+            STANDARD.containsMatchIn(question) && !COUNTRY.containsMatchIn(question) -> highRiskStandard(s)
             QUEUE.containsMatchIn(question) -> queue(s)
             TREND.containsMatchIn(question) -> trend(s)
             COUNTRY.containsMatchIn(question) -> countries(s)
@@ -235,6 +249,28 @@ object RulesDashboardCopilot {
         appendLine("- 리스크 평가 ${t.assessed}건 중 고위험(C·D) ${t.highRisk}건, 위조·사기 경고 ${t.fraudWarnings}건, 담당자 검토 필요 ${t.officerReviewRequired}건")
         appendLine("- 최장 대기 ${hours(t.oldestWaitingHours)} · 평균 결정 시간 ${hours(t.avgDecisionHours)}")
         if (s.pipeline.isNotEmpty()) appendLine("- 진행 단계: " + s.pipeline.filter { it.count > 0 }.joinToString(", ") { "${it.labelKo} ${it.count}" }.ifBlank { "열린 신청 없음" })
+    }
+
+    fun highRiskStandard(s: Stats): String = buildString {
+        val t = s.totals
+        val bar = DashboardCopilotService.HIGH_RISK_SHARE_STANDARD
+        val c = RiskGrade.C
+        appendLine("**고위험 비율 기준**")
+        appendLine("- 고위험 비율 = 리스크 평가가 끝난 신청 중 고위험(등급 C·D) 신청의 비율. 등급 C는 리스크 점수 ${c.minScore}점부터, D는 ${RiskGrade.D.minScore}점부터이며, 심각도 '높음'의 위조 신호가 하나라도 있으면 최소 C입니다.")
+        appendLine("- 우수 딜러 기준: 고위험 비율 ${bar}% 이하 (승인율 70% 이상, 위조·사기 경고 0건, 신원 일치율 90% 이상과 함께 분기마다 검토).")
+        appendLine("**현재 비율**")
+        appendLine("- 전체: ${DashboardCopilotService.share(t.highRisk, t.assessed)} (${t.highRisk}/${t.assessed}건) → ${verdict(t.highRisk, t.assessed, bar)}")
+        s.dealerTiers.forEach { d -> appendLine("- ${d.labelKo}: ${pct(d.metrics.highRiskRate)} (${d.metrics.highRisk}/${d.metrics.assessed}건) → ${verdict(d.metrics.highRisk, d.metrics.assessed, bar)}") }
+        s.byCountry.filter { it.assessed > 0 }.forEach { x -> appendLine("- ${x.nameKo} (${x.code}): ${DashboardCopilotService.share(x.highRisk, x.assessed)} (${x.highRisk}/${x.assessed}건) → ${verdict(x.highRisk, x.assessed, bar)}") }
+        val over = s.dealers.filter { it.metrics.assessed > 0 && it.metrics.highRiskRate != null && it.metrics.highRiskRate * 100 > bar }.sortedByDescending { it.metrics.highRiskRate }
+        if (over.isNotEmpty()) appendLine("- 기준(${bar}%)을 넘는 딜러: " + over.take(5).joinToString(", ") { "${it.code} ${pct(it.metrics.highRiskRate)} (${it.metrics.highRisk}/${it.metrics.assessed})" } + (if (over.size > 5) " 외 ${over.size - 5}곳" else ""))
+        else appendLine("- 기준(${bar}%)을 넘는 딜러는 없습니다.")
+    }
+
+    private fun verdict(highRisk: Int, assessed: Int, bar: Int): String = when {
+        assessed == 0 -> "평가된 신청 없음"
+        highRisk * 100.0 / assessed <= bar -> "기준 충족"
+        else -> "기준 초과"
     }
 
     fun countries(s: Stats): String = buildString {

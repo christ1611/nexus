@@ -162,6 +162,12 @@ class DashboardAndRiskFlowTest @Autowired constructor(
             status { isOk() }
             jsonPath("$.answer") { value(containsString("APP-")) }
         }
+        // The suggested question about the high-risk share standard: the bar and the current share against it.
+        ask("""{"question":"현재 고위험 비율 기준을?"}""").andExpect {
+            status { isOk() }
+            jsonPath("$.answer") { value(containsString("15% 이하")) }
+            jsonPath("$.answer") { value(containsString("현재 비율")) }
+        }
         ask("""{"question":"what did the AI agents do?"}""").andExpect {
             status { isOk() }
             jsonPath("$.answer") { value(containsString("비전 분석")) }
@@ -175,7 +181,7 @@ class DashboardAndRiskFlowTest @Autowired constructor(
             .andExpect { status { isUnauthorized() } }
         // The portfolio file the model would receive carries every section of the dashboard and no customer names.
         val file = copilot.portfolioFile(dashboard.stats())
-        for (section in listOf("## Snapshot", "## Review queue", "## Weekly trend", "## Countries", "## Risk flags", "## Dealers", "## AI agent activity"))
+        for (section in listOf("## Snapshot", "## Excellent dealer standard", "## Review queue", "## Weekly trend", "## Countries", "## Risk flags", "## Dealers", "## AI agent activity"))
             assertTrue(file.contains(section), "missing $section in:\n$file")
     }
 
