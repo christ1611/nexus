@@ -459,6 +459,7 @@
   const openSteps = new Set();                  // step ids whose "데이터" details are expanded; survives re-renders
   const MILESTONE_PHASES = new Set(['DOCUMENT', 'VERIFICATION', 'RISK', 'OUTCOME', 'OFFICER']); // steps that change other panels too
   const TRACE_POLL_MS = 2000;
+  const QUEUE_POLL_MS = 15000;   // queue and statistics tab; the dashboard uses the same interval
   const STATUS_ICON = { OK: '✓', FAIL: '✗', WARN: '⚠', DECISION: '→', INFO: '·' };
   const FLOW_HIDDEN = new Set(['AGENT_TURN', 'AGENT_TOOL_CALL', 'AGENT_RETRY']);
   function actorChip(actor) {
@@ -696,7 +697,7 @@
         <td>${pill(a.status)}${a.review?.officerReviewRequired ? `<br><span class="chip warn">${t('담당자 검토', 'Officer review')}</span>` : ''}${a.progress && a.status !== 'APPROVED' && a.status !== 'REJECTED' ? `<br><span style="white-space:nowrap">${miniBar(a.progress)} <span class="sub">${esc(curStage(a.progress))}</span></span>` : ''}</td>
         <td>${r ? gradeCell(r.grade, r.score) : '<span class="sub">–</span>'}${r && r.fraudWarnings ? `<br><span class="chip fraud">⚠ ${t('위조', 'fraud')} ${r.fraudWarnings}</span>` : ''}</td>
         <td class="num"><span class="sub" title="${esc(fmtTime(waitingSince))}">${a.status === 'READY_FOR_REVIEW' ? ago(waitingSince) : ago(a.updatedAt)}</span></td></tr>`; }).join('')}</tbody></table></div>
-      <p class="sub" style="margin:8px 0 0">${t(`${apps.length}건 · 심사 대기 우선, 리스크 점수 높은 순 · 60초마다 갱신`, `${apps.length} applications · ready-for-review first, highest risk score first · refreshes every 60s`)}</p>`;
+      <p class="sub" style="margin:8px 0 0">${t(`${apps.length}건 · 심사 대기 우선, 리스크 점수 높은 순 · ${QUEUE_POLL_MS / 1000}초마다 갱신`, `${apps.length} applications · ready-for-review first, highest risk score first · refreshes every ${QUEUE_POLL_MS / 1000}s`)}</p>`;
     const waitingCount = apps.filter(a => a.status === 'READY_FOR_REVIEW').length; $('#n-work').textContent = waitingCount; $('#n-work').hidden = !waitingCount;
     list.querySelectorAll('tr.row').forEach(tr => tr.addEventListener('click', () => open(tr.dataset.n)));
     list.querySelectorAll('button.report-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); showReport(b.dataset.n); }));
@@ -1175,7 +1176,7 @@
       <p class="sub" style="margin:8px 0 0">${t('플래그된 건의 거절 비율이 높을수록 에이전트 판단이 심사 결과와 잘 맞는 것입니다. 스텁 모드에서는 플래그가 기록되지 않습니다.', "A high rejection share among flagged cases means the agent's flags are useful. Stub mode records no flags.")}</p></div>
     </div>`;
 
-    h += `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${d.demoApplications ? ` · ${t(`데모 데이터 ${d.demoApplications}건 포함`, `includes ${d.demoApplications} demo applications`)}` : ''} · ${t('60초마다 갱신', 'refreshes every 60s')}</p>`;
+    h += `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${d.demoApplications ? ` · ${t(`데모 데이터 ${d.demoApplications}건 포함`, `includes ${d.demoApplications} demo applications`)}` : ''} · ${t(`${QUEUE_POLL_MS / 1000}초마다 갱신`, `refreshes every ${QUEUE_POLL_MS / 1000}s`)}</p>`;
     statsPanel.innerHTML = h;
     bindTips(statsPanel);
   }
@@ -1197,7 +1198,8 @@
   if (wanted) activeTab = 'work';
   showTab(activeTab);
   if (keyInput.value) { loadQueue().then(() => { if (wanted) open(wanted, true); }); if (activeTab === 'stats') loadStats(); }
-  setInterval(() => { if (!keyInput.value.trim()) return; if (activeTab === 'stats') loadStats(); else if (!document.activeElement.closest('#detail')) loadQueue(); }, 60000);
+  // Same cadence as the dashboard, so a new application shows up on both screens within the same quarter minute.
+  setInterval(() => { if (!keyInput.value.trim()) return; if (activeTab === 'stats') loadStats(); else if (!document.activeElement.closest('#detail')) loadQueue(); }, QUEUE_POLL_MS);
 })();
 </script>
 </body>
