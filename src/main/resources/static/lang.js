@@ -1,11 +1,12 @@
 /* Back-office language switch (Korean / English), shared by the dashboard and the review page.
-   The choice is remembered per browser; a floating button at the bottom right toggles it. Pages render strings
+   Korean by default; the choice is remembered per browser and a button in the header toggles it. Pages render strings
    through LANG.t(ko, en) and LANG.L(obj) (server objects that carry both `label` and `labelKo`), and static markup
    uses data-ko / data-en (and data-ko-placeholder / data-ko-title) so it can be swapped in place. */
 window.LANG = (function () {
   const KEY = 'bo-lang';
   let lang = 'ko';
-  try { lang = localStorage.getItem(KEY) || ((navigator.language || 'ko').toLowerCase().startsWith('ko') ? 'ko' : 'en'); } catch {}
+  // Korean by default for every visitor; only an explicit toggle (remembered per browser) switches to English.
+  try { lang = localStorage.getItem(KEY) || 'ko'; } catch {}
   if (lang !== 'en') lang = 'ko';
   const listeners = [];
   const t = (ko, en) => lang === 'en' ? en : ko;
