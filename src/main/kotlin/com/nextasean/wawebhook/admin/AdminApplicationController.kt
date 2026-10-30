@@ -171,7 +171,7 @@ class AdminApplicationController(
         val updatedAt: Instant,
     )
 
-    data class ReviewView(val decision: String?, val officerReviewRequired: Boolean?, val rounds: Int, val reviewedAt: Instant?, val summary: String?)
+    data class ReviewView(val decision: String?, val officerReviewRequired: Boolean?, val rounds: Int, val reviewedAt: Instant?, val summary: String?, val summaryKo: String?)
 
     data class DocumentView(
         val id: Long,
@@ -476,7 +476,7 @@ class AdminApplicationController(
         idVerification = idVerificationStatus?.let { mapOf("status" to it, "label" to it.label, "detail" to idVerificationDetail) },
         creditCheck = creditCheckStatus?.let { mapOf("status" to it, "label" to it.label, "detail" to creditCheckDetail, "score" to creditScore) },
         verifiedAt = verifiedAt,
-        review = reviewDecision?.let { ReviewView(it, officerReviewRequired, reviewRounds, reviewedAt, reviewSummary) },
+        review = reviewDecision?.let { ReviewView(it, officerReviewRequired, reviewRounds, reviewedAt, reviewSummary, reviewSummaryKo) },
         country = country,
         risk = risk.stored(this)?.let(RiskView::of),
         documentCount = documentCount,

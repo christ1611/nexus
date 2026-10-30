@@ -110,7 +110,7 @@ class ReviewAgentFlowTest @Autowired constructor(
         assertTrue(sentTo(DEALER).isEmpty(), "dealer is not bothered while documents are being re-collected")
 
         // Round 2: new KTP arrives; the selfie is still valid so the agent runs again immediately.
-        agent.script += ReviewDecision.SummaryWritten("APPLICATION $number\nAll documents legible. NIK validation passed.", officerReviewRequired = false)
+        agent.script += ReviewDecision.SummaryWritten("APPLICATION $number\nAll documents legible. NIK validation passed.", officerReviewRequired = false, summaryKo = "신청 $number\n모든 서류 판독 가능. NIK 검증 통과.")
         sender.clear()
         image(CUSTOMER, "KTP_2", caption = "nik3")
 
@@ -130,6 +130,7 @@ class ReviewAgentFlowTest @Autowired constructor(
         assertEquals("SUMMARY_WRITTEN", app2.reviewDecision)
         assertEquals(false, app2.officerReviewRequired)
         assertTrue(app2.reviewSummary!!.startsWith("APPLICATION $number"))
+        assertTrue(app2.reviewSummaryKo!!.startsWith("신청 $number"), "the Korean summary is stored for the Korean back office")
         assertTrue(app2.extractedNik!!.startsWith("317105170590") && app2.extractedNik!!.endsWith("3"), "sample NIK with per-application serial: " + app2.extractedNik)
         assertNotNull(app2.idVerificationStatus, "providers ran because the NIK was usable")
         assertNull(sessions.findActiveByPhone(CUSTOMER))

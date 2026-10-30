@@ -58,6 +58,7 @@ class ClaudeReviewAgent(
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class WriteSummaryInput(
         val summary: String? = null,
+        @JsonProperty("summary_ko") val summaryKo: String? = null,
         @JsonProperty("officer_review_required") val officerReviewRequired: Boolean? = null,
     )
 
@@ -87,20 +88,25 @@ class ClaudeReviewAgent(
         ),
         tool(
             name = WRITE_SUMMARY,
-            description = "Finish the intake: write the one-page summary for the back-office officer. Use it when every required " +
+            description = "Finish the intake: write the one-page summary for the back-office officer, in English and in Korean. Use it when every required " +
                 "document is present and usable and a retake would not improve anything that still needs a human, or when no " +
                 "retake rounds remain. officer_review_required must be true if any field is marked NEEDS OFFICER REVIEW, the NIK " +
                 "validation failed, or anything else needs a human before verification.",
             properties = mapOf(
                 "summary" to mapOf(
                     "type" to "string",
-                    "description" to "Plain text, at most about 400 words, WhatsApp-friendly (no markdown tables). Sections: Applicant; " +
+                    "description" to "English. Plain text, at most about 400 words, WhatsApp-friendly (no markdown tables). Sections: Applicant; " +
                         "Documents received; Extracted data (value, confidence, status - never invent or 'correct' a value); NIK validation; " +
                         "Quality issues; Items for officer review; Recommended next step.",
                 ),
+                "summary_ko" to mapOf(
+                    "type" to "string",
+                    "description" to "The same summary in Korean (한국어), same sections and the same facts and values; the Korean back office reads this one. " +
+                        "Keep document names, NIK digits, dates and confidences identical to the English summary.",
+                ),
                 "officer_review_required" to mapOf("type" to "boolean"),
             ),
-            required = listOf("summary", "officer_review_required"),
+            required = listOf("summary", "summary_ko", "officer_review_required"),
         ),
     )
 
@@ -168,7 +174,7 @@ class ClaudeReviewAgent(
                 return null
             }
             if (toolUse != null) {
-                val decision = execute(toolUse)
+                val decision = execute(toolUse, context)
                 trace.record(
                     context.application.id, TraceKind.AGENT_TOOL_CALL, if (decision != null) TraceStatus.DECISION else TraceStatus.FAIL, actor,
                     "${toolUse.name()}(" + "...)" + (if (decision == null) " rejected: invalid input" else ""),
@@ -182,7 +188,7 @@ class ClaudeReviewAgent(
                     listOf(
                         ContentBlockParam.ofToolResult(
                             ToolResultBlockParam.builder().toolUseId(toolUse.id()).isError(true)
-                                .content("Invalid input for ${toolUse.name()}: document types must be one of ${DocumentType.entries.joinToString()} with a non-empty reason; summaries must be non-empty.")
+                                .content("Invalid input for ${toolUse.name()}: document types must be one of ${DocumentType.entries.joinToString()} with a non-empty reason; summary (English) and summary_ko (Korean) must be non-empty.")
                                 .build(),
                         ),
                     ),
@@ -198,7 +204,7 @@ class ClaudeReviewAgent(
         return null
     }
 
-    private fun execute(toolUse: ToolUseBlock): ReviewDecision? {
+    private fun execute(toolUse: ToolUseBlock, ctx: ReviewContext): ReviewDecision? {
         @Suppress("UNCHECKED_CAST")
         val input = toolUse._input().convert(Map::class.java) as Map<String, Any?>
         return when (toolUse.name()) {
@@ -214,7 +220,10 @@ class ClaudeReviewAgent(
             WRITE_SUMMARY -> {
                 val parsed = objectMapper.convertValue(input, WriteSummaryInput::class.java)
                 val summary = parsed.summary?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-                ReviewDecision.SummaryWritten(summary.take(MAX_SUMMARY_CHARS), parsed.officerReviewRequired ?: true)
+                val officerReview = parsed.officerReviewRequired ?: true
+                // A missing Korean text is not worth a retry: the template version keeps the Korean view populated.
+                val summaryKo = parsed.summaryKo?.trim()?.takeIf { it.isNotEmpty() } ?: SummaryTemplate.renderKo(ctx, officerReview)
+                ReviewDecision.SummaryWritten(summary.take(MAX_SUMMARY_CHARS), officerReview, summaryKo.take(MAX_SUMMARY_CHARS))
             }
             else -> null
         }
@@ -239,7 +248,7 @@ class ClaudeReviewAgent(
             is ReviewDecision.RequestDocuments -> if (!ctx.canRequestMore) {
                 log.info("Agent asked for documents but no rounds remain; writing summary for officer | application={}", ctx.application.applicationNumber)
                 trace.record(appId, TraceKind.AGENT_GUARDRAIL, TraceStatus.WARN, AgentTraceService.RULES, "Agent wanted more documents but no retake rounds remain: summary for the officer instead", round = ctx.round)
-                ReviewDecision.SummaryWritten(SummaryTemplate.render(ctx, true), true)
+                ReviewDecision.SummaryWritten(SummaryTemplate.render(ctx, true), true, SummaryTemplate.renderKo(ctx, true))
             } else {
                 decision
             }
@@ -301,8 +310,9 @@ class ClaudeReviewAgent(
               present them as facts, and list each of them explicitly for the officer.
             - Do not judge whether the person is who they claim to be and do not speculate about fraud. Report facts; the
               officer decides.
-            - The summary must fit on one page (about 400 words), plain text with short headings, in English, and must name
-              every item an officer has to look at.
+            - The summary must fit on one page (about 400 words), plain text with short headings, and must name every item
+              an officer has to look at. Write it twice: `summary` in English and `summary_ko` in Korean, with the same
+              sections, the same facts and the same values, because the back office reads whichever language it has chosen.
             - Reasons given to the customer are polite, concrete and about the photo, never about suspicion.
         """.trimIndent()
     }

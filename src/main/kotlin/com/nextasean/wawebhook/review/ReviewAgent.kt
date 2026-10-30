@@ -17,8 +17,8 @@ sealed interface ReviewDecision {
     /** Send the customer back to the listed document steps. */
     data class RequestDocuments(val items: List<DocumentRequest>, val note: String? = null) : ReviewDecision
 
-    /** Documents are as good as they will get; the one-page summary goes to the back office. */
-    data class SummaryWritten(val summary: String, val officerReviewRequired: Boolean) : ReviewDecision
+    /** Documents are as good as they will get; the one-page summary goes to the back office, in English and in Korean. */
+    data class SummaryWritten(val summary: String, val officerReviewRequired: Boolean, val summaryKo: String? = null) : ReviewDecision
 }
 
 /** Latest non-superseded record for a required document, with its analysis when a vision model produced one. */
@@ -89,7 +89,7 @@ class RuleBasedReviewAgent : ReviewAgent {
         val requests = requestsFor(context)
         if (requests.isNotEmpty() && context.canRequestMore) return ReviewDecision.RequestDocuments(requests)
         val officerReview = requests.isNotEmpty() || context.documents.any { it.analysis?.needsOfficerReview == true || it.record?.needsOfficerReview == true }
-        return ReviewDecision.SummaryWritten(SummaryTemplate.render(context, officerReview), officerReview)
+        return ReviewDecision.SummaryWritten(SummaryTemplate.render(context, officerReview), officerReview, SummaryTemplate.renderKo(context, officerReview))
     }
 
     /** Documents a retake would plausibly fix: missing, unusable, or with a required field that was simply not legible. */

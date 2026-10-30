@@ -232,7 +232,8 @@ class DecisionReportService(
         if (!app.reviewSummary.isNullOrBlank() || app.reviewDecision != null) {
             section(doc, "자동 리뷰 요약", "Review agent summary")
             doc.add(Paragraph(txt("${app.reviewDecision ?: "-"} · ${t("담당자 검토 필요", "officer review required")}: ${if (app.officerReviewRequired == true) "yes" else "no"}${app.reviewedAt?.let { " · ${fmt.format(it)}" } ?: ""}"), font(8f, color = GREY)))
-            app.reviewSummary?.let { doc.add(Paragraph(txt(it.trim().take(1800) + if (it.length > 1800) "…" else ""), font(8.5f)).apply { spacingBefore = 3f }) }
+            app.reviewSummaryKo?.let { doc.add(Paragraph(txt(it.trim().take(1800) + if (it.length > 1800) "…" else ""), font(8.5f)).apply { spacingBefore = 3f }) }
+            app.reviewSummary?.let { doc.add(Paragraph(txt(it.trim().take(1800) + if (it.length > 1800) "…" else ""), font(8.5f)).apply { spacingBefore = if (app.reviewSummaryKo != null) 6f else 3f }) }
         }
 
         // 7. Fraud network

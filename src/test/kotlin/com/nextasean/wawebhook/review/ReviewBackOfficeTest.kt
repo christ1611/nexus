@@ -255,6 +255,7 @@ class ReviewBackOfficeTest @Autowired constructor(
         // Stub mode still runs the rule-based review agent, so the officer always gets a summary.
         assertEquals("SUMMARY_WRITTEN", app.reviewDecision)
         assertTrue(app.reviewSummary!!.contains("DOCUMENT INTAKE SUMMARY"), app.reviewSummary!!)
+        assertTrue(app.reviewSummaryKo!!.contains("서류 접수 요약"), "the same summary is stored in Korean: " + app.reviewSummaryKo)
         val caseFile = copilot.caseFile(app)
         assertTrue(caseFile.contains("Score 0 / 100"), caseFile)
         assertTrue(caseFile.contains("## AI agent timeline"), caseFile)

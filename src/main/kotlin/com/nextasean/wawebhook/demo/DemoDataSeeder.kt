@@ -317,6 +317,7 @@ class DemoDataSeeder(
 
         // Review agent: Claude turns in Claude mode, the rule-based decision otherwise (both end with a summary).
         var summary: String? = null
+        var summaryKo: String? = null
         var officerReview: Boolean? = null
         if (claudeMode) {
             t = t.plusSeconds(6)
@@ -328,13 +329,15 @@ class DemoDataSeeder(
                 t, turnMs, mapOf("attempt" to 1, "stopReason" to "tool_use", "tool" to "write_summary", "model" to MODEL, "inputTokens" to random.nextInt(2_600, 3_400), "cacheReadTokens" to 1_980, "outputTokens" to random.nextInt(380, 720), "durationMs" to turnMs),
             )
             summary = summaryText(number, persona, idNumber, ktpAnalysis, officerReview)
-            step(app, TraceKind.AGENT_TOOL_CALL, TraceStatus.DECISION, AgentTraceService.claude(MODEL), "write_summary(...)", "officer_review_required=$officerReview | " + summary.lineSequence().take(2).joinToString(" / "), t.plusMillis(turnMs), null, mapOf("tool" to "write_summary", "input" to mapOf("officer_review_required" to officerReview, "summary" to summary)))
+            summaryKo = summaryTextKo(number, persona, idNumber, ktpAnalysis, officerReview)
+            step(app, TraceKind.AGENT_TOOL_CALL, TraceStatus.DECISION, AgentTraceService.claude(MODEL), "write_summary(...)", "officer_review_required=$officerReview | " + summary.lineSequence().take(2).joinToString(" / "), t.plusMillis(turnMs), null, mapOf("tool" to "write_summary", "input" to mapOf("officer_review_required" to officerReview, "summary" to summary, "summary_ko" to summaryKo)))
             step(app, TraceKind.AGENT_DECISION, if (officerReview) TraceStatus.WARN else TraceStatus.OK, AgentTraceService.claude(MODEL), "Decision: write the officer summary" + (if (officerReview) " - officer review required" else " - no manual items"), summary.lineSequence().take(3).joinToString(" / "), t.plusMillis(turnMs), null, mapOf("tool" to "write_summary", "officerReviewRequired" to officerReview))
             t = t.plusMillis(turnMs)
         } else {
             t = t.plusSeconds(2)
             officerReview = !nikUsable
             summary = summaryText(number, persona, idNumber, null, officerReview)
+            summaryKo = summaryTextKo(number, persona, idNumber, null, officerReview)
             step(
                 app, TraceKind.AGENT_DECISION, if (officerReview) TraceStatus.WARN else TraceStatus.OK, AgentTraceService.RULES,
                 "Decision: write the officer summary" + (if (officerReview) " - officer review required" else " - no manual items"),
@@ -379,7 +382,7 @@ class DemoDataSeeder(
             app.copy(
                 status = ApplicationStatus.READY_FOR_REVIEW, idVerificationStatus = idStatus, idVerificationDetail = idDetail?.take(255), creditCheckStatus = creditStatus,
                 creditCheckDetail = creditDetail?.take(255), creditScore = score, verifiedAt = if (nikUsable) completedAt else null,
-                reviewDecision = "SUMMARY_WRITTEN", reviewSummary = summary, officerReviewRequired = officerReview, reviewedAt = completedAt,
+                reviewDecision = "SUMMARY_WRITTEN", reviewSummary = summary, reviewSummaryKo = summaryKo, officerReviewRequired = officerReview, reviewedAt = completedAt,
                 reviewRounds = round, updatedAt = completedAt,
             ),
         )
@@ -511,6 +514,19 @@ class DemoDataSeeder(
         appendLine()
         appendLine(if (officerReview) "ITEMS FOR OFFICER REVIEW: compare the NIK digits on the image with the card's printed date of birth before verification." else "ITEMS FOR OFFICER REVIEW: none.")
         append("NEXT STEP: ${if (officerReview) "officer to verify the NIK, then run identity and credit verification" else "proceed with identity and credit verification"}")
+    }
+
+    private fun summaryTextKo(number: String, persona: Persona, nik: String, ktp: DocumentAnalysis?, officerReview: Boolean): String = buildString {
+        appendLine("신청 $number - 서류 접수 요약")
+        appendLine("신청인: ${persona.name}, ${persona.dob} 출생, ${if (persona.gender.equals("female", true)) "여성" else "남성"}; NIK ***${nik.takeLast(4)}")
+        appendLine()
+        appendLine("접수 서류: KTP(선명, 모든 필드 판독 가능), KTP를 든 셀피(얼굴 1명, 카드가 화면 안에 있음).")
+        appendLine("추출 데이터: 이름 ${persona.name} (0.96), 생년월일 ${persona.dob} (0.95), 주소 ${persona.address.substringBefore(",")} (0.91).")
+        if (ktp?.nik?.valid == false) appendLine("NIK 검증: 실패 - ${ktp.nik.issues.joinToString("; ")}. NIK는 담당자 검토 필요로 표시했고 검증에 사용하지 않았습니다.")
+        else appendLine("NIK 검증: 통과 (${ktp?.nik?.provinceName ?: "지역 인식됨"}, NIK에 담긴 생년월일·성별이 카드와 일치).")
+        appendLine()
+        appendLine(if (officerReview) "담당자 검토 항목: 검증 전에 이미지의 NIK 숫자를 카드에 인쇄된 생년월일과 대조하십시오." else "담당자 검토 항목: 없음.")
+        append("다음 단계: ${if (officerReview) "담당자가 NIK를 확인한 뒤 신원·신용 검증 실행" else "신원·신용 검증 진행"}")
     }
 
     private fun storeDocument(app: DealerApplication, type: DocumentType, persona: Persona, idNumber: String, at: Instant, passed: Boolean, reason: String? = null, analysis: DocumentAnalysis?): DocumentRecord {

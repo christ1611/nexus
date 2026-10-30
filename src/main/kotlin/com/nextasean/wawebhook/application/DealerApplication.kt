@@ -57,6 +57,8 @@ data class DealerApplication(
     val reviewDecision: String? = null,
     /** One-page summary for the back office, written when the documents are as good as they will get. */
     val reviewSummary: String? = null,
+    /** The same summary in Korean, shown when the back office is switched to Korean. */
+    val reviewSummaryKo: String? = null,
     val officerReviewRequired: Boolean? = null,
     /** How many times the customer was sent back for documents. */
     val reviewRounds: Int = 0,

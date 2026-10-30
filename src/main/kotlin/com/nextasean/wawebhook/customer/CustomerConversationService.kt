@@ -128,6 +128,7 @@ class CustomerConversationService(
                 reviewDecision = "OFFICER_REQUEST_DOCUMENTS",
                 // The old summary described the superseded document; the agent (or the officer) writes a new one.
                 reviewSummary = null,
+                reviewSummaryKo = null,
                 officerReviewRequired = null,
                 reviewRounds = app.reviewRounds + 1,
                 reviewedAt = now,
@@ -432,6 +433,7 @@ class CustomerConversationService(
                     app.copy(
                         reviewDecision = "SUMMARY_WRITTEN",
                         reviewSummary = decision.summary.take(16_000),
+                        reviewSummaryKo = decision.summaryKo?.take(16_000),
                         officerReviewRequired = decision.officerReviewRequired,
                         reviewedAt = now,
                         updatedAt = now,

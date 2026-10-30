@@ -52,6 +52,7 @@ class RuleBasedReviewAgentTest {
         assertEquals(false, d.officerReviewRequired)
         assertTrue(d.summary.contains("APP-2026-001001") && d.summary.contains("NIK VALIDATION: PASSED"), d.summary)
         assertTrue(d.summary.lines().size < 60, "one page")
+        assertTrue(d.summaryKo!!.contains("APP-2026-001001") && d.summaryKo!!.contains("NIK 검증: 통과"), "the same facts in Korean: " + d.summaryKo)
     }
 
     @Test

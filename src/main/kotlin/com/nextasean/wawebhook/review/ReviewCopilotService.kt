@@ -153,6 +153,7 @@ class ReviewCopilotService(
         else {
             appendLine("- Decision ${app.reviewDecision} · officer review required: ${app.officerReviewRequired ?: false} · document rounds ${app.reviewRounds} · reviewed ${fmt(app.reviewedAt)}")
             app.reviewSummary?.let { appendLine("- Summary:\n${it.trim().prependIndent("  ")}") }
+            app.reviewSummaryKo?.let { appendLine("- Summary (Korean):\n${it.trim().prependIndent("  ")}") }
         }
 
         appendLine()
