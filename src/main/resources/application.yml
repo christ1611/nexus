@@ -1,4 +1,10 @@
 spring:
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          # Browsers revalidate lang.js and the icons on every visit, so a script change reaches everyone at once.
+          no-cache: true
   application:
     name: wa-webhook
   config:
