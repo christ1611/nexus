@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
-/** Demo data for the dashboard and the review page (protected by [AdminKeyFilter]). Never sends WhatsApp messages. */
+/** Demo data for the dashboard and the review page. Never sends WhatsApp messages. */
 @RestController
 @RequestMapping("/admin/demo")
 class DemoSeedController(private val seeder: DemoDataSeeder) {

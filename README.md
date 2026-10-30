@@ -36,7 +36,7 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 - 24시간 고객 서비스 창 밖의 알림(고객 결정 알림·서류 재요청 포함)은 템플릿 메시지가 필요하며 아직 적용하지 않았습니다. 응답 JSON의 `customerNotified`가 `false`면 이 경우일 가능성이 큽니다.
 - 심사자의 서류 재요청도 `review_rounds`에 포함됩니다. 두 번 이상이면 리뷰 에이전트의 재촬영 예산(`claude.max-review-rounds`)이 소진되고 `REPEATED_RESUBMISSION` 플래그가 붙습니다.
 - 리스크 재평가는 등급·플래그만 갱신하고 `risk_assessed_at`(서류 완료 시각)은 처음 값을 유지합니다. 결정 후 재평가해도 대시보드의 대기·결정 시간 통계가 바뀌지 않습니다.
-- 심사자 인증은 공유 `ADMIN_API_KEY` 하나뿐입니다. 심사 화면의 심사자 이름은 기록용이며 로그인은 아닙니다.
+- 데모 빌드라 심사자 로그인이 없습니다. 대시보드와 심사 화면은 누구나 열 수 있고, 심사자 이름은 기록용입니다.
 
 ---
 
@@ -175,8 +175,8 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 ### 5.5 대시보드 사용법
 
-1. 앱 실행 후 브라우저에서 `http://localhost:8080/dashboard` (또는 `https://nexus.jbax.axhub.ai/dashboard`)을 엽니다. 페이지 자체는 공개지만 데이터가 없습니다. 헤더의 **대시보드 | 심사** 스위치로 심사 화면과 오가며, 관리자 키는 브라우저 세션에 공유됩니다.
-2. `ADMIN_API_KEY`를 입력하고 **불러오기**를 누르면 `GET /admin/dashboard/stats`를 `X-Admin-Key` 헤더로 호출합니다. 키는 브라우저 세션 저장소에만 남고 60초마다 자동 갱신됩니다.
+1. 앱 실행 후 브라우저에서 `http://localhost:8080/dashboard` (또는 `https://nexus.jbax.axhub.ai/dashboard`)을 엽니다. 열면 바로 데이터를 불러옵니다. 헤더의 **대시보드 | 심사** 스위치로 심사 화면과 오갑니다.
+2. 페이지가 `GET /admin/dashboard/stats`를 호출하고 15초마다 자동 갱신됩니다.
 3. 섹션: 요약 타일(총 신청·진행 중·심사 대기·승인·거절·고위험·위조 경고·담당자 검토), 국가별 신청 현황(상태 누적 막대), 리스크 등급 분포, 국가별 통계 표,
    **Risk Flag · 위조/사기 감지 경고**(고위험 고객 목록: 등급·점수·플래그 칩·배지·평가 방식), Risk Flag 발생 건수, 고객 배지 요약, 온보딩 퍼널, 딜러별 현황, 최근 신청.
 4. 차트는 외부 라이브러리 없이 인라인 SVG로 그리며 라이트/다크 모드와 색각 이상 검증(국가 3색: 파랑·주황·청록, 등급은 상태색 + 아이콘 + 라벨)을 거쳤습니다.
@@ -194,10 +194,10 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 ### 6.1 심사 화면 `/review`
 
-1. 앱 실행 후 `http://localhost:8080/review` (또는 `https://nexus.jbax.axhub.ai/review`)를 엽니다. 대시보드와 같은 `ADMIN_API_KEY`를 쓰며 키는 브라우저 세션에만 남습니다.
+1. 앱 실행 후 `http://localhost:8080/review` (또는 `https://nexus.jbax.axhub.ai/review`)를 엽니다. 열면 바로 심사 큐를 불러옵니다.
    **심사자 이름**을 입력하면 결정·메모·재요청에 기록됩니다(로그인이 아니라 기록용).
 2. **심사 큐(왼쪽)**: 기본은 열린 건만, 심사 대기 → 폼 제출 → 재요청 중 → 작성 중 순, 같은 상태 안에서는 리스크 점수 높은 순·오래된 순.
-   상태 / 국가 / 등급 필터와 신청번호·고객·딜러 검색, 60초 자동 갱신. 대시보드의 신청번호를 누르면 `/review?app=번호`로 바로 열립니다.
+   상태 / 국가 / 등급 필터와 신청번호·고객·딜러 검색, 15초 자동 갱신. 대시보드의 신청번호를 누르면 `/review?app=번호`로 바로 열립니다.
 3. **신청 상세(오른쪽)**: 상태·AI 리스크 등급(점수, 위조 경고 수, 평가 방식)·배지 → **심사 결정** → **서류**(이미지 썸네일, 클릭하면 확대, 검사 결과·캡션·감지 종류,
    Claude 모드에서는 품질 문제·필드별 신뢰도·NIK 검증·검토 사유까지, 이전 제출본은 접힘) → **추출 데이터** / **신원·신용 조회** → **Risk Flag · 근거**(심각도 아이콘, 출처, 증거 문장) →
    **자동 리뷰 요약**(Claude 모드) → **심사 이력**(타임라인).
@@ -261,7 +261,7 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 ### 6.2 Admin API
 
-`/admin/**`는 모두 `X-Admin-Key` 헤더가 `ADMIN_API_KEY`와 일치해야 합니다. 본문의 `reviewer`는 선택이며 이력에 기록됩니다.
+데모 빌드라 `/admin/**`에 인증이 없습니다. 본문의 `reviewer`는 선택이며 이력에 기록됩니다.
 
 | 메서드 · 경로 | 설명 |
 | --- | --- |
@@ -310,7 +310,7 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 | `risk/` | Risk Flag 규칙(`RiskRules`), 등급·배지 모델, 평가 저장 서비스 |
 | `verification/` | 신원·신용 조회 제공자 레지스트리(목업) |
 | `application/` | 신청서 생성, 1회용 링크, 상태 전환 |
-| `admin/`, `web/` | Admin API와 키 필터, 대시보드 통계 API, 1회용 링크·대시보드 페이지 (`static/dashboard.html`) |
+| `admin/`, `web/` | Admin API, 대시보드 통계 API, 1회용 링크·대시보드 페이지 (`static/dashboard.html`) |
 | `whatsapp/` | Graph API 클라이언트, 발신 메시지 모델 |
 | `config/` | 환경 변수 바인딩, Claude 설정 |
 
@@ -328,7 +328,6 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 | `WHATSAPP_APP_SECRET` | 수신 POST의 `X-Hub-Signature-256` 검증 |
 | `WHATSAPP_VERIFY_TOKEN` | GET 핸드셰이크의 `hub.verify_token`과 비교 |
 | `DEMO_DEALER_n_PHONE`, `_NAME`, `_COUNTRY`, `_TIER` (n = 1~4) | 데모 딜러 WhatsApp 번호(숫자만), 이름, 국가(ID/MM/KH), 등급(STANDARD/EXCELLENT) |
-| `ADMIN_API_KEY` | `/admin/**` 공유 키 |
 | `APP_PUBLIC_BASE_URL` | 1회용 링크의 기본 URL(기본값 `https://nexus.jbax.axhub.ai`) |
 | `COPILOT_LABEL` | 코파일럿 답변에 붙는 이름(기본 `NEXUS AI`) |
 | `COPILOT_SHOW_ENGINE` | `true`면 답변 옆에 엔진(Claude 모델 또는 규칙 엔진)을 표시. 기본 `false`: 스텁 모드에서도 답변이 `NEXUS AI`로만 표시되고 API 응답의 `mode` 필드에만 엔진이 남음 |
@@ -400,8 +399,8 @@ curl -i -X POST http://localhost:8080/webhook \
 Admin API와 대시보드 통계 확인:
 
 ```bash
-curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/applications
-curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/dashboard/stats
+curl http://localhost:8080/admin/applications
+curl http://localhost:8080/admin/dashboard/stats
 open http://localhost:8080/dashboard
 ```
 
@@ -450,7 +449,7 @@ _Current status (20 Oct 2026): Steps 1-3b, Step 4 (reviewer back office at `/rev
 
 ## Step 4 - Reviewer back office (`/review`)
 
-Open `/review`, enter the admin key (same as the dashboard) and optionally a reviewer name (recorded on every action; it is not a login).
+Open `/review` and optionally enter a reviewer name (recorded on every action; it is not a login).
 The left column is the work queue (open applications, ready-for-review first, then by risk score and age; filters by status, country,
 grade and free text; refreshes every minute). Clicking a row opens the detail: status and AI risk grade, the decision card, the stored
 document images (click to enlarge; in Claude mode also quality issues, per-field confidence, NIK validation and review reasons; superseded
@@ -501,7 +500,7 @@ Countries: dealers carry `country` (ID / MM / KH) and `tier`; applications copy 
 pair for that country (Dukcapil + PEFINDO mocks for ID, mock NRC registry + credit bureau for MM, mock GDI registry + credit bureau for
 KH). `GET /admin/dashboard/stats` returns totals, funnel, per-country statistics (always all three countries), grade distribution,
 flag counts, badge counts, per-dealer counts, the high-risk list and recent applications. The page at `/dashboard` renders it with
-inline SVG charts after you enter the admin key.
+inline SVG charts as soon as it opens.
 
 - `GET /webhook` answers Meta's verification handshake.
 - `POST /webhook` validates `X-Hub-Signature-256` (HMAC-SHA256 with the app secret) over the raw body,
@@ -584,8 +583,8 @@ Back-office events are pushed to the dealer on WhatsApp:
 - `POST /admin/applications/{number}/request-resubmission` with `{"reason": "..."}`: resubmission request with a fresh one-time link
 - `POST /admin/applications/{number}/decision` with `{"decision": "APPROVED"|"REJECTED", "note": "..."}`: decision notification
 
-Admin endpoints (`GET /admin/dealers`, `GET /admin/applications`, and the two above) require the
-`X-Admin-Key` header matching `ADMIN_API_KEY`. The one-time link opens `GET /apply/{token}` once and
+Admin endpoints (`GET /admin/dealers`, `GET /admin/applications`, and the two above) have no
+authentication in the demo build. The one-time link opens `GET /apply/{token}` once and
 shows a placeholder form whose submission marks the application `SUBMITTED`.
 
 Tables: `DEALERS`, `CONVERSATIONS` (one row per dealer with the current state), `APPLICATIONS`, `CUSTOMER_SESSIONS`, `DOCUMENTS`.
@@ -607,7 +606,6 @@ Put a `wa.env` (or `.env`) file in the working directory with plain `KEY=VALUE` 
 | `WHATSAPP_APP_SECRET` | Verifying `X-Hub-Signature-256` on incoming POSTs |
 | `WHATSAPP_VERIFY_TOKEN` | Compared with `hub.verify_token` on the GET handshake |
 | `DEMO_DEALER_1_PHONE`, `DEMO_DEALER_2_PHONE` | WhatsApp numbers (digits only) of the two demo dealers |
-| `ADMIN_API_KEY` | Shared key for the `/admin/**` endpoints |
 | `APP_PUBLIC_BASE_URL` | Base URL in one-time links (defaults to `https://nexus.jbax.axhub.ai`) |
 | `COPILOT_LABEL` | Name shown on copilot answers (default `NEXUS AI`) |
 | `COPILOT_SHOW_ENGINE` | `true` shows the engine (Claude model or rules engine) next to the label. Default `false`: stub-mode answers are presented as `NEXUS AI` and the engine stays in the API's `mode` field only |

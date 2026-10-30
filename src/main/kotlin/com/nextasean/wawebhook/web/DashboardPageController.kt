@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * Serves the back-office pages. The pages themselves hold no data; they call the admin API with the admin key the
- * officer types in (kept in the browser session only).
+ * Serves the back-office pages. The pages themselves hold no data; they call the admin API, which is open in the
+ * demo build (no login).
  * - `/`: sends the visitor to the dashboard
  * - `/dashboard`: statistics (Step 5)
  * - `/review`: reviewer work queue and application detail with documents, evidence and decisions (Step 4)

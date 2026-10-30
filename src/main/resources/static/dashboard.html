@@ -24,7 +24,7 @@
   button.primary:hover:not(:disabled) { background: var(--brand-2); color: #fff; }
   button.approve:hover:not(:disabled), button.reject:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
   ::selection { background: var(--brand-tint); }
-  /* Page switch between the dashboard and the review page (the admin key is shared through session storage) */
+  /* Page switch between the dashboard and the review page (no login: the demo back office is open) */
   .pages { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); margin-right: 12px; }
   .pages a { padding: 5px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text-2); text-decoration: none; white-space: nowrap; }
   .pages a:hover { color: var(--brand); }
@@ -235,19 +235,17 @@
     <a href="/review" data-ko="심사" data-en="Review">심사</a>
   </nav>
   <div class="key">
-    <input id="key" type="password" placeholder="Admin API key (X-Admin-Key)" autocomplete="off">
-    <button class="primary" id="load" data-ko="불러오기" data-en="Load">불러오기</button>
-    <button id="refresh" data-ko="새로고침" data-en="Refresh">새로고침</button>
+    <button class="primary" id="refresh" data-ko="새로고침" data-en="Refresh">새로고침</button>
     <span class="auto" id="auto" hidden><span class="pulse"></span><span data-ko="15초마다 자동 갱신" data-en="refreshes every 15s">15초마다 자동 갱신</span></span>
     <span class="status" id="status"></span>
   </div>
 </header>
 <main id="main">
-  <p class="empty" data-ko="관리자 키를 입력하고 <b>불러오기</b>를 누르세요. 키는 이 브라우저 세션에만 저장됩니다." data-en="Enter the admin key and press <b>Load</b>. The key stays in this browser session only.">관리자 키를 입력하고 <b>불러오기</b>를 누르세요. 키는 이 브라우저 세션에만 저장됩니다.</p>
+  <p class="empty" data-ko="불러오는 중…" data-en="Loading…">불러오는 중…</p>
 </main>
 <footer>
   <span data-ko="<b>JB금융그룹</b> · NEXUS ASEAN 온보딩 백오피스 <span class=&quot;sub&quot; style=&quot;display:inline&quot;>내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span>" data-en="<b>JB Financial Group</b> · NEXUS ASEAN onboarding back office <span class=&quot;sub&quot; style=&quot;display:inline&quot;>Internal demo · Indonesia / Myanmar / Cambodia</span>"><b>JB금융그룹</b> · NEXUS ASEAN 온보딩 백오피스 <span class="sub" style="display:inline">내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span></span>
-  <span data-ko="관리자 키는 이 브라우저 세션에만 저장됩니다" data-en="The admin key stays in this browser session">관리자 키는 이 브라우저 세션에만 저장됩니다</span>
+  <span data-ko="데모용 공개 화면 · 로그인 없음" data-en="Open demo screen · no login">데모용 공개 화면 · 로그인 없음</span>
 </footer>
 <div id="tip" role="tooltip"></div>
 <dialog class="standard" id="standard" aria-labelledby="standard-title"></dialog>
@@ -256,7 +254,7 @@
 (function () {
   const $ = (s, el = document) => el.querySelector(s);
   const { t, L } = LANG;                        // t(ko, en) picks the current language; L(obj) picks label / labelKo
-  const main = $('#main'), status = $('#status'), keyInput = $('#key'), tip = $('#tip');
+  const main = $('#main'), status = $('#status'), tip = $('#tip');
   const COUNTRY_COLOR = { ID: 'var(--c-id)', MM: 'var(--c-mm)', KH: 'var(--c-kh)' };
   const GRADE = {
     A: { color: 'var(--good)', icon: '●', ko: '저위험', en: 'Low' },
@@ -287,7 +285,6 @@
   try { for (const [k, v] of Object.entries(JSON.parse(sessionStorage.getItem('fraudNetPins') || '{}'))) netPinned.set(k, v); } catch {}
   function saveNetPins() { try { sessionStorage.setItem('fraudNetPins', JSON.stringify(Object.fromEntries(netPinned))); } catch {} }
 
-  try { const k = sessionStorage.getItem('adminKey'); if (k) keyInput.value = k; } catch {}
 
   function showTip(e, text) { tip.textContent = text; tip.style.opacity = 1; moveTip(e); }
   function moveTip(e) { tip.style.left = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; }
@@ -744,7 +741,7 @@
     copilotBusy = true; paintCopilot();
     const started = Date.now();
     try {
-      const [res] = await Promise.all([fetch('/admin/dashboard/copilot', { method: 'POST', headers: { 'X-Admin-Key': keyInput.value.trim(), 'Content-Type': 'application/json' }, body: JSON.stringify({ question, history }) }), thinkPause()]);
+      const [res] = await Promise.all([fetch('/admin/dashboard/copilot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, history }) }), thinkPause()]);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
       copilotLog.push({ role: 'assistant', content: body.answer, mode: body.mode, model: body.model, ms: Date.now() - started, inputTokens: body.inputTokens, outputTokens: body.outputTokens, label: body.label, showEngine: body.showEngine, typing: true });
@@ -858,13 +855,9 @@
   window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id && id !== activeTab) showTab(id); });
 
   async function load() {
-    const key = keyInput.value.trim();
-    if (!key) { status.textContent = t('관리자 키를 입력하세요.', 'Enter the admin key.'); status.className = 'status err'; return; }
-    if (/[^\x21-\x7e]/.test(key)) { status.textContent = t('관리자 키에 영문·숫자 외 문자가 들어 있습니다. 키만 다시 붙여 넣어 주세요.', 'The admin key contains characters other than letters and digits. Paste only the key.'); status.className = 'status err'; return; }
-    try { sessionStorage.setItem('adminKey', key); } catch {}
     status.textContent = t('불러오는 중…', 'Loading…'); status.className = 'status';
     try {
-      const [res, netRes] = await Promise.all([fetch('/admin/dashboard/stats', { headers: { 'X-Admin-Key': key } }), fetch('/admin/fraud-network', { headers: { 'X-Admin-Key': key } }).catch(() => null)]);
+      const [res, netRes] = await Promise.all([fetch('/admin/dashboard/stats'), fetch('/admin/fraud-network').catch(() => null)]);
       if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.error || ('HTTP ' + res.status)); }
       lastNetwork = netRes && netRes.ok ? await netRes.json().catch(() => null) : null;
       render(await res.json());
@@ -874,14 +867,12 @@
       status.textContent = t('오류: ', 'Error: ') + e.message; status.className = 'status err';
     }
   }
-  $('#load').addEventListener('click', load);
   $('#refresh').addEventListener('click', load);
-  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
   // Language switch: redraw the last payload; the static markup is swapped by lang.js itself.
   LANG.onChange(() => { if (lastData) render(lastData); if (copilotEl.innerHTML) paintCopilot(); });
-  if (keyInput.value) load();
-  setInterval(() => { if (keyInput.value.trim() && !document.hidden) load(); }, AUTO_MS);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && keyInput.value.trim()) load(); });
+  load();
+  setInterval(() => { if (!document.hidden) load(); }, AUTO_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
 })();
 </script>
 </body>

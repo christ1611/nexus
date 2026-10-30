@@ -22,7 +22,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-private const val KEY = "test-admin-key"
 
 /** The demo seeder fills every corner of the dashboard and review page, sends nothing, and can be removed again. */
 @SpringBootTest
@@ -39,7 +38,7 @@ class DemoSeedTest @Autowired constructor(
     @Test
     fun `seeding produces a varied, consistent data set across countries and can be cleared`() {
         sender.clear()
-        mockMvc.post("/admin/demo/seed") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"count":60,"reset":true}""" }.andExpect {
+        mockMvc.post("/admin/demo/seed") { contentType = MediaType.APPLICATION_JSON; content = """{"count":60,"reset":true}""" }.andExpect {
             status { isOk() }
             jsonPath("$.created") { value(60) }
             jsonPath("$.total") { value(60) }
@@ -68,12 +67,12 @@ class DemoSeedTest @Autowired constructor(
         assertTrue(apps.all { it.customerPhone == null || it.customerPhone!!.startsWith("620000") || it.customerPhone!!.startsWith("950000") || it.customerPhone!!.startsWith("855000") }, "unreachable demo phones")
         // Officer actions on demo rows never reach a phone.
         val waiting = apps.first { it.status == ApplicationStatus.READY_FOR_REVIEW && it.customerPhone != null }
-        mockMvc.post("/admin/applications/${waiting.applicationNumber}/decision") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"decision":"APPROVED","reviewer":"Demo"}""" }
+        mockMvc.post("/admin/applications/${waiting.applicationNumber}/decision") { contentType = MediaType.APPLICATION_JSON; content = """{"decision":"APPROVED","reviewer":"Demo"}""" }
             .andExpect { status { isOk() }; jsonPath("$.dealerNotified") { value(false) }; jsonPath("$.customerNotified") { value(false) } }
         assertTrue(sender.sent.isEmpty(), "no WhatsApp messages for demo rows")
         // Documents exist on disk and the review detail is complete.
         val completed = apps.first { it.status == ApplicationStatus.APPROVED && it.riskGrade == "A" }
-        mockMvc.get("/admin/applications/${completed.applicationNumber}") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/applications/${completed.applicationNumber}").andExpect {
             status { isOk() }
             jsonPath("$.documents[0].fileAvailable") { value(true) }
             jsonPath("$.agentTrace.length()") { value(greaterThanOrEqualTo(6)) }
@@ -82,7 +81,7 @@ class DemoSeedTest @Autowired constructor(
             jsonPath("$.decisionReport.available") { value(true) }
             jsonPath("$.risk.grade") { value("A") }
         }
-        mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/dashboard/stats").andExpect {
             status { isOk() }
             jsonPath("$.totals.demoApplications") { value(60) }
             jsonPath("$.byCountry[1].applications") { value(greaterThanOrEqualTo(1)) }
@@ -90,11 +89,11 @@ class DemoSeedTest @Autowired constructor(
             jsonPath("$.reviewQueue.length()") { value(greaterThanOrEqualTo(1)) }
             jsonPath("$.agent.providerLookups") { value(greaterThanOrEqualTo(10)) }
         }
-        mockMvc.get("/admin/demo/seed") { header("X-Admin-Key", KEY) }.andExpect { jsonPath("$.demoApplications") { value(60) } }
+        mockMvc.get("/admin/demo/seed").andExpect { jsonPath("$.demoApplications") { value(60) } }
 
         val dir = Path.of("build/test-documents-demo").resolve(completed.applicationNumber)
         assertTrue(Files.isDirectory(dir))
-        mockMvc.delete("/admin/demo/seed") { header("X-Admin-Key", KEY) }.andExpect { status { isOk() }; jsonPath("$.removed") { value(60) } }
+        mockMvc.delete("/admin/demo/seed").andExpect { status { isOk() }; jsonPath("$.removed") { value(60) } }
         assertEquals(0, applications.findByDemoSeedTrue().size)
         assertTrue(!Files.exists(dir), "document folder removed")
     }

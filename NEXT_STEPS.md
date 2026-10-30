@@ -24,7 +24,7 @@ _Last updated: 20 Oct 2026_
   `RiskAssessmentService` stores them on APPLICATIONS after verification and puts a "Risk grade" line in the dealer summary),
   dealer `country` (ID/MM/KH) + `tier`, application `country`, per-country mock providers (MM, KH) selected per application,
   `GET /admin/dashboard/stats`, `POST /admin/applications/{n}/assess-risk`, `POST /admin/risk/reassess-all`, and the page
-  `/dashboard` (`static/dashboard.html`, inline SVG, Korean-first labels, admin key entered in the page). Demo NIK now ends in 4
+  `/dashboard` (`static/dashboard.html`, inline SVG, Korean-first labels, no login). Demo NIK now ends in 4
   so the happy path is grade A with the "financial stability" badge; caption `nik7` produces grade C with a fraud warning.
 
 - **Step 4 - Reviewer back office** (20 Oct 2026): `/review` (`static/review.html`): work queue with filters, application detail
@@ -82,7 +82,7 @@ demo data in `demo-data.yml`.
 4. Run the live demo from a dealer phone: `hi` -> New application -> Yes, create -> forward the wa.me message
    -> from the customer phone send `START ...` -> I Agree -> KTP photo (try caption `blur` once) -> selfie
    -> watch "Checking your data..." and the dealer summary.
-5. Open `/review`, paste the admin key, type a reviewer name, pick the application: send the customer back for the KTP
+5. Open `/review`, type a reviewer name, pick the application: send the customer back for the KTP
    (📷 고객에게 재요청), let the customer resend it, then approve. Both phones receive the decision.
    (curl still works: `POST /admin/applications/{number}/request-documents`, `.../decision`, `.../request-resubmission`.)
 
@@ -131,7 +131,7 @@ demo data in `demo-data.yml`.
 ### D. Production readiness
 - Database: move from the H2 file to PostgreSQL and add Flyway migrations (replace `schema.sql`).
 - Dedupe store: persist processed message IDs (table or Redis) so restarts and multiple instances are safe.
-- Secrets: encrypt the access token at rest or load from a secret manager; rotate `ADMIN_API_KEY`.
+- Secrets: encrypt the access token at rest or load from a secret manager; put the back office (`/admin/**`, `/dashboard`, `/review`) behind real authentication — the demo build has none.
 - Document storage: encrypt at rest or move to object storage with short-lived signed URLs; define retention.
 - Observability: request IDs in logs, metrics for messages in/out, failed sends, check durations; health
   endpoint (Spring Actuator).
@@ -148,8 +148,8 @@ demo data in `demo-data.yml`.
 ```bash
 ./gradlew test                       # all tests (H2 in-memory, fake Graph API)
 ./gradlew bootRun                    # run on :8080 reading wa.env
-curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/applications
-curl -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/dashboard/stats   # dashboard numbers
+curl http://localhost:8080/admin/applications
+curl http://localhost:8080/admin/dashboard/stats   # dashboard numbers
 open http://localhost:8080/dashboard                                                 # dashboard page
 # inspect DB while app is stopped:
 java -cp "$(find ~/.gradle/caches -name 'h2-2*.jar' | head -1)" org.h2.tools.Shell \

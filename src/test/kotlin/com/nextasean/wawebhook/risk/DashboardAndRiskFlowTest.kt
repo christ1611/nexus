@@ -106,7 +106,7 @@ class DashboardAndRiskFlowTest @Autowired constructor(
         assertNotNull(mmApp.riskGrade)
 
         // Admin view carries the risk block.
-        mockMvc.get("/admin/applications/$risky") { header("X-Admin-Key", "test-admin-key") }.andExpect {
+        mockMvc.get("/admin/applications/$risky").andExpect {
             status { isOk() }
             jsonPath("$.risk.grade") { value("C") }
             jsonPath("$.risk.highRisk") { value(true) }
@@ -116,7 +116,7 @@ class DashboardAndRiskFlowTest @Autowired constructor(
         }
 
         // Dashboard statistics: all three countries are always listed; counts reflect what we just created (other tests may add more).
-        mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", "test-admin-key") }.andExpect {
+        mockMvc.get("/admin/dashboard/stats").andExpect {
             status { isOk() }
             jsonPath("$.countries") { value(contains("ID", "MM", "KH")) }
             jsonPath("$.totals.highRisk") { value(greaterThanOrEqualTo(1)) }
@@ -136,11 +136,11 @@ class DashboardAndRiskFlowTest @Autowired constructor(
         }
 
         // Re-running the rules is idempotent and reachable from the admin API.
-        mockMvc.post("/admin/applications/$risky/assess-risk") { header("X-Admin-Key", "test-admin-key") }.andExpect {
+        mockMvc.post("/admin/applications/$risky/assess-risk").andExpect {
             status { isOk() }
             jsonPath("$.risk.grade") { value("C") }
         }
-        mockMvc.post("/admin/risk/reassess-all") { header("X-Admin-Key", "test-admin-key") }.andExpect {
+        mockMvc.post("/admin/risk/reassess-all").andExpect {
             status { isOk() }
             jsonPath("$.reassessed") { value(greaterThanOrEqualTo(3)) }
         }
@@ -150,7 +150,7 @@ class DashboardAndRiskFlowTest @Autowired constructor(
     fun `the dashboard copilot summarises the portfolio from the statistics without an API key`() {
         onboard(DEALER_ID, "6286000000006", "")
         val ask = { body: String ->
-            mockMvc.post("/admin/dashboard/copilot") { header("X-Admin-Key", "test-admin-key"); contentType = MediaType.APPLICATION_JSON; content = body }
+            mockMvc.post("/admin/dashboard/copilot") { contentType = MediaType.APPLICATION_JSON; content = body }
         }
         // Stub mode: rule-based summaries built from the same statistics the page shows, by topic of the question.
         ask("""{"question":"국가별 현황을 요약해줘"}""").andExpect {
@@ -177,8 +177,6 @@ class DashboardAndRiskFlowTest @Autowired constructor(
             jsonPath("$.showEngine") { value(false) }
         }
         ask("""{"question":"   "}""").andExpect { status { isBadRequest() } }
-        mockMvc.post("/admin/dashboard/copilot") { contentType = MediaType.APPLICATION_JSON; content = """{"question":"x"}""" }
-            .andExpect { status { isUnauthorized() } }
         // The portfolio file the model would receive carries every section of the dashboard and no customer names.
         val file = copilot.portfolioFile(dashboard.stats())
         for (section in listOf("## Snapshot", "## Excellent dealer standard", "## Review queue", "## Weekly trend", "## Countries", "## Risk flags", "## Dealers", "## AI agent activity"))
@@ -194,12 +192,11 @@ class DashboardAndRiskFlowTest @Autowired constructor(
     }
 
     @Test
-    fun `dashboard page is public but its data needs the admin key`() {
+    fun `dashboard page is public`() {
         mockMvc.get("/dashboard").andExpect {
             status { isOk() }
             content { string(containsString("NEXUS ASEAN 온보딩 대시보드")) }
         }
-        mockMvc.get("/admin/dashboard/stats").andExpect { status { isUnauthorized() } }
     }
 
     @Test
@@ -226,12 +223,12 @@ class DashboardAndRiskFlowTest @Autowired constructor(
         assertTrue(firstAgain.riskFlagsJson!!.contains(copycat), firstAgain.riskFlagsJson)
         assertTrue(firstAgain.riskGrade == "C" || firstAgain.riskGrade == "D", firstAgain.riskGrade)
 
-        mockMvc.get("/admin/applications/$copycat") { header("X-Admin-Key", "test-admin-key") }.andExpect {
+        mockMvc.get("/admin/applications/$copycat").andExpect {
             status { isOk() }
             jsonPath("$.risk.flags[*].code") { value(hasItem(RiskCodes.SHARED_ID_NUMBER)) }
             jsonPath("$.risk.flags[?(@.code == '${RiskCodes.SHARED_ID_NUMBER}')].sourceKo") { value(hasItem("중복 신청 조회")) }
         }
-        mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", "test-admin-key") }.andExpect {
+        mockMvc.get("/admin/dashboard/stats").andExpect {
             status { isOk() }
             jsonPath("$.flagCounts[?(@.code == '${RiskCodes.SHARED_ID_NUMBER}')].count") { value(hasItem(2)) }
             jsonPath("$.flagCounts[?(@.code == '${RiskCodes.SHARED_ID_NUMBER}')].fraud") { value(hasItem(true)) }

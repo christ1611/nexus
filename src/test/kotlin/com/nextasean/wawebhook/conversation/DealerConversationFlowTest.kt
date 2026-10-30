@@ -133,13 +133,8 @@ class DealerConversationFlowTest @Autowired constructor(
     @Order(5)
     fun `admin resubmission request flags the application and sends the dealer a fresh link`() {
         val number = applications.findAll().single().applicationNumber
-        mockMvc.post("/admin/applications/$number/request-resubmission") {
-            contentType = MediaType.APPLICATION_JSON
-            content = """{"reason":"ID document is blurry"}"""
-        }.andExpect { status { isUnauthorized() } }
 
         mockMvc.post("/admin/applications/$number/request-resubmission") {
-            header("X-Admin-Key", "test-admin-key")
             contentType = MediaType.APPLICATION_JSON
             content = """{"reason":"ID document is blurry"}"""
         }.andExpect { status { isOk() } }
@@ -161,7 +156,6 @@ class DealerConversationFlowTest @Autowired constructor(
     fun `admin decision notifies the dealer and locks the application`() {
         val number = applications.findAll().single().applicationNumber
         mockMvc.post("/admin/applications/$number/decision") {
-            header("X-Admin-Key", "test-admin-key")
             contentType = MediaType.APPLICATION_JSON
             content = """{"decision":"APPROVED","note":"Welcome aboard"}"""
         }.andExpect { status { isOk() } }
@@ -172,7 +166,6 @@ class DealerConversationFlowTest @Autowired constructor(
         assertTrue(notice.body.contains("Welcome aboard"))
 
         mockMvc.post("/admin/applications/$number/decision") {
-            header("X-Admin-Key", "test-admin-key")
             contentType = MediaType.APPLICATION_JSON
             content = """{"decision":"REJECTED"}"""
         }.andExpect { status { isConflict() } }

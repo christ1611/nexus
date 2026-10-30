@@ -19,7 +19,6 @@ data class AppProperties(
         "C:/Windows/Fonts/malgun.ttf",
     ),
     val timeZone: String = "Asia/Jakarta",
-    val adminApiKey: String = "",
     /** `stub` (demo, default) or `claude` (Claude vision analysis + review agent). */
     val documentCheck: String = "stub",
     /** Name the copilots answer under in the back office (badge and message footer). */
@@ -30,7 +29,7 @@ data class AppProperties(
     val zoneId: ZoneId get() = ZoneId.of(timeZone)
 
     override fun toString(): String =
-        "AppProperties(publicBaseUrl=$publicBaseUrl, linkTtl=$linkTtl, documentsDir=$documentsDir, reportsDir=$reportsDir, timeZone=$timeZone, documentCheck=$documentCheck, copilotLabel=$copilotLabel, copilotShowEngine=$copilotShowEngine, adminApiKey=***)"
+        "AppProperties(publicBaseUrl=$publicBaseUrl, linkTtl=$linkTtl, documentsDir=$documentsDir, reportsDir=$reportsDir, timeZone=$timeZone, documentCheck=$documentCheck, copilotLabel=$copilotLabel, copilotShowEngine=$copilotShowEngine)"
 }
 
 @ConfigurationProperties(prefix = "demo")

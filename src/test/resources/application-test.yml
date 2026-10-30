@@ -12,7 +12,6 @@ whatsapp:
 
 app:
   public-base-url: https://example.test
-  admin-api-key: test-admin-key
   documents-dir: build/test-documents
 
 demo:

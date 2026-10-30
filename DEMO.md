@@ -37,7 +37,6 @@ outgoing messages fail with a 131030 error.
    WHATSAPP_VERIFY_TOKEN=...
    DEMO_DEALER_1_PHONE=62812xxxxxxx # digits only, with country code
    DEMO_DEALER_1_NAME=...
-   ADMIN_API_KEY=any-long-random-string
    DOCUMENT_CHECK=stub              # or claude, see section 6
    ```
 
@@ -65,8 +64,8 @@ outgoing messages fail with a 131030 error.
    create on stage then gets the next number after the demo rows. To regenerate or remove them later:
 
    ```bash
-   curl -s -X POST -H "X-Admin-Key: $ADMIN_API_KEY" -H 'Content-Type: application/json' -d '{"count":40,"reset":true}' http://localhost:8080/admin/demo/seed
-   curl -s -X DELETE -H "X-Admin-Key: $ADMIN_API_KEY" http://localhost:8080/admin/demo/seed
+   curl -s -X POST -H 'Content-Type: application/json' -d '{"count":40,"reset":true}' http://localhost:8080/admin/demo/seed
+   curl -s -X DELETE http://localhost:8080/admin/demo/seed
    ```
 
 ---
@@ -107,8 +106,8 @@ Lay the projector out once and leave it; every later step only says *left* or *r
 
 | Screen | Open | Then | Keeps itself current |
 | --- | --- | --- | --- |
-| **Left: dashboard** | `https://nexus.jbax.axhub.ai/dashboard` | paste `ADMIN_API_KEY`, press **불러오기**, click the **진행·대기 큐** tab | every 15 s (the pulse "15초마다 자동 갱신" in the header) |
-| **Right: review page** | `https://nexus.jbax.axhub.ai/review` | paste `ADMIN_API_KEY`, type your name as reviewer, press **불러오기**, stay on **심사 작업** | queue and statistics every 15 s; an open application's AI timeline every 2 s |
+| **Left: dashboard** | `https://nexus.jbax.axhub.ai/dashboard` | click the **진행·대기 큐** tab | every 15 s (the pulse "15초마다 자동 갱신" in the header) |
+| **Right: review page** | `https://nexus.jbax.axhub.ai/review` | type your name as reviewer, stay on **심사 작업** | queue and statistics every 15 s; an open application's AI timeline every 2 s |
 | **Phone** | the customer's WhatsApp, mirrored if you can | | |
 
 Checks before the audience arrives:
@@ -213,23 +212,22 @@ within 15 seconds.
 
 Rejecting instead of approving (**거절**) moves the same numbers to **거절**. A second decision on the same application is refused.
 
-**Alternative: curl.** Use the admin key from `wa.env`:
+**Alternative: curl.** The back office has no login in the demo build:
 
 ```bash
-export ADMIN_API_KEY=$(grep '^ADMIN_API_KEY=' wa.env | cut -d= -f2-)
 export BASE=http://localhost:8080
 ```
 
 1. Show the application as the reviewer sees it (extracted fields, provider results, documents):
 
    ```bash
-   curl -s -H "X-Admin-Key: $ADMIN_API_KEY" $BASE/admin/applications/APP-2026-001001 | python3 -m json.tool
+   curl -s $BASE/admin/applications/APP-2026-001001 | python3 -m json.tool
    ```
 
 2. Ask for a resubmission. The dealer receives "Resubmission requested" with the reason and a fresh one-time link:
 
    ```bash
-   curl -s -X POST -H "X-Admin-Key: $ADMIN_API_KEY" -H 'Content-Type: application/json' \
+   curl -s -X POST -H 'Content-Type: application/json' \
      -d '{"reason":"Selfie too dark, please resend"}' \
      $BASE/admin/applications/APP-2026-001001/request-resubmission
    ```
@@ -237,7 +235,7 @@ export BASE=http://localhost:8080
 3. Record the decision. The dealer and the customer receive the decision notification:
 
    ```bash
-   curl -s -X POST -H "X-Admin-Key: $ADMIN_API_KEY" -H 'Content-Type: application/json' \
+   curl -s -X POST -H 'Content-Type: application/json' \
      -d '{"decision":"APPROVED","note":"Welcome aboard"}' \
      $BASE/admin/applications/APP-2026-001001/decision
    ```
@@ -296,7 +294,7 @@ also warms the prompt cache.
    - The summary and per-document analysis in the admin view:
 
      ```bash
-     curl -s -H "X-Admin-Key: $ADMIN_API_KEY" $BASE/admin/applications/APP-2026-001002 | python3 -m json.tool
+     curl -s $BASE/admin/applications/APP-2026-001002 | python3 -m json.tool
      ```
 
      Look at `review.summary`, `review.officerReviewRequired` and `documents[].analysis` (each field with its

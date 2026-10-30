@@ -50,7 +50,7 @@ import java.nio.file.Path
 import java.time.Instant
 
 /**
- * Back-office API (protected by [AdminKeyFilter]) that drives the application lifecycle and triggers the corresponding
+ * Back-office API that drives the application lifecycle and triggers the corresponding
  * WhatsApp notifications to the dealer and (Step 4) the customer. The review page (`/review`) is built on it.
  */
 @RestController
@@ -185,7 +185,7 @@ class AdminApplicationController(
         val mimeType: String?,
         val caption: String?,
         val fileAvailable: Boolean,
-        /** Relative URL of the image, served with the admin key (`X-Admin-Key`). */
+        /** Relative URL of the image. */
         val fileUrl: String,
         val createdAt: Instant,
         /** Full analysis as stored (fields with confidence and status, quality issues, NIK validation). */
@@ -308,7 +308,7 @@ class AdminApplicationController(
         return ResponseEntity.ok(TraceView(app.applicationNumber, app.status, app.updatedAt, live = !app.status.isFinal, steps = trace.steps(app.id).map(StepView::of), progress = stages.forApplication(app)))
     }
 
-    /** The stored image of one document, for the review page. Only reachable with the admin key. */
+    /** The stored image of one document, for the review page. */
     @GetMapping("/applications/{number}/documents/{documentId}/file")
     fun documentFile(@PathVariable number: String, @PathVariable documentId: Long): ResponseEntity<Any> {
         val app = service.findByNumber(number) ?: return notFound(number)

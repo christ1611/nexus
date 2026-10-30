@@ -24,7 +24,6 @@ env:
     - name: WHATSAPP_APP_SECRET
     - name: WHATSAPP_VERIFY_TOKEN
   optional:
-    - name: ADMIN_API_KEY
     - name: APP_PUBLIC_BASE_URL
     - name: WHATSAPP_BUSINESS_ACCOUNT_ID
     - name: WHATSAPP_BUSINESS_PHONE

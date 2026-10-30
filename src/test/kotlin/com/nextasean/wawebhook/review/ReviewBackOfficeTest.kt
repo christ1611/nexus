@@ -43,7 +43,6 @@ import kotlin.test.assertTrue
 
 private const val DEALER = "6282222222222"
 private const val CUSTOMER = "6287000000001"
-private const val KEY = "test-admin-key"
 
 /** Step 4: the reviewer back office - documents, officer document re-requests, decisions with customer notification, audit trail. */
 @SpringBootTest
@@ -93,14 +92,14 @@ class ReviewBackOfficeTest @Autowired constructor(
         assertEquals("A", app.riskGrade)
 
         // Work queue lists it first with both accepted documents; the detail view carries documents, risk and the timeline.
-        mockMvc.get("/admin/applications?queue=true") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/applications?queue=true").andExpect {
             status { isOk() }
             jsonPath("$[0].applicationNumber") { value(number) }
             jsonPath("$[0].documentCount") { value(2) }
             jsonPath("$[0].statusLabel") { value(ApplicationStatus.READY_FOR_REVIEW.label) }
         }
         val ktp = documents.findByApplicationIdOrderByCreatedAtAsc(app.id!!).first { it.type == DocumentType.KTP }
-        mockMvc.get("/admin/applications/$number") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/applications/$number").andExpect {
             status { isOk() }
             jsonPath("$.documents", hasSize<Any>(2))
             jsonPath("$.documents[0].id") { value(ktp.id!!) }
@@ -116,24 +115,22 @@ class ReviewBackOfficeTest @Autowired constructor(
             jsonPath("$.agentTrace[-1].kind") { value("SUBMITTED") }
         }
         // The timeline can be polled on its own; it says whether the application is still live.
-        mockMvc.get("/admin/applications/$number/agent-trace") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/applications/$number/agent-trace").andExpect {
             status { isOk() }
             jsonPath("$.live") { value(true) }
             jsonPath("$.steps[*].kind") { value(hasItem("RISK_ASSESSMENT")) }
         }
-        // The stored image is served behind the admin key, with its MIME type.
-        mockMvc.get("/admin/applications/$number/documents/${ktp.id}/file") { header("X-Admin-Key", KEY) }.andExpect {
+        // The stored image is served with its MIME type.
+        mockMvc.get("/admin/applications/$number/documents/${ktp.id}/file").andExpect {
             status { isOk() }
             content { contentType(MediaType.IMAGE_JPEG) }
             content { string("fake-image-bytes-${ktp.mediaId}") }
         }
-        mockMvc.get("/admin/applications/$number/documents/${ktp.id}/file").andExpect { status { isUnauthorized() } }
-        mockMvc.get("/admin/applications/$number/documents/999999/file") { header("X-Admin-Key", KEY) }.andExpect { status { isNotFound() } }
+        mockMvc.get("/admin/applications/$number/documents/999999/file").andExpect { status { isNotFound() } }
 
         // Officer asks the customer for the KTP again: customer and dealer are messaged, the session reopens at step 1.
         sender.clear()
         mockMvc.post("/admin/applications/$number/request-documents") {
-            header("X-Admin-Key", KEY)
             contentType = MediaType.APPLICATION_JSON
             content = """{"items":[{"type":"KTP","reason":"the photo is blurry"}],"note":"Please use good light.","reviewer":"Officer Kim"}"""
         }.andExpect {
@@ -157,7 +154,7 @@ class ReviewBackOfficeTest @Autowired constructor(
         assertTrue(documents.findById(ktp.id!!).get().superseded)
 
         // The dashboard counts it as "documents requested" and not as waiting for review.
-        mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/dashboard/stats").andExpect {
             status { isOk() }
             jsonPath("$.totals.documentsRequested") { value(1) }
             jsonPath("$.reviewQueue[*].applicationNumber") { value(not(hasItem(number))) }
@@ -175,19 +172,19 @@ class ReviewBackOfficeTest @Autowired constructor(
         assertEquals("B", resubmitted.riskGrade)
         assertEquals(3, documents.findByApplicationIdOrderByCreatedAtAsc(app.id).size)
         assertEquals(1, documents.findByApplicationIdOrderByCreatedAtAsc(app.id).count { it.superseded })
-        mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/dashboard/stats").andExpect {
             jsonPath("$.reviewQueue[*].applicationNumber") { value(hasItem(number)) }
         }
 
         // Officer note and approval; dealer and customer both get the decision; metadata and timeline are stored.
         mockMvc.post("/admin/applications/$number/note") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"note":"Second KTP is fine","reviewer":"Officer Kim"}"""
         }.andExpect { status { isOk() }; jsonPath("$.events[*].kind") { value(hasItem(ReviewEventKind.NOTE_ADDED.name)) } }
 
         sender.clear()
         mockMvc.post("/admin/applications/$number/decision") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"decision":"APPROVED","note":"Welcome aboard","reviewer":"Officer Kim"}"""
         }.andExpect {
             status { isOk() }
@@ -209,17 +206,17 @@ class ReviewBackOfficeTest @Autowired constructor(
 
         // Final applications cannot be sent back, drop out of the open queue, and are found by the status filter.
         mockMvc.post("/admin/applications/$number/request-documents") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"items":[{"type":"SELFIE_KTP","reason":"x"}]}"""
         }.andExpect { status { isConflict() } }
-        mockMvc.get("/admin/applications?queue=true") { header("X-Admin-Key", KEY) }.andExpect { jsonPath("$[*].applicationNumber") { value(not(hasItem(number))) } }
-        mockMvc.get("/admin/applications?status=approved&grade=B&q=${number.takeLast(4)}") { header("X-Admin-Key", KEY) }.andExpect { jsonPath("$[*].applicationNumber") { value(hasItem(number)) } }
-        mockMvc.get("/admin/dashboard/stats") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/applications?queue=true").andExpect { jsonPath("$[*].applicationNumber") { value(not(hasItem(number))) } }
+        mockMvc.get("/admin/applications?status=approved&grade=B&q=${number.takeLast(4)}").andExpect { jsonPath("$[*].applicationNumber") { value(hasItem(number)) } }
+        mockMvc.get("/admin/dashboard/stats").andExpect {
             jsonPath("$.totals.avgDecisionHours") { isNumber() }
             jsonPath("$.agent.providerLookups") { value(greaterThanOrEqualTo(4)) }
             jsonPath("$.agent.customerRetakes") { value(greaterThanOrEqualTo(0)) }
         }
-        mockMvc.get("/admin/applications/$number/agent-trace") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/applications/$number/agent-trace").andExpect {
             jsonPath("$.live") { value(false) }
             jsonPath("$.steps[*].kind") { value(hasItem("OFFICER_REQUEST")) }
             jsonPath("$.steps[-1].kind") { value("OFFICER_DECISION") }
@@ -232,7 +229,7 @@ class ReviewBackOfficeTest @Autowired constructor(
         sender.clear()
         val number = onboard("6287000000031")   // own phone: a shared phone would raise cross-check flags on the other tests' applications
         val ask = { body: String ->
-            mockMvc.post("/admin/applications/$number/copilot") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = body }
+            mockMvc.post("/admin/applications/$number/copilot") { contentType = MediaType.APPLICATION_JSON; content = body }
         }
         // Stub mode: rule-based answers built from the stored assessment, never from the model.
         ask("""{"question":"왜 이 점수가 나왔어?","reviewer":"Kim"}""").andExpect {
@@ -246,10 +243,8 @@ class ReviewBackOfficeTest @Autowired constructor(
             jsonPath("$.answer") { value(containsString("승인")) }
         }
         ask("""{"question":"   "}""").andExpect { status { isBadRequest() } }
-        mockMvc.post("/admin/applications/APP-0000-000000/copilot") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"question":"x"}""" }
+        mockMvc.post("/admin/applications/APP-0000-000000/copilot") { contentType = MediaType.APPLICATION_JSON; content = """{"question":"x"}""" }
             .andExpect { status { isNotFound() } }
-        mockMvc.post("/admin/applications/$number/copilot") { contentType = MediaType.APPLICATION_JSON; content = """{"question":"x"}""" }
-            .andExpect { status { isUnauthorized() } }
         // The case file the model would receive masks the ID number and carries the flags and timeline.
         val app = applications.findByApplicationNumber(number)!!
         // Stub mode still runs the rule-based review agent, so the officer always gets a summary.
@@ -262,7 +257,7 @@ class ReviewBackOfficeTest @Autowired constructor(
         assertTrue(!caseFile.contains(app.extractedNik!!), "NIK must be masked")
         assertTrue(caseFile.contains(app.extractedNik!!.takeLast(4)))
         // Close the case so it does not sit at the top of the queue for the other tests.
-        mockMvc.post("/admin/applications/$number/decision") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"decision":"APPROVED","reviewer":"Kim"}""" }
+        mockMvc.post("/admin/applications/$number/decision") { contentType = MediaType.APPLICATION_JSON; content = """{"decision":"APPROVED","reviewer":"Kim"}""" }
             .andExpect { status { isOk() } }
     }
 
@@ -273,12 +268,12 @@ class ReviewBackOfficeTest @Autowired constructor(
         val number = onboard(customer)
         // Officer sends the customer back, then rejects before the customer answers.
         mockMvc.post("/admin/applications/$number/request-documents") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"items":[{"type":"KTP","reason":"the photo is blurry"}],"reviewer":"Officer Lee"}"""
         }.andExpect { status { isOk() } }
         assertEquals(CustomerSessionState.AWAITING_KTP, sessions.findActiveByPhone(customer)!!.state)
         mockMvc.post("/admin/applications/$number/decision") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"decision":"REJECTED","note":"Could not verify","reviewer":"Officer Lee"}"""
         }.andExpect { status { isOk() }; jsonPath("$.application.status") { value("REJECTED") } }
         assertNull(sessions.findActiveByPhone(customer), "decision closes the open customer session")
@@ -296,13 +291,13 @@ class ReviewBackOfficeTest @Autowired constructor(
 
         // Risk cannot be assessed on an empty draft; documents cannot be requested while the dealer form is pending.
         val draft = createApplication()
-        mockMvc.post("/admin/applications/$draft/assess-risk") { header("X-Admin-Key", KEY) }.andExpect { status { isConflict() } }
+        mockMvc.post("/admin/applications/$draft/assess-risk").andExpect { status { isConflict() } }
         mockMvc.post("/admin/applications/$draft/request-resubmission") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"reason":"income proof missing"}"""
+            contentType = MediaType.APPLICATION_JSON; content = """{"reason":"income proof missing"}"""
         }.andExpect { status { isOk() } }
         text(customer, "START $draft")
         mockMvc.post("/admin/applications/$draft/request-documents") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"items":[{"type":"KTP","reason":"x"}]}"""
+            contentType = MediaType.APPLICATION_JSON; content = """{"items":[{"type":"KTP","reason":"x"}]}"""
         }.andExpect { status { isConflict() } }
     }
 
@@ -310,11 +305,11 @@ class ReviewBackOfficeTest @Autowired constructor(
     fun `documents cannot be requested before a customer is linked, and the review page is public while its data is not`() {
         val number = createApplication()
         mockMvc.post("/admin/applications/$number/request-documents") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"items":[{"type":"KTP","reason":"blurry"}]}"""
         }.andExpect { status { isConflict() }; jsonPath("$.error") { value(containsString("no customer phone")) } }
         mockMvc.post("/admin/applications/$number/request-documents") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"items":[]}"""
         }.andExpect { status { isBadRequest() } }
 
@@ -322,7 +317,6 @@ class ReviewBackOfficeTest @Autowired constructor(
             status { isOk() }
             content { string(containsString("NEXUS ASEAN 심사")) }
         }
-        mockMvc.get("/admin/applications?queue=true").andExpect { status { isUnauthorized() } }
     }
 
     @Test
@@ -330,7 +324,7 @@ class ReviewBackOfficeTest @Autowired constructor(
         sender.clear()
         val customer = "6287000000021"
         val body = mockMvc.post("/admin/applications") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"customerPhone":"+62 870-0000-0021","customerName":"Dewi","reviewer":"Officer Demo"}"""
         }.andExpect {
             status { isCreated() }
@@ -360,15 +354,14 @@ class ReviewBackOfficeTest @Autowired constructor(
         assertTrue(lastTo(customer).bodyText.contains("Your documents are submitted"), lastTo(customer).bodyText)
 
         // Validation and the unknown-dealer case.
-        mockMvc.post("/admin/applications") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"customerPhone":"12"}""" }
+        mockMvc.post("/admin/applications") { contentType = MediaType.APPLICATION_JSON; content = """{"customerPhone":"12"}""" }
             .andExpect { status { isBadRequest() } }
-        mockMvc.post("/admin/applications") { header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON; content = """{"dealerCode":"DLR-NOPE"}""" }
+        mockMvc.post("/admin/applications") { contentType = MediaType.APPLICATION_JSON; content = """{"dealerCode":"DLR-NOPE"}""" }
             .andExpect { status { isNotFound() } }
-        mockMvc.post("/admin/applications").andExpect { status { isUnauthorized() } }
 
         // Clean up: decide it so the queue is as other tests expect.
         mockMvc.post("/admin/applications/$number/decision") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"decision":"APPROVED","reviewer":"Officer Demo"}"""
         }.andExpect { status { isOk() } }
     }
@@ -377,13 +370,13 @@ class ReviewBackOfficeTest @Autowired constructor(
     fun `a WhatsApp delivery failure reported by Meta lands on the invited customer's timeline`() {
         val phone = "6281200000000" // recipient used by statusPayload()
         val body = mockMvc.post("/admin/applications") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"customerPhone":"$phone","customerName":"Rina","invite":true}"""
         }.andExpect { status { isCreated() } }.andReturn().response.contentAsString
         val number = Regex("APP-\\d{4}-\\d{6}").find(body)!!.value
 
         processor.process(statusPayload("wamid.invite-1", "failed", withError = true).toByteArray())
-        mockMvc.get("/admin/applications/$number") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/applications/$number").andExpect {
             status { isOk() }
             jsonPath("$.events[-1].kind") { value(ReviewEventKind.MESSAGE_FAILED.name) }
             jsonPath("$.events[-1].actor") { value("system") }
@@ -392,12 +385,12 @@ class ReviewBackOfficeTest @Autowired constructor(
         }
         // A delivered status adds nothing.
         processor.process(statusPayload("wamid.invite-2", "delivered").toByteArray())
-        mockMvc.get("/admin/applications/$number") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/applications/$number").andExpect {
             jsonPath("$.events[?(@.kind == '${ReviewEventKind.MESSAGE_FAILED.name}')]", hasSize<Any>(1))
         }
         // Clean up so the queue is as other tests expect.
         mockMvc.post("/admin/applications/$number/decision") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"decision":"REJECTED","reviewer":"Officer Demo"}"""
         }.andExpect { status { isOk() } }
     }
@@ -407,16 +400,16 @@ class ReviewBackOfficeTest @Autowired constructor(
         val waitingNumber = onboard("6287000000011")
         val decidedNumber = onboard("6287000000012")
         mockMvc.post("/admin/applications/$decidedNumber/note") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"note":"checked the address","reviewer":"Officer Stats"}"""
         }.andExpect { status { isOk() } }
         mockMvc.post("/admin/applications/$decidedNumber/decision") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"decision":"REJECTED","note":"income too low","reviewer":"Officer Stats"}"""
         }.andExpect { status { isOk() } }
         assertEquals(ApplicationStatus.READY_FOR_REVIEW, applications.findByApplicationNumber(waitingNumber)!!.status)
 
-        mockMvc.get("/admin/review/stats") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/review/stats").andExpect {
             status { isOk() }
             jsonPath("$.workload.readyForReview") { value(greaterThanOrEqualTo(1)) }
             jsonPath("$.workload.waitingUnder24h") { value(greaterThanOrEqualTo(1)) }
@@ -436,14 +429,13 @@ class ReviewBackOfficeTest @Autowired constructor(
             jsonPath("$.gradeOutcomes[0].rejected") { value(greaterThanOrEqualTo(1)) }
             jsonPath("$.agentAlignment.notFlaggedDecided") { value(greaterThanOrEqualTo(1)) }
         }
-        mockMvc.get("/admin/review/stats").andExpect { status { isUnauthorized() } }
 
         // Leave the queue as we found it for the other tests.
         mockMvc.post("/admin/applications/$waitingNumber/decision") {
-            header("X-Admin-Key", KEY); contentType = MediaType.APPLICATION_JSON
+            contentType = MediaType.APPLICATION_JSON
             content = """{"decision":"APPROVED","reviewer":"Officer Stats"}"""
         }.andExpect { status { isOk() } }
-        mockMvc.get("/admin/review/stats") { header("X-Admin-Key", KEY) }.andExpect {
+        mockMvc.get("/admin/review/stats").andExpect {
             status { isOk() }
             jsonPath("$.reviewers[?(@.name == 'Officer Stats')].approved") { value(hasItem(1)) }
             jsonPath("$.reviewers[?(@.name == 'Officer Stats')].decisions7d") { value(hasItem(2)) }
