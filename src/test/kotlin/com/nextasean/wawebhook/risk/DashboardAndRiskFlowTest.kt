@@ -186,6 +186,14 @@ class DashboardAndRiskFlowTest @Autowired constructor(
     }
 
     @Test
+    fun `the root address sends the visitor to the dashboard`() {
+        mockMvc.get("/").andExpect {
+            status { isFound() }
+            header { string("Location", "/dashboard") }
+        }
+    }
+
+    @Test
     fun `dashboard page is public but its data needs the admin key`() {
         mockMvc.get("/dashboard").andExpect {
             status { isOk() }
