@@ -190,6 +190,12 @@ class DashboardAndRiskFlowTest @Autowired constructor(
             content { string(containsString("NEXUS-ASEAN")) }
             content { string(containsString("href=\"/dashboard\">START")) }
         }
+        // Log out on both back-office pages leads to the closing page with the three keywords.
+        listOf("/dashboard", "/review").forEach { page -> mockMvc.get(page).andExpect { content { string(containsString("href=\"/closing\"")) } } }
+        mockMvc.get("/closing").andExpect {
+            status { isOk() }
+            listOf("접근성", "신속성", "확장성", "감사합니다").forEach { content { string(containsString(it)) } }
+        }
     }
 
     @Test

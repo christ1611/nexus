@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController
  * Serves the back-office pages. The pages themselves hold no data; they call the admin API, which is open in the
  * demo build (no login).
  * - `/`: landing page (title and ASEAN map) with a START button to the dashboard
+ * - `/closing`: closing page behind the log-out button (three keywords and thanks)
  * - `/dashboard`: statistics (Step 5)
  * - `/review`: reviewer work queue and application detail with documents, evidence and decisions (Step 4)
  */
@@ -19,9 +20,13 @@ class DashboardPageController {
     private val dashboard: ByteArray = ClassPathResource("static/dashboard.html").inputStream.use { it.readAllBytes() }
     private val review: ByteArray = ClassPathResource("static/review.html").inputStream.use { it.readAllBytes() }
     private val landing: ByteArray = ClassPathResource("static/landing.html").inputStream.use { it.readAllBytes() }
+    private val closing: ByteArray = ClassPathResource("static/closing.html").inputStream.use { it.readAllBytes() }
 
     @GetMapping("/", produces = ["text/html;charset=UTF-8"])
     fun root(): ResponseEntity<ByteArray> = html(landing)
+
+    @GetMapping("/closing", produces = ["text/html;charset=UTF-8"])
+    fun closing(): ResponseEntity<ByteArray> = html(closing)
 
     @GetMapping("/dashboard", produces = ["text/html;charset=UTF-8"])
     fun dashboard(): ResponseEntity<ByteArray> = html(dashboard)

@@ -91,6 +91,8 @@
   .notice { padding: 8px 12px; border-radius: 10px; font-size: 13px; margin-bottom: 10px; }
   .notice.ok { background: var(--good-bg); color: var(--good); }
   .key { display: flex; gap: 8px; align-items: center; }
+  .logout { font-weight: 600; font-size: 14px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); text-decoration: none; white-space: nowrap; }
+  .logout:hover { border-color: var(--brand-3); color: var(--brand); }
   input[type=password], input[type=text] { font: inherit; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); min-width: 220px; }
   button { font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
   button.primary { background: var(--brand); color: #fff; border-color: transparent; }
@@ -423,6 +425,7 @@
     <button class="primary" id="refresh" data-ko="새로고침" data-en="Refresh">새로고침</button>
     <span class="auto" id="auto" hidden><span class="pulse"></span><span data-ko="15초마다 자동 갱신" data-en="refreshes every 15s">15초마다 자동 갱신</span></span>
     <span class="status" id="status"></span>
+    <a class="logout" href="/closing" data-ko="로그아웃" data-en="Log out">로그아웃</a>
   </div>
 </header>
 <main id="main">

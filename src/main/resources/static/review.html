@@ -77,6 +77,8 @@
   h2 small, .sub { font-size: 12px; font-weight: 400; color: var(--text-3); }
   h3 { font-size: 13px; margin: 14px 0 6px; color: var(--text-2); }
   .key { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .logout { font-weight: 600; font-size: 14px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); text-decoration: none; white-space: nowrap; }
+  .logout:hover { border-color: var(--brand-3); color: var(--brand); }
   input, select, textarea { font: inherit; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
   .key input { border-radius: 999px; padding: 7px 12px; }
   input[type=password], input[type=text] { min-width: 160px; }
@@ -352,6 +354,17 @@
   @keyframes ocr-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   .ocr-checks { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 12px; }
   .ocr-done { margin-top: 10px; }
+  .sf-compare { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; margin-top: 10px; }
+  .sf-compare figure { margin: 0; text-align: center; font-size: 12px; color: var(--text-3); }
+  .sf-compare canvas { width: 100%; max-width: 150px; aspect-ratio: 5/6; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); display: block; margin: 0 auto 4px; }
+  .sf-compare .vs { font-weight: 800; color: var(--text-3); }
+  .sf-meter { margin-top: 10px; }
+  .sf-meter .bar { position: relative; height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+  .sf-meter .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; background: var(--good); transition: width 1s ease; }
+  .sf-meter .bar i.bad { background: var(--critical); } .sf-meter .bar i.mid { background: var(--serious); }
+  .sf-meter .bar b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); }
+  .sf-meter .row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); margin-top: 4px; }
+  .sf-meter .row strong { font-size: 18px; color: var(--text); }
   @media (prefers-reduced-motion: reduce) { .ocr-scan.run { animation: none; opacity: 0; } .ocr-steps li.on .ic { animation: none; } .ocr-lines tr { animation: none; } }
   #fds-modal .sheet { background: var(--surface); color: var(--text); border-radius: 16px; box-shadow: var(--shadow); width: min(1240px, 100%); padding: 16px 18px 18px; }
   .fds-modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
@@ -398,6 +411,7 @@
     <input id="reviewer" type="text" data-ko-placeholder="심사자 이름" data-en-placeholder="Reviewer name" placeholder="심사자 이름" autocomplete="off" data-ko-title="결정과 이력에 기록됩니다" data-en-title="Recorded on decisions and the timeline" title="결정과 이력에 기록됩니다">
     <button class="primary" id="load" data-ko="새로고침" data-en="Refresh">새로고침</button>
     <span class="status" id="status"></span>
+    <a class="logout" href="/closing" data-ko="로그아웃" data-en="Log out">로그아웃</a>
   </div>
 </header>
 <main>
@@ -903,7 +917,8 @@
       <div class="img" data-url="${esc(d.fileUrl)}" data-available="${d.fileAvailable}">${d.fileAvailable ? t('이미지 불러오는 중…', 'Loading image…') : t('파일이 디스크에 없습니다', 'File missing on disk')}</div>
       <div style="margin-top:8px"><b>${esc(DOC[d.type] ? pair(DOC, d.type) : d.typeLabel)}</b> ${d.superseded ? `<span class="chip">${t('이전 제출본', 'superseded')}</span>` : ''} ${d.needsOfficerReview ? `<span class="chip warn">${t('담당자 검토', 'officer review')}</span>` : ''}</div>
       <div class="meta">${check}<br>${fmtTime(d.createdAt)}${d.caption ? ' · ' + t('캡션', 'caption') + ': ' + esc(d.caption) : ''}${d.detectedType ? '<br>' + t('감지', 'detected') + ': ' + esc(d.detectedType) : ''}</div>
-      ${d.type === 'KTP' && d.fileAvailable && d.checkPassed !== false ? `<button type="button" class="ocr-btn" data-ocr="${d.id}">${t('OCR 판독 과정 보기 ▶', 'Show the OCR reading ▶')}</button>` : ''}`;
+      ${d.type === 'KTP' && d.fileAvailable && d.checkPassed !== false ? `<button type="button" class="ocr-btn" data-ocr="${d.id}">${t('OCR 판독 과정 보기 ▶', 'Show the OCR reading ▶')}</button>` : ''}
+      ${d.type === 'SELFIE_KTP' && d.fileAvailable && d.checkPassed !== false ? `<button type="button" class="ocr-btn" data-selfie="${d.id}">${t('셀피 분석 과정 보기 ▶', 'Show the selfie analysis ▶')}</button>` : ''}`;
     if (an) {
       const issues = (an.qualityIssues || []).map(q => `<span class="chip ${q.severity === 'HIGH' ? 'fraud' : q.severity === 'MEDIUM' ? 'warn' : ''}" data-tip="${esc(q.detail)}">${esc(q.type)} · ${esc(q.severity)}</span>`).join('');
       const tamper = (an.tamperSignals || []).map(q => `<span class="chip fraud" data-tip="${esc(q.detail)}">⚠ ${esc(pair(TAMPER, q.type))} · ${esc(q.severity)}</span>`).join('');
@@ -1204,7 +1219,7 @@
 
   function openOcr(id, opener) {
     const doc = (current?.documents || []).find(d => d.id === id); if (!doc) return;
-    ocrDoc = doc; ocrApp = current; ocrOpener = opener;
+    ocrDoc = doc; ocrApp = current; ocrOpener = opener; ocrPlayer = playOcr;
     let an = null; try { an = doc.analysis ? JSON.parse(doc.analysis) : null; } catch {}
     $('#ocr-modal-title').textContent = `${t('OCR 판독 과정', 'OCR reading')} · ${current.applicationNumber}`;
     $('#ocr-modal-note').innerHTML = `${esc(pair(DOC, doc.type))} · ${esc(fmtTime(doc.createdAt))} · ${ocrEngine(an)}`;
@@ -1213,14 +1228,167 @@
     ocrModal.hidden = false; $('#ocr-close').focus();
     playOcr();
   }
+
+  /* ---------- Selfie analysis view ----------
+     Replays the selfie checks over the image: consent, face detection, liveness, the held ID card and its NIK, face match
+     against the submitted KTP photo, and age / gender against the NIK. Verdicts come from the stored analysis (the same
+     fields the risk rules use), so the replay agrees with the Risk Flag panel. The similarity and age figures are shown
+     as a simulation: they are derived from the stored verdicts, not measured by a face model. Boxes sit on the demo
+     selfie grid (DemoImages: 480x640, face at 140,110 200x240, held card at 50,370 250x150, its photo at 222,384 62x78). */
+  const SELFIE_LAYOUT = { w: 480, h: 640, face: [132, 90, 216, 262], card: [50, 370, 250, 150], cardPhoto: [222, 384, 62, 78], nik: [58, 466, 182, 20] };
+  const KTP_PHOTO = [646, 130, 170, 210];
+  const SF_MATCH = 0.75;
+  let ocrPlayer = null;
+  async function docBlob(url) {
+    let blob = blobs.get(url);
+    if (!blob) { const res = await fetch(url); if (!res.ok) throw new Error('HTTP ' + res.status); blob = URL.createObjectURL(await res.blob()); blobs.set(url, blob); }
+    return blob;
+  }
+  const sfYes = v => /^(yes|true|ya)$/i.test(String(v ?? '').trim());
+  const sfMask = n => n ? '***' + String(n).slice(-4) : '–';
+  /** A face crop of an image on a canvas: region in the image's own pixels, scaled when the image is not the demo size. */
+  function sfCrop(canvas, img, region, base) {
+    const sx = img.naturalWidth / base[0], sy = img.naturalHeight / base[1], [x, y, w, h] = region;
+    const ctx = canvas.getContext('2d'); canvas.width = 250; canvas.height = 300;
+    const cw = w * sx, ch = h * sy, scale = Math.max(250 / cw, 300 / ch);
+    const dw = 250 / scale, dh = 300 / scale;
+    ctx.drawImage(img, x * sx + (cw - dw) / 2, y * sy + (ch - dh) / 2, dw, dh, 0, 0, 250, 300);
+  }
+
+  async function playSelfie() {
+    const run = ++ocrRun, doc = ocrDoc, app = ocrApp, body = $('#ocr-body');
+    let an = null; try { an = doc.analysis ? JSON.parse(doc.analysis) : null; } catch {}
+    const F = {}; (an?.fields || []).forEach(f => { F[f.name] = f; });
+    const has = k => F[k] && F[k].value != null && F[k].value !== '';
+    const faces = has('face_count') ? +F.face_count.value : 1;
+    const clear = has('face_clearly_visible') ? sfYes(F.face_clearly_visible.value) : true;
+    const held = has('ktp_held_in_frame') ? sfYes(F.ktp_held_in_frame.value) : true;
+    const subNik = app.extracted?.nik || null, heldNik = has('nik_on_held_ktp') ? String(F.nik_on_held_ktp.value) : subNik;
+    const nikOk = heldNik && subNik ? heldNik === subNik : null;
+    const matchRaw = has('face_matches_ktp_photo') ? String(F.face_matches_ktp_photo.value).trim().toLowerCase() : 'yes';
+    const matchConf = F.face_matches_ktp_photo?.confidence ?? 0.88;
+    const sim = matchRaw === 'no' ? 0.25 + (1 - matchConf) * 0.3 : matchRaw === 'unclear' ? 0.62 : 0.78 + matchConf * 0.18;
+    const spoof = (an?.qualityIssues || []).filter(q => /SCREEN|PRINT|PHOTO_OF/i.test(q.type));
+    const tamper = an?.tamperSignals || [];
+    const live = clear && !spoof.length;
+    const consent = (app.progress?.stages || []).find(x => x.code === 'CONSENT');
+    // age and gender from the NIK: DDMMYY with 40 added to the day for women
+    const nik = String(subNik || ''), dd = +nik.slice(6, 8), female = dd > 40;
+    const dob = app.extracted?.dob ? new Date(app.extracted.dob) : null;
+    const age = dob ? Math.floor((Date.now() - dob.getTime()) / 31557600000) : null;
+    let h = 0; for (const ch of nik + doc.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const estMid = age != null ? age + (h % 5) - 2 : null;
+    const G = SELFIE_LAYOUT, fast = ocrReduced(), wait = ms => fast ? Promise.resolve() : ocrSleep(ms), alive = () => run === ocrRun && !ocrModal.hidden;
+    const ok = b => b == null ? `<span class="sub">–</span>` : b ? `<span class="ok">✓</span>` : `<span class="bad">✗</span>`;
+    const steps = [
+      [t('얼굴 확인 동의', 'Face-check consent'), ''], [t('얼굴 검출', 'Face detection'), ''], [t('생체 확인 (라이브니스)', 'Liveness'), ''],
+      [t('들고 있는 신분증', 'Held ID card'), ''], [t('얼굴 대조', 'Face match'), ''], [t('나이·성별 대조', 'Age and gender'), ''],
+    ];
+    body.innerHTML = `<div class="ocr-grid">
+      <div><div class="ocr-stage" id="ocr-stage" style="aspect-ratio:${G.w}/${G.h};max-width:460px;margin:0 auto"><img id="ocr-img" alt="${esc(t('셀피 이미지', 'Selfie image'))}">
+        <svg viewBox="0 0 ${G.w} ${G.h}" preserveAspectRatio="none" aria-hidden="true">
+          <rect class="box face" id="sf-face" x="${G.face[0]}" y="${G.face[1]}" width="${G.face[2]}" height="${G.face[3]}" rx="10"/>
+          <rect class="box" id="sf-card" x="${G.card[0]}" y="${G.card[1]}" width="${G.card[2]}" height="${G.card[3]}" rx="10"/>
+          <rect class="box face" id="sf-photo" x="${G.cardPhoto[0]}" y="${G.cardPhoto[1]}" width="${G.cardPhoto[2]}" height="${G.cardPhoto[3]}" rx="4"/>
+          <rect class="box" id="sf-nik" x="${G.nik[0]}" y="${G.nik[1]}" width="${G.nik[2]}" height="${G.nik[3]}" rx="3"/></svg>
+        <div class="ocr-scan" id="ocr-scan"></div></div>
+        <p class="sub" style="margin:6px 0 0;text-align:center">${t('보라 = 얼굴·사진 · 주황 = 신분증 · 청록 = 확인 완료', 'Purple = face and photo · orange = ID card · teal = checked')}</p></div>
+      <div><ol class="ocr-steps" id="ocr-steps">${steps.map(([a], i) => `<li data-s="${i}"><span class="ic">${i + 1}</span><span>${esc(a)}<span class="d"></span></span></li>`).join('')}</ol>
+        <div id="sf-compare"></div><ul class="ocr-checks" id="ocr-checks"></ul><div class="ocr-done" id="ocr-done"></div></div></div>`;
+    const stage = $('#ocr-stage'), img = $('#ocr-img');
+    const setStep = (i, detail) => body.querySelectorAll('#ocr-steps li').forEach(li => {
+      const st = +li.dataset.s; li.classList.toggle('done', st < i); li.classList.toggle('on', st === i);
+      if (st === i && detail != null) li.querySelector('.d').textContent = detail;
+    });
+    const mark = (id, cls) => { const r = $('#' + id); if (r) { r.classList.add('seen'); if (cls) r.classList.add(cls); } };
+    const checks = $('#ocr-checks'), addCheck = (b, text) => checks.insertAdjacentHTML('beforeend', `<li>${ok(b)} ${esc(text)}</li>`);
+    let ktpImg = null;
+    try {
+      img.src = await docBlob(doc.fileUrl); await img.decode().catch(() => {});
+      if (img.naturalWidth && img.naturalHeight) stage.style.aspectRatio = `${img.naturalWidth}/${img.naturalHeight}`;
+      const ktp = (app.documents || []).filter(d => d.type === 'KTP' && !d.superseded && d.fileAvailable).pop();
+      if (ktp) { ktpImg = new Image(); ktpImg.src = await docBlob(ktp.fileUrl); await ktpImg.decode().catch(() => {}); }
+    } catch (e) { $('#ocr-done').innerHTML = `<p class="notice warn">${t('이미지를 불러오지 못했습니다', 'Could not load the image')} (${esc(e.message)})</p>`; return; }
+    if (!alive()) return;
+    const issues = [];
+
+    // 1. consent
+    const consented = consent?.state === 'DONE';
+    setStep(0, consented ? t(`동의 ${fmtTime(consent.at)}`, `agreed ${fmtTime(consent.at)}`) : t('동의 기록 없음', 'no consent on record'));
+    addCheck(consented, t('고객이 얼굴 확인(셀피·신분증 사진 대조)에 동의', 'Customer agreed to the face check (selfie vs ID photo)'));
+    if (!consented) issues.push(t('얼굴 확인 동의 기록 없음', 'no face-check consent on record'));
+    await wait(700); if (!alive()) return;
+    // 2. face detection
+    setStep(1, t(`얼굴 ${faces}개 검출`, `${faces} face(s) found`));
+    const scan = $('#ocr-scan'); scan.style.setProperty('--scan-ms', '1200ms'); if (!fast) scan.classList.add('run');
+    await wait(600); if (!alive()) return; mark('sf-face');
+    await wait(700); if (!alive()) return; scan.classList.remove('run');
+    addCheck(faces === 1, t(`얼굴이 정확히 1명 (검출 ${faces}명)`, `Exactly one face (found ${faces})`));
+    if (faces !== 1) issues.push(t('얼굴이 1명이 아님', 'not exactly one face'));
+    // 3. liveness
+    stage.classList.add('pre');
+    setStep(2, live ? t('실제 촬영 사진으로 판단', 'judged a live photo') : t('재촬영·편집 의심', 'possible replay or editing'));
+    await wait(800); if (!alive()) return; stage.classList.remove('pre');
+    addCheck(!spoof.length, spoof.length ? t('화면 재촬영·인쇄물 흔적 있음', 'Screen or print replay traces found') : t('화면 재촬영·인쇄 사진 아님', 'Not a photo of a screen or a print'));
+    addCheck(clear, t('얼굴이 가림 없이 선명함', 'Face clear and unobstructed'));
+    if (tamper.length) addCheck(false, t(`편집 흔적 ${tamper.length}건`, `${tamper.length} editing trace(s)`));
+    if (!live) issues.push(t('라이브니스 불확실', 'liveness not confirmed'));
+    if (live) mark('sf-face', 'read'); else mark('sf-face', 'low');
+    // 4. held card and its NIK
+    mark('sf-card'); await wait(500); if (!alive()) return; mark('sf-nik');
+    setStep(3, held ? t(`들고 있는 신분증 NIK ${sfMask(heldNik)}`, `held card NIK ${sfMask(heldNik)}`) : t('신분증이 보이지 않음', 'no card in the frame'));
+    await wait(600); if (!alive()) return;
+    addCheck(held, t('실물 신분증을 들고 있음', 'A physical ID card is held'));
+    addCheck(nikOk, t(`들고 있는 신분증 NIK ${sfMask(heldNik)} ↔ 제출된 KTP ${sfMask(subNik)}`, `Held card NIK ${sfMask(heldNik)} ↔ submitted KTP ${sfMask(subNik)}`));
+    $('#sf-card').classList.add(held ? 'read' : 'low'); $('#sf-nik').classList.add(nikOk === false ? 'low' : 'read');
+    if (!held) issues.push(t('신분증 미확인', 'no ID card held'));
+    if (nikOk === false) issues.push(t('들고 있는 신분증 번호가 다름', 'the held card has a different NIK'));
+    // 5. face match
+    mark('sf-photo');
+    setStep(4, t(`유사도 ${pct(sim)} (기준 ${pct(SF_MATCH)})`, `similarity ${pct(sim)} (threshold ${pct(SF_MATCH)})`));
+    const cls = sim >= SF_MATCH ? '' : sim >= 0.55 ? 'mid' : 'bad';
+    $('#sf-compare').innerHTML = `<div class="sf-compare"><figure><canvas id="sf-c1"></canvas>${t('셀피 얼굴', 'Selfie face')}</figure><span class="vs">VS</span><figure><canvas id="sf-c2"></canvas>${ktpImg ? t('제출된 KTP 사진', 'Submitted KTP photo') : t('들고 있는 신분증 사진', 'Photo on the held card')}</figure></div>
+      <div class="sf-meter"><div class="bar"><i id="sf-bar" class="${cls}"></i><b style="left:${SF_MATCH * 100}%"></b></div><div class="row"><span>${t('얼굴 유사도', 'Face similarity')} <strong>${pct(sim)}</strong></span><span>${t('기준', 'threshold')} ${pct(SF_MATCH)}</span></div></div>`;
+    sfCrop($('#sf-c1'), img, [140, 110, 200, 240], [G.w, G.h]);
+    if (ktpImg) sfCrop($('#sf-c2'), ktpImg, KTP_PHOTO, [856, 540]); else sfCrop($('#sf-c2'), img, G.cardPhoto, [G.w, G.h]);
+    requestAnimationFrame(() => { const bar = $('#sf-bar'); if (bar) bar.style.width = (sim * 100).toFixed(0) + '%'; });
+    await wait(1100); if (!alive()) return;
+    $('#sf-photo').classList.add(sim >= SF_MATCH ? 'read' : 'low');
+    addCheck(matchRaw === 'unclear' ? null : sim >= SF_MATCH, matchRaw === 'unclear' ? t('얼굴 대조 불명확 (작거나 흐림)', 'Face match unclear (too small or blurred)') : t(`셀피 얼굴 ↔ 신분증 사진 ${sim >= SF_MATCH ? '일치' : '불일치'}`, `Selfie face ↔ ID photo ${sim >= SF_MATCH ? 'match' : 'mismatch'}`));
+    if (F.face_matches_ktp_photo?.note) checks.insertAdjacentHTML('beforeend', `<li><span class="sub">${esc(F.face_matches_ktp_photo.note)}</span></li>`);
+    if (sim < SF_MATCH) issues.push(matchRaw === 'unclear' ? t('얼굴 대조 불명확', 'face match unclear') : t('얼굴이 신분증 사진과 다름', 'face differs from the ID photo'));
+    // 6. age and gender against the NIK
+    setStep(5, estMid != null ? t(`추정 ${estMid - 2}~${estMid + 2}세 · NIK 기준 ${age}세`, `estimated ${estMid - 2}-${estMid + 2} · ${age} by the NIK`) : t('NIK 정보 없음', 'no NIK data'));
+    await wait(600); if (!alive()) return;
+    if (estMid != null) {
+      addCheck(Math.abs(estMid - age) <= 5, t(`추정 나이 ${estMid - 2}~${estMid + 2}세 ↔ NIK 생년월일 기준 ${age}세`, `Estimated age ${estMid - 2}-${estMid + 2} ↔ ${age} from the NIK birth date`));
+      addCheck(true, t(`추정 성별 ${female ? '여성' : '남성'} ↔ NIK ${female ? '여성' : '남성'}`, `Estimated gender ${female ? 'female' : 'male'} ↔ NIK ${female ? 'female' : 'male'}`));
+    }
+    setStep(6);
+    $('#ocr-done').innerHTML = `<p class="notice ${issues.length ? 'warn' : 'ok'}" style="margin:0">${issues.length
+      ? t(`확인 필요: ${issues.join(' · ')} → 담당자 검토`, `To check: ${issues.join(' · ')} → officer review`)
+      : t('본인 확인 통과: 셀피 속 인물이 제출된 신분증의 본인으로 판단돼요.', 'Identity check passed: the person in the selfie matches the submitted ID.')}</p>`;
+  }
+
+  function openSelfie(id, opener) {
+    const doc = (current?.documents || []).find(d => d.id === id); if (!doc) return;
+    ocrDoc = doc; ocrApp = current; ocrOpener = opener; ocrPlayer = playSelfie;
+    let an = null; try { an = doc.analysis ? JSON.parse(doc.analysis) : null; } catch {}
+    $('#ocr-modal-title').textContent = `${t('셀피 분석 과정', 'Selfie analysis')} · ${current.applicationNumber}`;
+    $('#ocr-modal-note').innerHTML = `${esc(pair(DOC, doc.type))} · ${esc(fmtTime(doc.createdAt))} · <span class="chip">${t('데모 시뮬레이션', 'Demo simulation')}</span> ${t('유사도·나이는 저장된 판정에서 산출한 예시 값이에요', 'similarity and age are example figures derived from the stored verdicts')}`;
+    $('#ocr-replay').textContent = t('다시 보기 ↻', 'Replay ↻');
+    $('#ocr-close').setAttribute('aria-label', t('닫기', 'Close'));
+    ocrModal.hidden = false; $('#ocr-close').focus();
+    playSelfie();
+  }
   function closeOcr() {
     if (ocrModal.hidden) return;
     ocrRun++; ocrModal.hidden = true;
     if (ocrOpener?.isConnected) ocrOpener.focus();
   }
-  detail.addEventListener('click', e => { const b = e.target.closest('[data-ocr]'); if (b) openOcr(+b.dataset.ocr, b); });
+  detail.addEventListener('click', e => { const b = e.target.closest('[data-ocr]'); if (b) openOcr(+b.dataset.ocr, b); const sf = e.target.closest('[data-selfie]'); if (sf) openSelfie(+sf.dataset.selfie, sf); });
   $('#ocr-close').addEventListener('click', closeOcr);
-  $('#ocr-replay').addEventListener('click', () => playOcr());
+  $('#ocr-replay').addEventListener('click', () => (ocrPlayer || playOcr)());
   ocrModal.addEventListener('click', e => { if (e.target === ocrModal) closeOcr(); });
   LANG.onChange(() => { if (fdsFor) loadFds(false); });
 

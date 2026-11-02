@@ -28,8 +28,12 @@ object CustomerMessages {
     fun greetingAndConsent(app: DealerApplication, customerName: String?): OutboundMessage = Buttons(
         header = "NEXUS AI application",
         body = "Hello${customerName?.let { " $it" } ?: ""}, welcome! Application *${app.applicationNumber}* has been prepared for you.\n\n" +
-            "To continue we need to collect a photo of your KTP and a selfie, and verify your identity and credit record with " +
-            "authorised providers. Your data is used only to process this application and is handled according to our privacy policy.\n\n" +
+            "To continue we need to collect a photo of your KTP and a selfie of you holding it, and verify your identity and credit record with " +
+            "authorised providers.\n\n" +
+            "*Face check:* we compare the face in your selfie with the photo on your KTP and check that the selfie is a live photo " +
+            "(not a screen or a printed copy). Your face data is used only to confirm your identity for this application.\n\n" +
+            "Your data is used only to process this application and is handled according to our privacy policy and Indonesia's " +
+            "personal data protection law (UU PDP).\n\n" +
             "Do you agree?",
         buttons = listOf(Button(CustomerReplyIds.CONSENT_AGREE, "I Agree"), Button(CustomerReplyIds.CONSENT_DECLINE, "Decline")),
     )
