@@ -137,8 +137,8 @@ class CustomerJourneyTest @Autowired constructor(
         assertEquals(CustomerSessionState.AWAITING_SELFIE, sessions.findActiveByPhone(CUSTOMER)!!.state)
 
         val app = applications.findByApplicationNumber(appNumber)!!
-        assertEquals("Budi Santoso", app.extractedName)
-        assertTrue(app.extractedNik!!.startsWith("317105170590") && app.extractedNik!!.endsWith("7"), "sample NIK with per-application serial: " + app.extractedNik)
+        assertEquals("Christianus Frederick Hotama", app.extractedName)
+        assertTrue(app.extractedNik!!.startsWith("167108161192") && app.extractedNik!!.endsWith("7"), "sample NIK with per-application serial: " + app.extractedNik)
     }
 
     @Test

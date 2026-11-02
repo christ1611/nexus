@@ -82,7 +82,7 @@ class DashboardAndRiskFlowTest @Autowired constructor(
     fun `happy path is grade A with badges, nik7 is a high-risk fraud flag, and both reach the dashboard`() {
         assertEquals(DealerTier.EXCELLENT, dealers.findByPhone(DEALER_ID)!!.tier)
 
-        val good = onboard(DEALER_ID, GOOD_CUSTOMER, "")
+        val good = onboard(DEALER_ID, GOOD_CUSTOMER, "nik4")   // score 720: grade A with the financial stability badge
         val goodApp = applications.findByApplicationNumber(good)!!
         assertEquals("A", goodApp.riskGrade)
         assertEquals("ID", goodApp.country)
@@ -184,10 +184,11 @@ class DashboardAndRiskFlowTest @Autowired constructor(
     }
 
     @Test
-    fun `the root address sends the visitor to the dashboard`() {
+    fun `the root address shows the landing page with a START button to the dashboard`() {
         mockMvc.get("/").andExpect {
-            status { isFound() }
-            header { string("Location", "/dashboard") }
+            status { isOk() }
+            content { string(containsString("NEXUS-ASEAN")) }
+            content { string(containsString("href=\"/dashboard\">START")) }
         }
     }
 
@@ -210,7 +211,7 @@ class DashboardAndRiskFlowTest @Autowired constructor(
         val first = onboard(DEALER_ID, FIRST_CUSTOMER, "")
         val firstApp = applications.findByApplicationNumber(first)!!
         assertEquals("A", firstApp.riskGrade, "a fresh customer has a unique sample NIK: " + firstApp.riskFlagsJson)
-        assertTrue(firstApp.extractedNik!!.endsWith("4"))
+        assertTrue(firstApp.extractedNik!!.endsWith("2"))
         assertEquals(first.takeLast(3), firstApp.extractedNik!!.substring(12, 15), "serial digits come from the application number")
 
         // The caption "dup" makes the stub submit the previous customer's NIK: a different person with the same ID card.

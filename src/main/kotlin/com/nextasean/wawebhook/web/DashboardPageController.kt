@@ -2,7 +2,6 @@ package com.nextasean.wawebhook.web
 
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.CacheControl
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -11,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * Serves the back-office pages. The pages themselves hold no data; they call the admin API, which is open in the
  * demo build (no login).
- * - `/`: sends the visitor to the dashboard
+ * - `/`: landing page (title and ASEAN map) with a START button to the dashboard
  * - `/dashboard`: statistics (Step 5)
  * - `/review`: reviewer work queue and application detail with documents, evidence and decisions (Step 4)
  */
@@ -19,10 +18,10 @@ import org.springframework.web.bind.annotation.RestController
 class DashboardPageController {
     private val dashboard: ByteArray = ClassPathResource("static/dashboard.html").inputStream.use { it.readAllBytes() }
     private val review: ByteArray = ClassPathResource("static/review.html").inputStream.use { it.readAllBytes() }
+    private val landing: ByteArray = ClassPathResource("static/landing.html").inputStream.use { it.readAllBytes() }
 
-    @GetMapping("/")
-    fun root(): ResponseEntity<Void> =
-        ResponseEntity.status(HttpStatus.FOUND).header("Location", "/dashboard").cacheControl(CacheControl.noStore()).build()
+    @GetMapping("/", produces = ["text/html;charset=UTF-8"])
+    fun root(): ResponseEntity<ByteArray> = html(landing)
 
     @GetMapping("/dashboard", produces = ["text/html;charset=UTF-8"])
     fun dashboard(): ResponseEntity<ByteArray> = html(dashboard)

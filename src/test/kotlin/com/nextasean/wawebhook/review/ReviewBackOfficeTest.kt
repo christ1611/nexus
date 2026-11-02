@@ -168,7 +168,7 @@ class ReviewBackOfficeTest @Autowired constructor(
         assertTrue(replies.any { it.contains("Your documents are submitted") }, replies.toString())
         val resubmitted = applications.findByApplicationNumber(number)!!
         assertEquals(ApplicationStatus.READY_FOR_REVIEW, resubmitted.status)
-        assertTrue(resubmitted.extractedNik!!.startsWith("317105170590") && resubmitted.extractedNik!!.endsWith("1"), resubmitted.extractedNik)
+        assertTrue(resubmitted.extractedNik!!.startsWith("167108161192") && resubmitted.extractedNik!!.endsWith("1"), resubmitted.extractedNik)
         assertEquals("B", resubmitted.riskGrade)
         assertEquals(3, documents.findByApplicationIdOrderByCreatedAtAsc(app.id).size)
         assertEquals(1, documents.findByApplicationIdOrderByCreatedAtAsc(app.id).count { it.superseded })
@@ -243,6 +243,17 @@ class ReviewBackOfficeTest @Autowired constructor(
             jsonPath("$.answer") { value(containsString("승인")) }
         }
         ask("""{"question":"   "}""").andExpect { status { isBadRequest() } }
+        // Off-topic: the scope gate answers before any engine runs, on both copilots.
+        ask("""{"question":"오늘 서울 날씨 어때?"}""").andExpect {
+            status { isOk() }
+            jsonPath("$.mode") { value("guard") }
+            jsonPath("$.answer") { value(containsString("심사 관련 질문에만")) }
+        }
+        mockMvc.post("/admin/dashboard/copilot") { contentType = MediaType.APPLICATION_JSON; content = """{"question":"Write me a poem about the sea"}""" }.andExpect {
+            status { isOk() }
+            jsonPath("$.mode") { value("guard") }
+            jsonPath("$.answer") { value(containsString("This copilot only answers")) }
+        }
         mockMvc.post("/admin/applications/APP-0000-000000/copilot") { contentType = MediaType.APPLICATION_JSON; content = """{"question":"x"}""" }
             .andExpect { status { isNotFound() } }
         // The case file the model would receive masks the ID number and carries the flags and timeline.

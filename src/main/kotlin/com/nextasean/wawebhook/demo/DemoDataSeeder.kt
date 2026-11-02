@@ -470,16 +470,26 @@ class DemoDataSeeder(
         else -> "Dukcapil (mock)" to "PEFINDO (mock)"
     }
 
+    /** What is printed on a demo KTP: the same values the seeded analysis reads back, so the image and the extracted data agree. */
+    private fun ktpCard(nik: String, persona: Persona): Map<String, String> = mapOf(
+        "nik" to nik, "name" to persona.name, "place_of_birth" to "Jakarta", "date_of_birth" to persona.dob.toString(), "gender" to persona.gender,
+        "address" to persona.address.substringBefore(","), "rt_rw" to "003/005", "village" to persona.address.substringAfter(", ").substringBefore(","),
+        "district" to "Gambir", "religion" to "ISLAM", "marital_status" to "KAWIN", "occupation" to "KARYAWAN SWASTA", "nationality" to "WNI", "valid_until" to "SEUMUR HIDUP",
+        "province" to (NikValidator.PROVINCES[nik.substring(0, 2)]?.uppercase() ?: "DKI JAKARTA"),
+        "city" to if (nik.startsWith("31")) "JAKARTA PUSAT" else "KOTA ${persona.address.substringAfterLast(", ").substringBefore(" ").uppercase()}",
+    )
+
     private fun ktpAnalysis(nik: String, persona: Persona, scenario: Scenario): DocumentAnalysis {
         val validation = NikValidator.validate(nik, persona.dob.toString(), persona.gender)
         val issues = if (scenario == Scenario.SCREEN_PHOTO) listOf(QualityIssue(QualityIssueType.SCREEN_PHOTO, Severity.MEDIUM, "Moire pattern and a screen bezel are visible around the card")) else emptyList()
         fun f(name: String, value: String?, conf: Double, status: FieldStatus = FieldStatus.EXTRACTED, note: String? = null) = ExtractedField(name, value, conf, status, note)
+        val card = ktpCard(nik, persona)
         val fields = listOf(
             f("nik", nik, if (validation.valid) 0.97 else 0.93, if (validation.valid) FieldStatus.EXTRACTED else FieldStatus.NEEDS_OFFICER_REVIEW, if (validation.valid) null else "digits legible but the encoded date of birth does not match the card"),
-            f("name", persona.name, 0.96), f("place_of_birth", "Jakarta", 0.9), f("date_of_birth", persona.dob.toString(), 0.95), f("gender", persona.gender, 0.98),
-            f("address", persona.address.substringBefore(","), 0.91), f("rt_rw", "003/005", 0.88), f("village", persona.address.substringAfter(", ").substringBefore(","), 0.86),
-            f("district", "Gambir", 0.86), f("religion", "ISLAM", 0.9), f("marital_status", "KAWIN", 0.9), f("occupation", "KARYAWAN SWASTA", 0.88), f("nationality", "WNI", 0.99), f("valid_until", "SEUMUR HIDUP", 0.97),
-            f("province", NikValidator.PROVINCES[nik.substring(0, 2)]?.uppercase() ?: "DKI JAKARTA", 0.95), f("city", if (nik.startsWith("31")) "JAKARTA PUSAT" else "KOTA ${persona.address.substringAfterLast(", ").substringBefore(" ").uppercase()}", 0.9),
+            f("name", card["name"], 0.96), f("place_of_birth", card["place_of_birth"], 0.9), f("date_of_birth", card["date_of_birth"], 0.95), f("gender", card["gender"], 0.98),
+            f("address", card["address"], 0.91), f("rt_rw", card["rt_rw"], 0.88), f("village", card["village"], 0.86),
+            f("district", card["district"], 0.86), f("religion", card["religion"], 0.9), f("marital_status", card["marital_status"], 0.9), f("occupation", card["occupation"], 0.88), f("nationality", card["nationality"], 0.99), f("valid_until", card["valid_until"], 0.97),
+            f("province", card["province"], 0.95), f("city", card["city"], 0.9),
         )
         val tamper = if (scenario == Scenario.FORGERY) listOf(
             TamperSignal(TamperSignalType.PHOTO_REPLACED, Severity.HIGH, "The portrait has a sharp rectangular edge and a lighter background than the card; it looks pasted over the original photo"),
@@ -538,7 +548,7 @@ class DemoDataSeeder(
         val dir = Path.of(props.documentsDir).resolve(app.applicationNumber)
         Files.createDirectories(dir)
         val file = dir.resolve("${type.name}-demo-${at.toEpochMilli()}.png")
-        runCatching { ImageIO.write(DemoImages.render(type, persona.name, idNumber, blurry = !passed), "png", file.toFile()) }
+        runCatching { ImageIO.write(DemoImages.render(type, persona.name, idNumber, blurry = !passed, card = ktpCard(idNumber, persona)), "png", file.toFile()) }
             .onFailure { log.warn("Demo image could not be written: {}", it.message) }
         return documents.save(
             DocumentRecord(
@@ -618,23 +628,47 @@ class DemoDataSeeder(
 
 /** Placeholder images so the review page has something to show for seeded applications. */
 object DemoImages {
-    fun render(type: DocumentType, name: String, idNumber: String, blurry: Boolean): BufferedImage {
-        val (w, h) = if (type == DocumentType.KTP) 640 to 400 else 480 to 640
+    /**
+     * The demo KTP is drawn on a fixed grid so the review page's OCR view can box each printed line: 856x540 (ID-1 card
+     * ratio), NIK baseline at [NIK_Y], then one row every [ROW_STEP] px from [ROW_Y]. review.html (OCR_LAYOUT) mirrors these numbers.
+     */
+    const val KTP_W = 856
+    const val KTP_H = 540
+    const val NIK_Y = 132
+    const val ROW_Y = 172
+    const val ROW_STEP = 26
+    /** Field shown on each row, in order, with its printed label. */
+    val KTP_ROWS = listOf(
+        "name" to "Nama", "birth" to "Tempat/Tgl Lahir", "gender" to "Jenis Kelamin", "address" to "Alamat", "rt_rw" to "RT/RW", "village" to "Kel/Desa",
+        "district" to "Kecamatan", "religion" to "Agama", "marital_status" to "Status Perkawinan", "occupation" to "Pekerjaan", "nationality" to "Kewarganegaraan", "valid_until" to "Berlaku Hingga",
+    )
+
+    fun render(type: DocumentType, name: String, idNumber: String, blurry: Boolean, card: Map<String, String> = emptyMap()): BufferedImage {
+        val (w, h) = if (type == DocumentType.KTP) KTP_W to KTP_H else 480 to 640
         val img = BufferedImage(w, h, BufferedImage.TYPE_INT_RGB)
         val g = img.createGraphics()
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         if (type == DocumentType.KTP) {
+            fun v(key: String) = card[key].orEmpty().uppercase()
+            val dob = card["date_of_birth"]?.let { runCatching { java.time.LocalDate.parse(it).format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy")) }.getOrNull() }.orEmpty()
+            val values = mapOf("name" to name.uppercase(), "birth" to listOf(v("place_of_birth"), dob).filter { it.isNotBlank() }.joinToString(", ")) + KTP_ROWS.associate { (k, _) -> k to v(k) }.filterKeys { it != "name" && it != "birth" }
             g.color = Color(0x3a, 0x7b, 0xd5); g.fillRect(0, 0, w, h)
-            g.color = Color(0x5a, 0x94, 0xe0); g.fillRoundRect(24, 24, w - 48, h - 48, 24, 24)
-            g.color = Color.WHITE
-            g.font = Font(Font.SANS_SERIF, Font.BOLD, 22); g.drawString("PROVINSI DKI JAKARTA", 48, 64); g.drawString("JAKARTA PUSAT", 48, 92)
-            g.font = Font(Font.SANS_SERIF, Font.BOLD, 20); g.drawString("NIK  : $idNumber", 48, 140)
-            g.font = Font(Font.SANS_SERIF, Font.PLAIN, 18)
-            listOf("Nama           : ${name.uppercase()}", "Tempat/Tgl Lahir : JAKARTA", "Alamat         : JL. MERDEKA NO. 10", "Kewarganegaraan : WNI", "Berlaku Hingga : SEUMUR HIDUP").forEachIndexed { i, s -> g.drawString(s, 48, 176 + i * 30) }
-            g.color = Color(0xe8, 0xee, 0xf8); g.fillRect(w - 190, 130, 130, 160)
-            g.color = Color(0x9a, 0xb0, 0xcc); g.fillOval(w - 160, 150, 70, 70); g.fillRoundRect(w - 180, 225, 110, 70, 40, 40)
-            g.color = Color(0xff, 0xdd, 0x55); g.font = Font(Font.SANS_SERIF, Font.BOLD, 26); g.drawString("DEMO SAMPLE - NOT A REAL ID", 48, h - 44)
+            g.color = Color(0x86, 0xb4, 0xea); g.fillRoundRect(16, 16, w - 32, h - 32, 26, 26)
+            g.color = Color(0x0d, 0x1b, 0x2a)
+            g.font = Font(Font.SANS_SERIF, Font.BOLD, 24)
+            fun centered(s: String, y: Int) = g.drawString(s, (w - g.fontMetrics.stringWidth(s)) / 2, y)
+            centered("PROVINSI ${card["province"]?.uppercase() ?: "DKI JAKARTA"}", 52); centered(card["city"]?.uppercase() ?: "JAKARTA PUSAT", 82)
+            g.font = Font(Font.SANS_SERIF, Font.BOLD, 26); g.drawString("NIK", 40, NIK_Y); g.drawString(": $idNumber", 150, NIK_Y)
+            g.font = Font(Font.SANS_SERIF, Font.PLAIN, 17)
+            KTP_ROWS.forEachIndexed { i, (key, label) ->
+                val y = ROW_Y + i * ROW_STEP
+                g.drawString(label, 40, y); g.drawString(": ${values[key].orEmpty()}", 230, y)
+            }
+            g.color = Color(0xe8, 0xee, 0xf8); g.fillRect(w - 210, 130, 170, 210)
+            g.color = Color(0x9a, 0xb0, 0xcc); g.fillOval(w - 166, 156, 82, 82); g.fillRoundRect(w - 190, 248, 130, 92, 46, 46)
+            g.color = Color(0x0d, 0x1b, 0x2a); g.font = Font(Font.SANS_SERIF, Font.PLAIN, 14); g.drawString("JAKARTA PUSAT", w - 178, 368)
+            g.color = Color(0xb4, 0x23, 0x18); g.font = Font(Font.SANS_SERIF, Font.BOLD, 22); g.drawString("DEMO SAMPLE - NOT A REAL ID", 40, h - 30)
         } else {
             g.color = Color(0xd9, 0xcf, 0xc2); g.fillRect(0, 0, w, h)
             g.color = Color(0xf1, 0xd3, 0xb8); g.fillOval(140, 110, 200, 240)

@@ -173,7 +173,7 @@ Everything here happens on the **customer phone**; the two screens follow by the
 | 2 | tap **I Agree** | "Thank you. Step 1 of 2: Please send a photo of your KTP." | progress bar at 개인정보 동의 → 신분증 (consent is stored with a timestamp; the server log shows `Consent given ... at=`) | row at **신분증** |
 | 3 | type `here you go` (text instead of a photo) | the request is simply repeated | nothing new: the flow is strict about what it expects | |
 | 4 | send any photo with caption **`blur`** | "Received: KTP ✅ (1 of 2)" then "❌ KTP could not be accepted: Photo is blurry. Step 1 of 2: ..." | the timeline starts: 서류 수신 → 품질 확인 **실패** (blurry); the rejected photo appears under 서류 as a superseded upload | row stays at **신분증** |
-| 5 | send the photo again with caption **`nik7`** | "Received: KTP ✅ (1 of 2)" then "Step 2 of 2: Please send a selfie of yourself holding your KTP..." | 서류 수신 → 품질 확인 → 필드 추출: Budi Santoso, NIK ending in 7; the **추출 데이터** card fills in | row at **셀피** |
+| 5 | send the photo again with caption **`nik7`** | "Received: KTP ✅ (1 of 2)" then "Step 2 of 2: Please send a selfie of yourself holding your KTP..." | 서류 수신 → 품질 확인 → 필드 추출: Christianus Frederick Hotama, NIK ending in 7; the **추출 데이터** card fills in | row at **셀피** |
 | 6 | send a selfie | "Received: Selfie with KTP ✅ (2 of 2)", "Checking your data...", then after 2 to 6 seconds "✅ Your documents are submitted..." | 서류 수신 → 품질 확인 → 신원 조회 (Dukcapil mismatch) → 신용 조회 (PEFINDO mismatch) → 리스크 평가 (grade **C**, ⚠ IDENTITY_MISMATCH) → 심사 대기 전환; the review agent's summary appears in the header card, in the language of the page | within 15 s the row leaves the pipeline, **심사 대기** ticks up, the application is first in the **심사 대기 큐** with grade C and ⚠ 1; on the **리스크·사기** tab it is listed under 위조/사기 감지 경고 |
 
 Point at the right screen while the photos are being checked and at the left screen after "Checking your data...": the
@@ -328,8 +328,8 @@ What to point at:
    Cambodia demo dealers; give them a phone in `wa.env` to produce rows for those countries (their verification runs on the
    mock NRC / GDI registries and credit bureaus).
 3. **리스크·사기 tab, Risk Flag · 위조/사기 감지 경고** - the application you created with caption `nik7` appears here as grade **C** with the
-   `IDENTITY_MISMATCH` (fraud) and `CREDIT_IDENTITY_MISMATCH` flags. The plain run (default NIK, score 720) is grade **A**
-   with the badges **재무 정합성 및 담보 안정성 우수 고객** and, for `DLR-001`, **우수 딜러 유입 고객**.
+   `IDENTITY_MISMATCH` (fraud) and `CREDIT_IDENTITY_MISMATCH` flags. The plain run (default NIK ending in 2, score 670) is grade **A**
+   without the financial badge; caption `nik4` (score 720) adds **재무 정합성 및 담보 안정성 우수 고객** and, for `DLR-001`, **우수 딜러 유입 고객**.
 4. The same grade line reached the dealer on WhatsApp in the "Documents submitted" message.
 5. With `DOCUMENT_CHECK=claude`, screen photos, tampering, wrong document types, invalid NIKs and a selfie holding a different
    KTP become additional fraud flags, and the method column switches to "Claude 비전 + 규칙".

@@ -5,12 +5,14 @@ demo-data:
   # Sample fields the stub "extracts" from every KTP photo.
   # The LAST DIGIT of the NIK drives the mock providers: 0-6 match, 7 mismatch, 8 not found, 9 timeout.
   # Caption tricks while demoing: "blur" fails the check; "nik7" (any digit) overrides the NIK's last digit.
-  # Default last digit 4 -> match + score 720 -> risk grade A with the "financial stability" badge; "nik1" -> score 645 -> grade B.
+  # Digits 13-15 are replaced by the application number's last three digits, so two test applications never share an ID.
+  # Default last digit 2 -> match + score 670 -> risk grade A (no badge); "nik4" -> score 720 -> grade A with the
+  # "financial stability" badge; "nik1" -> score 645 -> grade B. The NIK encodes 16-11-1992, male, matching dob.
   extracted:
-    name: Budi Santoso
-    nik: "3171051705900004"
-    dob: "1990-05-17"
-    address: "Jl. Merdeka No. 10, RT 03/RW 05, Gambir, Jakarta Pusat 10110"
+    name: Christianus Frederick Hotama
+    nik: "1671081611920002"
+    dob: "1992-11-16"
+    address: "Jl Kayu Mas no.1, Jakarta Timur"
 
 verification:
   # Selects the ID verification and credit bureau providers (ID = Dukcapil + PEFINDO mocks).

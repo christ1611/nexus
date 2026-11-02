@@ -1017,7 +1017,7 @@
   const copilotLog = [];   // [{ role, content, mode, model, ms, err, inputTokens, outputTokens, label, showEngine, typing }]
   let copilotBusy = false;
   const AI_NAME = 'NEXUS AI';     // default assistant name; answers carry the server's label (app.copilot-label)
-  const engineOf = m => m.mode === 'rules' ? t('규칙 엔진', 'rules engine') : esc(m.model || m.mode);
+  const engineOf = m => m.mode === 'rules' ? t('규칙 엔진', 'rules engine') : m.mode === 'guard' ? t('질문 범위 제한', 'scope guard') : esc(m.model || m.mode);
   const labelOf = m => esc(m.label || AI_NAME) + (m.showEngine ? ' · ' + engineOf(m) : '');
   const thinkPause = () => new Promise(r => setTimeout(r, 700 + Math.random() * 900));   // a beat before the answer, even when the engine is instant
   /** Reveals an answer progressively in its bubble, then repaints with the footer. */

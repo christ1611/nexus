@@ -67,8 +67,12 @@ class ReviewCopilotService(
     val enabled: Boolean get() = client.ifAvailable != null
 
     fun ask(app: DealerApplication, question: String, history: List<Turn>, reviewer: String?): Answer {
-        val assessment = risk.stored(app)
         val started = System.currentTimeMillis()
+        CopilotScope.decline(question, history, CopilotScope.Desk.REVIEW)?.let { reply ->
+            log.info("Review copilot | engine=guard | application={} | off-topic question declined", app.applicationNumber)
+            return Answer(reply, "guard", null, durationMs = System.currentTimeMillis() - started, label = appProps.copilotLabel, showEngine = appProps.copilotShowEngine)
+        }
+        val assessment = risk.stored(app)
         if (ollama.enabled) {
             ollama.chat(SYSTEM, "# Case file\n\n${caseFile(app, assessment)}", history, question, reviewer, RulesCopilot.facts(app, assessment, question))?.let { r ->
                 val ms = System.currentTimeMillis() - started
@@ -218,6 +222,7 @@ class ReviewCopilotService(
             - Answer in Korean by default; answer in English if the officer writes in English. Be concise: short
               paragraphs or bullet lists, no headings, no preamble. Keep ID numbers masked to their last 4 digits.
             - You only know this application. For anything else, say it is outside this application.
+            ${CopilotScope.PROMPT_RULE}
         """.trimIndent()
     }
 }

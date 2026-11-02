@@ -14,6 +14,7 @@ import com.nextasean.wawebhook.review.OllamaCopilot
 import com.nextasean.wawebhook.review.ReviewCopilotService
 import com.nextasean.wawebhook.review.ReviewCopilotService.Answer
 import com.nextasean.wawebhook.review.ReviewCopilotService.Turn
+import com.nextasean.wawebhook.review.CopilotScope
 import com.nextasean.wawebhook.review.CopilotVoice
 import com.nextasean.wawebhook.review.copilotConversation
 import com.nextasean.wawebhook.risk.RiskGrade
@@ -48,6 +49,10 @@ class DashboardCopilotService(
 
     fun ask(stats: Stats, question: String, history: List<Turn>, reviewer: String?): Answer {
         val started = System.currentTimeMillis()
+        CopilotScope.decline(question, history, CopilotScope.Desk.DASHBOARD)?.let { reply ->
+            log.info("Dashboard copilot | engine=guard | off-topic question declined")
+            return Answer(reply, "guard", null, durationMs = System.currentTimeMillis() - started, label = appProps.copilotLabel, showEngine = appProps.copilotShowEngine)
+        }
         if (ollama.enabled) {
             ollama.chat(SYSTEM, "# Portfolio file\n\n${portfolioFile(stats, compact = true)}", history, question, reviewer, RulesDashboardCopilot.facts(stats, question))?.let { r ->
                 val ms = System.currentTimeMillis() - started
@@ -235,6 +240,7 @@ class DashboardCopilotService(
             - Decisions are made by officers; you advise and summarise.
             - Answer in Korean by default; answer in English if the question is in English. Be concise: short
               paragraphs or bullet lists, no headings, no preamble.
+            ${CopilotScope.PROMPT_RULE}
         """.trimIndent()
     }
 }

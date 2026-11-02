@@ -314,6 +314,45 @@
   /* fraud link graph popup */
   #fds-modal { position: fixed; inset: 0; background: rgba(11,60,73,.6); display: flex; align-items: flex-start; justify-content: center; z-index: 30; overflow: auto; padding: 24px 12px; }
   #fds-modal[hidden] { display: none; }
+
+  /* OCR view: replays how the KTP was read, step by step, over the image. */
+  .ocr-btn { margin-top: 8px; width: 100%; font-size: 12px; padding: 6px 10px; }
+  #ocr-modal { position: fixed; inset: 0; background: rgba(11,60,73,.6); display: flex; align-items: flex-start; justify-content: center; z-index: 30; overflow: auto; padding: 24px 12px; }
+  #ocr-modal[hidden] { display: none; }
+  #ocr-modal .sheet { background: var(--surface); color: var(--text); border-radius: 16px; box-shadow: var(--shadow); width: min(1180px, 100%); padding: 16px 18px 18px; }
+  .ocr-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .ocr-grid { grid-template-columns: 1fr; } }
+  .ocr-stage { position: relative; width: 100%; border-radius: 10px; overflow: hidden; background: #0d1b2a; }
+  .ocr-stage img { display: block; width: 100%; height: 100%; object-fit: fill; transition: filter .6s ease; }
+  .ocr-stage.pre img { filter: grayscale(1) contrast(1.35) brightness(1.05); }
+  .ocr-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ocr-stage rect.box { fill: rgba(242,165,65,.10); stroke: #f2a541; stroke-width: 2; opacity: 0; transition: opacity .2s, fill .25s, stroke .25s; }
+  .ocr-stage rect.box.seen { opacity: 1; }
+  .ocr-stage rect.box.read { fill: rgba(2,128,144,.16); stroke: #11a3b5; }
+  .ocr-stage rect.box.low { fill: rgba(242,165,65,.22); stroke: #e8743b; }
+  .ocr-stage rect.box.face { fill: rgba(139,92,246,.12); stroke: #8b5cf6; stroke-dasharray: 6 4; }
+  .ocr-stage rect.box.hot { fill: rgba(255,255,255,.28); stroke: #fff; stroke-width: 3; }
+  .ocr-scan { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, transparent, #3fb8c4, #fff, #3fb8c4, transparent); box-shadow: 0 0 14px 4px rgba(63,184,196,.55); opacity: 0; pointer-events: none; }
+  .ocr-scan.run { opacity: 1; animation: ocr-scan var(--scan-ms, 1600ms) linear forwards; }
+  @keyframes ocr-scan { from { top: 0; } to { top: calc(100% - 3px); } }
+  .ocr-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .ocr-steps li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; padding: 7px 9px; border-radius: 9px; background: var(--surface-2); color: var(--text-3); font-size: 13px; }
+  .ocr-steps li .ic { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .ocr-steps li.on { color: var(--text); box-shadow: inset 0 0 0 2px var(--brand-3); }
+  .ocr-steps li.on .ic { border-color: var(--brand); animation: pulse 1s infinite; }
+  .ocr-steps li.done { color: var(--text); }
+  .ocr-steps li.done .ic { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .ocr-steps li .d { display: block; font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .ocr-lines { margin-top: 10px; max-height: 330px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .ocr-lines table { width: 100%; font-size: 12px; }
+  .ocr-lines td, .ocr-lines th { padding: 5px 8px; }
+  .ocr-lines tr { animation: ocr-in .25s ease; }
+  .ocr-lines tr:hover td { background: var(--brand-tint); }
+  .ocr-lines .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  @keyframes ocr-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .ocr-checks { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 12px; }
+  .ocr-done { margin-top: 10px; }
+  @media (prefers-reduced-motion: reduce) { .ocr-scan.run { animation: none; opacity: 0; } .ocr-steps li.on .ic { animation: none; } .ocr-lines tr { animation: none; } }
   #fds-modal .sheet { background: var(--surface); color: var(--text); border-radius: 16px; box-shadow: var(--shadow); width: min(1240px, 100%); padding: 16px 18px 18px; }
   .fds-modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
   .fds-modal-head h2 { margin: 0; font-size: 18px; }
@@ -400,6 +439,7 @@
   <span data-ko="데모용 공개 화면 · 로그인 없음" data-en="Open demo screen · no login">데모용 공개 화면 · 로그인 없음</span>
 </footer>
 <div id="lightbox"><img alt=""></div>
+<div id="ocr-modal" role="dialog" aria-modal="true" aria-labelledby="ocr-modal-title" hidden><div class="sheet"><div class="fds-modal-head"><div><h2 id="ocr-modal-title"></h2><div class="sub" id="ocr-modal-note"></div></div><div style="display:flex;gap:8px"><button type="button" id="ocr-replay"></button><button type="button" id="ocr-close" aria-label="Close">✕</button></div></div><div id="ocr-body"></div></div></div>
 <div id="report" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="sheet"></div></div>
 <div id="fds-modal" role="dialog" aria-modal="true" aria-labelledby="fds-modal-title" hidden><div class="sheet"><div class="fds-modal-head"><div><h2 id="fds-modal-title"></h2><div class="sub" id="fds-modal-note"></div></div><button type="button" id="fds-modal-close" aria-label="Close">✕</button></div><div id="fds-modal-body"></div></div></div>
 <div id="tip" role="tooltip"></div>
@@ -485,7 +525,7 @@
   const copilotLog = new Map();   // application number -> [{ role, content, mode, model, ms, err, label, showEngine, typing }]
   const copilotBusy = new Set();
   const AI_NAME = 'NEXUS AI';     // default assistant name; answers carry the server's label (app.copilot-label)
-  const engineOf = m => m.mode === 'rules' ? t('규칙 엔진', 'rules engine') : esc(m.model || m.mode);
+  const engineOf = m => m.mode === 'rules' ? t('규칙 엔진', 'rules engine') : m.mode === 'guard' ? t('질문 범위 제한', 'scope guard') : esc(m.model || m.mode);
   const labelOf = m => esc(m.label || AI_NAME) + (m.showEngine ? ' · ' + engineOf(m) : '');
   const thinkPause = () => new Promise(r => setTimeout(r, 700 + Math.random() * 900));   // a beat before the answer, even when the engine is instant
   /** Reveals an answer progressively in its bubble, then repaints with the footer. */
@@ -862,7 +902,8 @@
     let h = `<div class="doc ${d.superseded ? 'superseded' : ''}" data-id="${d.id}">
       <div class="img" data-url="${esc(d.fileUrl)}" data-available="${d.fileAvailable}">${d.fileAvailable ? t('이미지 불러오는 중…', 'Loading image…') : t('파일이 디스크에 없습니다', 'File missing on disk')}</div>
       <div style="margin-top:8px"><b>${esc(DOC[d.type] ? pair(DOC, d.type) : d.typeLabel)}</b> ${d.superseded ? `<span class="chip">${t('이전 제출본', 'superseded')}</span>` : ''} ${d.needsOfficerReview ? `<span class="chip warn">${t('담당자 검토', 'officer review')}</span>` : ''}</div>
-      <div class="meta">${check}<br>${fmtTime(d.createdAt)}${d.caption ? ' · ' + t('캡션', 'caption') + ': ' + esc(d.caption) : ''}${d.detectedType ? '<br>' + t('감지', 'detected') + ': ' + esc(d.detectedType) : ''}</div>`;
+      <div class="meta">${check}<br>${fmtTime(d.createdAt)}${d.caption ? ' · ' + t('캡션', 'caption') + ': ' + esc(d.caption) : ''}${d.detectedType ? '<br>' + t('감지', 'detected') + ': ' + esc(d.detectedType) : ''}</div>
+      ${d.type === 'KTP' && d.fileAvailable && d.checkPassed !== false ? `<button type="button" class="ocr-btn" data-ocr="${d.id}">${t('OCR 판독 과정 보기 ▶', 'Show the OCR reading ▶')}</button>` : ''}`;
     if (an) {
       const issues = (an.qualityIssues || []).map(q => `<span class="chip ${q.severity === 'HIGH' ? 'fraud' : q.severity === 'MEDIUM' ? 'warn' : ''}" data-tip="${esc(q.detail)}">${esc(q.type)} · ${esc(q.severity)}</span>`).join('');
       const tamper = (an.tamperSignals || []).map(q => `<span class="chip fraud" data-tip="${esc(q.detail)}">⚠ ${esc(pair(TAMPER, q.type))} · ${esc(q.severity)}</span>`).join('');
@@ -924,7 +965,7 @@
     }
   }
   lightbox.addEventListener('click', () => { lightbox.style.display = 'none'; });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { lightbox.style.display = 'none'; closeReport(); closeFds(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { lightbox.style.display = 'none'; closeReport(); closeFds(); closeOcr(); } });
 
   /* Decision evidence report (PDF): fetched, then handed to the browser as a download. */
   async function downloadDecisionReport(number, btn) {
@@ -1010,6 +1051,177 @@
   }
   $('#fds-modal-close').addEventListener('click', closeFds);
   fdsModal.addEventListener('click', e => { if (e.target === fdsModal) closeFds(); });
+
+  /* ---------- OCR view ----------
+     Replays how a KTP was read: pre-processing, text-region detection, character recognition, field mapping and the NIK
+     checks. The values and confidences are the ones stored for the document (its analysis), or the application's
+     extracted data when no analysis was kept, so the replay always agrees with the "Extracted data" panel. Boxes sit on
+     the demo KTP grid (DemoImages in DemoDataSeeder.kt: 856x540, NIK at y 132, rows from y 172 every 26 px); on another
+     photo they are scaled to the same card proportions. */
+  const OCR_LAYOUT = { w: 856, h: 540, nikY: 132, rowY: 172, step: 26, rowSize: 17, labelX: 40, valueX: 230, face: [646, 130, 170, 210] };
+  const OCR_ROWS = [['name', 'Nama'], ['birth', 'Tempat/Tgl Lahir'], ['gender', 'Jenis Kelamin'], ['address', 'Alamat'], ['rt_rw', 'RT/RW'], ['village', 'Kel/Desa'], ['district', 'Kecamatan'], ['religion', 'Agama'], ['marital_status', 'Status Perkawinan'], ['occupation', 'Pekerjaan'], ['nationality', 'Kewarganegaraan'], ['valid_until', 'Berlaku Hingga']];
+  const OCR_FIELD = { province: ['주(Provinsi)', 'Province'], city: ['시·군', 'City'], nik: ['NIK', 'NIK'], name: ['성명', 'Name'], birth: ['출생지·생년월일', 'Place / date of birth'], gender: ['성별', 'Gender'], address: ['주소', 'Address'], rt_rw: ['RT/RW', 'RT/RW'], village: ['동(Kel/Desa)', 'Village'], district: ['구(Kecamatan)', 'District'], religion: ['종교', 'Religion'], marital_status: ['혼인 여부', 'Marital status'], occupation: ['직업', 'Occupation'], nationality: ['국적', 'Nationality'], valid_until: ['유효기간', 'Valid until'] };
+  const ocrModal = $('#ocr-modal');
+  let ocrRun = 0, ocrDoc = null, ocrApp = null, ocrOpener = null;
+  const ocrSleep = ms => new Promise(r => setTimeout(r, ms));
+  const ocrReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ocrDob = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? `${m[3]}-${m[2]}-${m[1]}` : (iso || ''); };
+  /** Width of printed text on the demo card, in card pixels: about 0.6 em per character, wider for the bold capitals. */
+  const ocrWidth = (text, size, em = 0.6) => Math.round(String(text).length * size * em);
+
+  /** The lines on the card with their box, value and confidence, top to bottom. */
+  function ocrLines(doc, app) {
+    let an = null; try { an = doc.analysis ? JSON.parse(doc.analysis) : null; } catch {}
+    const F = {}; (an?.fields || []).forEach(f => { if (f.value != null && f.value !== '') F[f.name] = f; });
+    const ex = app.extracted || {};
+    const val = k => F[k]?.value ?? null, conf = k => F[k]?.confidence ?? null;
+    const card = {
+      province: val('province'), city: val('city'), nik: val('nik') ?? ex.nik, name: val('name') ?? ex.name,
+      birth: [val('place_of_birth'), ocrDob(val('date_of_birth') ?? ex.dob)].filter(Boolean).join(', ') || null,
+      gender: val('gender'), address: val('address') ?? (ex.address ? String(ex.address).split(',')[0] : null),
+    };
+    ['rt_rw', 'village', 'district', 'religion', 'marital_status', 'occupation', 'nationality', 'valid_until'].forEach(k => { card[k] = val(k); });
+    const confOf = { province: conf('province'), city: conf('city'), nik: conf('nik'), name: conf('name'), gender: conf('gender'), address: conf('address'),
+      birth: [conf('place_of_birth'), conf('date_of_birth')].filter(x => x != null).reduce((a, b) => Math.min(a, b), 1) };
+    ['rt_rw', 'village', 'district', 'religion', 'marital_status', 'occupation', 'nationality', 'valid_until'].forEach(k => { confOf[k] = conf(k); });
+    // Without a stored analysis there is no per-field confidence: a steady, plausible figure per field keeps replays identical.
+    const seed = String(card.nik || doc.id);
+    const fallback = k => { let h = 0; for (const ch of seed + k) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return 0.9 + (h % 90) / 1000; };
+    const G = OCR_LAYOUT, lines = [];
+    const header = (k, text, y) => { const size = 24, w = ocrWidth(text, size, 0.66) + 16; lines.push({ key: k, text, x: (G.w - w) / 2, y: y - size * 0.85 - 4, w, h: size + 10 }); };
+    if (card.province) header('province', 'PROVINSI ' + String(card.province).toUpperCase(), 52);
+    if (card.city) header('city', String(card.city).toUpperCase(), 82);
+    if (card.nik) lines.push({ key: 'nik', text: card.nik, x: G.labelX - 6, y: G.nikY - 26 * 0.85 - 4, w: 150 - G.labelX + ocrWidth(': ' + card.nik, 26, 0.63) + 12, h: 26 + 10, mono: true });
+    OCR_ROWS.forEach(([k], i) => {
+      const v = k === 'name' ? card.name : card[k]; if (!v) return;
+      const y = G.rowY + i * G.step, text = String(v).toUpperCase();
+      lines.push({ key: k, text, x: G.labelX - 6, y: y - G.rowSize * 0.85 - 4, w: G.valueX - G.labelX + ocrWidth(': ' + text, G.rowSize) + 12, h: G.rowSize + 9 });
+    });
+    lines.forEach(x => { x.conf = confOf[x.key] ?? fallback(x.key); x.w = Math.min(x.w, (x.key === 'province' || x.key === 'city' ? G.w : G.face[0] - 8) - x.x); });
+    return { an, lines, card };
+  }
+
+  /** The NIK checks: from the stored validation when there is one, otherwise worked out here from the digits. */
+  function ocrChecks(an, card) {
+    const nik = String(card.nik || ''), v = an?.nik;
+    const ok = b => b == null ? `<span class="sub">–</span>` : b ? `<span class="ok">✓</span>` : `<span class="bad">✗</span>`;
+    const dd = +nik.slice(6, 8), female = dd > 40, day = String(female ? dd - 40 : dd).padStart(2, '0');
+    const nikDob = nik.length === 16 ? `${day}-${nik.slice(8, 10)}-..${nik.slice(10, 12)}` : null;
+    const cardDob = (card.birth || '').split(', ').pop();
+    const fmt = v ? v.formatValid : /^\d{16}$/.test(nik);
+    const region = v ? v.regionValid : nik.length === 16;
+    const dobOk = v ? v.dobMatches : (nikDob && cardDob ? cardDob.slice(0, 6) === nikDob.slice(0, 6) && cardDob.slice(-2) === nik.slice(10, 12) : null);
+    const gOk = v ? v.genderMatches : (card.gender ? (female === /PEREMPUAN|FEMALE/i.test(card.gender)) : null);
+    const rows = [
+      [fmt, t(`16자리 숫자 형식 (${nik.length}자리)`, `16-digit format (${nik.length} digits)`)],
+      [region, (prov => t(`지역 코드 ${nik.slice(0, 2)}${prov ? ' → ' + prov : ''}`, `Region code ${nik.slice(0, 2)}${prov ? ' → ' + prov : ''}`))(v?.provinceName || card.province)],
+      [dobOk, t(`NIK 속 생년월일 ${v?.dobFromNik ? ocrDob(v.dobFromNik) : nikDob || '?'} ↔ 카드 ${cardDob || '?'}`, `Birth date in the NIK ${v?.dobFromNik ? ocrDob(v.dobFromNik) : nikDob || '?'} ↔ card ${cardDob || '?'}`)],
+      [gOk, t(`NIK 속 성별 ${(v?.genderFromNik ? v.genderFromNik === 'FEMALE' : female) ? '여성' : '남성'} ↔ 카드 ${card.gender || '?'}`, `Gender in the NIK ${(v?.genderFromNik ? v.genderFromNik === 'FEMALE' : female) ? 'female' : 'male'} ↔ card ${card.gender || '?'}`)],
+    ];
+    const issues = v?.issues || [];
+    return { html: rows.map(([b, label]) => `<li>${ok(b)} ${esc(label)}</li>`).join('') + issues.map(i => `<li><span class="bad">!</span> ${esc(i)}</li>`).join(''), passed: v ? v.valid : rows.every(r => r[0] !== false) };
+  }
+
+  function ocrEngine(an) {
+    const real = an && an.model && !String(an.model).startsWith('stub') && !String(an.rawJson || '').startsWith('<demo');
+    return real ? `${t('엔진', 'Engine')}: Claude vision · ${esc(an.model)}` : `<span class="chip">${t('데모 시뮬레이션', 'Demo simulation')}</span> ${t('저장된 판독 결과를 단계별로 재생해요', 'replays the stored reading step by step')}`;
+  }
+
+  async function playOcr() {
+    const run = ++ocrRun, doc = ocrDoc, app = ocrApp, body = $('#ocr-body');
+    const { an, lines, card } = ocrLines(doc, app);
+    const fast = ocrReduced(), wait = ms => fast ? Promise.resolve() : ocrSleep(ms), alive = () => run === ocrRun && !ocrModal.hidden;
+    const G = OCR_LAYOUT, low = 0.9;
+    const steps = [
+      [t('이미지 전처리', 'Pre-processing'), t('그레이스케일 · 대비 보정 · 기울기 보정', 'grayscale · contrast · deskew')],
+      [t('텍스트 영역 검출', 'Text region detection'), ''],
+      [t('문자 인식 (OCR)', 'Character recognition (OCR)'), ''],
+      [t('필드 매핑', 'Field mapping'), ''],
+      [t('NIK 검증', 'NIK checks'), ''],
+    ];
+    body.innerHTML = `<div class="ocr-grid">
+      <div><div class="ocr-stage" id="ocr-stage" style="aspect-ratio:${G.w}/${G.h}"><img id="ocr-img" alt="${esc(t('신분증 이미지', 'ID card image'))}">
+        <svg viewBox="0 0 ${G.w} ${G.h}" preserveAspectRatio="none" aria-hidden="true">${lines.map((x, i) => `<rect class="box" data-i="${i}" x="${x.x}" y="${x.y}" width="${x.w}" height="${x.h}" rx="4"/>`).join('')}<rect class="box face" id="ocr-face" x="${G.face[0]}" y="${G.face[1]}" width="${G.face[2]}" height="${G.face[3]}" rx="6"/></svg>
+        <div class="ocr-scan" id="ocr-scan"></div></div>
+        <p class="sub" style="margin:6px 0 0">${t('주황 = 검출된 텍스트 영역 · 청록 = 인식 완료 · 보라 = 사진 영역 · 오른쪽 줄에 마우스를 올리면 위치가 보여요', 'Orange = detected text · teal = recognised · purple = photo · hover a line on the right to see where it is')}</p></div>
+      <div><ol class="ocr-steps" id="ocr-steps">${steps.map(([a, d], i) => `<li data-s="${i}"><span class="ic">${i + 1}</span><span>${esc(a)}<span class="d">${esc(d)}</span></span></li>`).join('')}</ol>
+        <div class="ocr-lines"><table><thead><tr><th>${t('필드', 'Field')}</th><th>${t('인식된 값', 'Recognised value')}</th><th class="num">${t('신뢰도', 'Confidence')}</th></tr></thead><tbody id="ocr-rows"></tbody></table></div>
+        <ul class="ocr-checks" id="ocr-checks"></ul><div class="ocr-done" id="ocr-done"></div></div></div>`;
+    const stage = $('#ocr-stage'), img = $('#ocr-img'), rects = [...body.querySelectorAll('rect.box[data-i]')], face = $('#ocr-face');
+    const setStep = (i, detail) => body.querySelectorAll('#ocr-steps li').forEach(li => {
+      const s = +li.dataset.s; li.classList.toggle('done', s < i); li.classList.toggle('on', s === i);
+      if (s === i && detail != null) li.querySelector('.d').textContent = detail;
+    });
+    const hover = i => rects.forEach((r, k) => r.classList.toggle('hot', k === i));
+    body.querySelector('#ocr-rows').addEventListener('mouseover', e => { const tr = e.target.closest('tr[data-i]'); hover(tr ? +tr.dataset.i : -1); });
+    body.querySelector('#ocr-rows').addEventListener('mouseleave', () => hover(-1));
+
+    // the image: same blob the document card uses
+    try {
+      let blob = blobs.get(doc.fileUrl);
+      if (!blob) { const res = await fetch(doc.fileUrl); if (!res.ok) throw new Error('HTTP ' + res.status); blob = URL.createObjectURL(await res.blob()); blobs.set(doc.fileUrl, blob); }
+      img.src = blob; await img.decode().catch(() => {});
+      if (img.naturalWidth && img.naturalHeight) stage.style.aspectRatio = `${img.naturalWidth}/${img.naturalHeight}`;
+    } catch (e) { $('#ocr-done').innerHTML = `<p class="notice warn">${t('이미지를 불러오지 못했습니다', 'Could not load the image')} (${esc(e.message)})</p>`; return; }
+    if (!alive()) return;
+
+    // 1. pre-processing
+    setStep(0); stage.classList.add('pre');
+    await wait(900); if (!alive()) return;
+    // 2. detection: the scan line passes each region and it lights up
+    const scanMs = 1700;
+    setStep(1, t(`텍스트 영역 ${lines.length}개 · 사진 영역 1개`, `${lines.length} text regions · 1 photo region`));
+    const scan = $('#ocr-scan'); scan.style.setProperty('--scan-ms', scanMs + 'ms'); if (!fast) scan.classList.add('run');
+    const appear = [...lines.map((x, i) => [x.y, rects[i]]), [G.face[1], face]];
+    if (fast) appear.forEach(([, r]) => r.classList.add('seen'));
+    else await Promise.all(appear.map(([y, r]) => ocrSleep(scanMs * (y / G.h)).then(() => alive() && r.classList.add('seen'))));
+    await wait(250); if (!alive()) return;
+    scan.classList.remove('run'); stage.classList.remove('pre');
+    // 3. recognition, line by line
+    setStep(2, t(`${lines.length}줄 인식 중…`, `reading ${lines.length} lines…`));
+    const rowsEl = $('#ocr-rows');
+    for (let i = 0; i < lines.length; i++) {
+      const x = lines[i];
+      rects[i].classList.add('read'); if (x.conf < low) rects[i].classList.add('low');
+      rowsEl.insertAdjacentHTML('beforeend', `<tr data-i="${i}"><td>${esc(pair(OCR_FIELD, x.key))}</td><td class="${x.mono ? 'mono' : ''}">${esc(x.text)}</td><td class="num ${x.conf < low ? 'mid' : ''}">${pct(x.conf)}</td></tr>`);
+      rowsEl.lastElementChild.scrollIntoView({ block: 'nearest' });
+      await wait(170); if (!alive()) return;
+    }
+    // 4. mapping
+    const avg = lines.reduce((s, x) => s + x.conf, 0) / Math.max(lines.length, 1), lows = lines.filter(x => x.conf < low).length;
+    setStep(3, t(`필드 ${lines.length}개 매핑 · 평균 신뢰도 ${pct(avg)}${lows ? ` · 확인 필요 ${lows}개` : ''}`, `${lines.length} fields mapped · average confidence ${pct(avg)}${lows ? ` · ${lows} to check` : ''}`));
+    await wait(700); if (!alive()) return;
+    // 5. NIK checks
+    const checks = ocrChecks(an, card);
+    setStep(4, checks.passed ? t('모든 항목 통과', 'all checks passed') : t('불일치 항목 있음 → 담당자 검토', 'a mismatch → officer review'));
+    $('#ocr-checks').innerHTML = checks.html;
+    await wait(500); if (!alive()) return;
+    setStep(5);
+    $('#ocr-done').innerHTML = `<p class="notice ${checks.passed ? 'ok' : 'warn'}" style="margin:0">${checks.passed
+      ? t(`판독 완료: ${esc(card.name || '')} · NIK ${esc(card.nik || '')}. 이 값이 '추출 데이터'와 신원·신용 조회에 쓰였어요.`, `Reading complete: ${esc(card.name || '')} · NIK ${esc(card.nik || '')}. These values feed the extracted data and the identity and credit checks.`)
+      : t('NIK와 카드 내용이 맞지 않아 이 신청은 담당자 검토로 넘어갔어요.', 'The NIK and the card disagree, so this application went to an officer.')}</p>`;
+  }
+
+  function openOcr(id, opener) {
+    const doc = (current?.documents || []).find(d => d.id === id); if (!doc) return;
+    ocrDoc = doc; ocrApp = current; ocrOpener = opener;
+    let an = null; try { an = doc.analysis ? JSON.parse(doc.analysis) : null; } catch {}
+    $('#ocr-modal-title').textContent = `${t('OCR 판독 과정', 'OCR reading')} · ${current.applicationNumber}`;
+    $('#ocr-modal-note').innerHTML = `${esc(pair(DOC, doc.type))} · ${esc(fmtTime(doc.createdAt))} · ${ocrEngine(an)}`;
+    $('#ocr-replay').textContent = t('다시 보기 ↻', 'Replay ↻');
+    $('#ocr-close').setAttribute('aria-label', t('닫기', 'Close'));
+    ocrModal.hidden = false; $('#ocr-close').focus();
+    playOcr();
+  }
+  function closeOcr() {
+    if (ocrModal.hidden) return;
+    ocrRun++; ocrModal.hidden = true;
+    if (ocrOpener?.isConnected) ocrOpener.focus();
+  }
+  detail.addEventListener('click', e => { const b = e.target.closest('[data-ocr]'); if (b) openOcr(+b.dataset.ocr, b); });
+  $('#ocr-close').addEventListener('click', closeOcr);
+  $('#ocr-replay').addEventListener('click', () => playOcr());
+  ocrModal.addEventListener('click', e => { if (e.target === ocrModal) closeOcr(); });
   LANG.onChange(() => { if (fdsFor) loadFds(false); });
 
   /* ---------- customer report popup ---------- */

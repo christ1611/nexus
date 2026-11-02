@@ -131,7 +131,7 @@ class ReviewAgentFlowTest @Autowired constructor(
         assertEquals(false, app2.officerReviewRequired)
         assertTrue(app2.reviewSummary!!.startsWith("APPLICATION $number"))
         assertTrue(app2.reviewSummaryKo!!.startsWith("신청 $number"), "the Korean summary is stored for the Korean back office")
-        assertTrue(app2.extractedNik!!.startsWith("317105170590") && app2.extractedNik!!.endsWith("3"), "sample NIK with per-application serial: " + app2.extractedNik)
+        assertTrue(app2.extractedNik!!.startsWith("167108161192") && app2.extractedNik!!.endsWith("3"), "sample NIK with per-application serial: " + app2.extractedNik)
         assertNotNull(app2.idVerificationStatus, "providers ran because the NIK was usable")
         assertNull(sessions.findActiveByPhone(CUSTOMER))
         val dealerNotice = assertIs<OutboundMessage.Buttons>(sentTo(DEALER).single())

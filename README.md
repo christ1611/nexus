@@ -77,7 +77,7 @@ WhatsApp Cloud API 기반 딜러·고객 온보딩 봇입니다. Spring Boot 3 +
 ### 데모 제어 (`src/main/resources/demo-data.yml`)
 
 - `StubDocumentCheck`는 `demo-data.check-delay`(2초)만큼 기다린 뒤 샘플 이름·NIK·생년월일·주소로 PASS를 반환합니다.
-  기본 NIK는 4로 끝나(신용 점수 720) 리스크 등급 **A**와 "재무 정합성 우수" 배지가 나오고, 캡션 `nik1`은 645점으로 **B**, `nik7`은 불일치로 **C**(위조 경고)가 됩니다.
+  기본 NIK(데모 고객 Christianus Frederick Hotama)는 2로 끝나 신용 점수 670, 리스크 등급 **A**이고, 캡션 `nik4`는 720점으로 "재무 정합성 우수" 배지까지 나오며, 캡션 `nik1`은 645점으로 **B**, `nik7`은 불일치로 **C**(위조 경고)가 됩니다.
 - 이미지 캡션에 `blur`가 있으면 "Photo is blurry"로 FAIL.
 - 이미지 캡션에 `nik7`(임의 숫자)이 있으면 데모 NIK 마지막 자리를 덮어씁니다. 스텁 NIK의 일련번호(13~15번째 자리)는 신청번호 끝 세 자리이므로 고객마다 다릅니다.
 - 이미지 캡션에 `dup`이 있으면 **직전 다른 신청의 NIK를 그대로 제출**합니다 → 두 신청 모두 `SHARED_ID_NUMBER`(동일 신분증 다수 제출) 위조 경고, 등급 C 이상.
