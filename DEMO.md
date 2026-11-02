@@ -1,4 +1,4 @@
-# NEXUS ASEAN WhatsApp onboarding - demo runbook
+# NEXUS AI WhatsApp onboarding - demo runbook
 
 Step-by-step script for a live demo of the dealer flow, the customer document journey, the automated checks and the
 back office, played on **two screens at once**: the dashboard on the left, the review page on the right, the customer's
@@ -59,12 +59,13 @@ outgoing messages fail with a 131030 error.
    rm -rf data/wa-webhook.mv.db data/documents
    ```
 
-5. Recommended for the dashboard: add `DEMO_SEED_APPLICATIONS=true` to `wa.env` so the first start creates about 40 fake
-   applications (three countries, eight weeks of history, risk grades, decisions, agent timelines). The live application you
+5. Recommended for the dashboard: add `DEMO_SEED_APPLICATIONS=true` to `wa.env` so the first start creates about 240 fake
+   applications (three countries, twelve demo dealers with six months of history, risk grades, decisions, agent timelines). Seed at
+   least this many: a dealer needs 20 decided applications to reach grade A or S in the 우수 딜러 현황 on the 통계 tab. The live application you
    create on stage then gets the next number after the demo rows. To regenerate or remove them later:
 
    ```bash
-   curl -s -X POST -H 'Content-Type: application/json' -d '{"count":40,"reset":true}' http://localhost:8080/admin/demo/seed
+   curl -s -X POST -H 'Content-Type: application/json' -d '{"count":240,"reset":true}' http://localhost:8080/admin/demo/seed
    curl -s -X DELETE http://localhost:8080/admin/demo/seed
    ```
 
@@ -106,7 +107,7 @@ Lay the projector out once and leave it; every later step only says *left* or *r
 
 | Screen | Open | Then | Keeps itself current |
 | --- | --- | --- | --- |
-| **Left: dashboard** | `https://nexus.jbax.axhub.ai/dashboard` | click the **진행·대기 큐** tab | every 15 s (the pulse "15초마다 자동 갱신" in the header) |
+| **Left: dashboard** | `https://nexus.jbax.axhub.ai/dashboard` | click the **진행 현황** tab | every 15 s (the pulse "15초마다 자동 갱신" in the header) |
 | **Right: review page** | `https://nexus.jbax.axhub.ai/review` | type your name as reviewer, stay on **심사 작업** | queue and statistics every 15 s; an open application's AI timeline every 2 s |
 | **Phone** | the customer's WhatsApp, mirrored if you can | | |
 
@@ -114,17 +115,18 @@ Checks before the audience arrives:
 
 1. Pick the language once with the **한국어 / English** button at the top right of each page; both remember it. The review
    summaries, flag names, tier criteria and copilot answers all follow the switch.
-   The left page starts on **진행·대기 큐** for Acts 1 to 3 (pipeline board, every open application's stage, the review queue) and
-   moves to **개요** for the tiles, the weekly chart and the copilot in Acts 3 and 4.
+   The left page starts on **진행 현황** for Acts 1 and 2 (pipeline board, every open application's stage), moves to **심사 대기 큐**
+   when the application reaches review, and moves to **분석** for the charts and the copilot in Acts 3 and 4.
 2. The left queue and the right queue show the same applications; the demo data (section 1, step 5) gives both something to show.
 3. Both pages pause their refresh while their tab is hidden, so keep both windows visible. The review queue also skips a refresh
    while you are typing in an open application, so a note never gets wiped mid-sentence.
-4. Resize so the left window shows the summary tiles and the queue at once, and the right window shows the queue list with
+4. Resize so the left window shows a whole tab at once, and the right window shows the queue list with
    the detail panel below it.
 
 What the audience will see without anyone touching the laptop: the application you create on the right appears on the
 left within 15 seconds, walks through the pipeline stage by stage while the customer sends photos, lands in both queues at
-the same moment, and leaves both when you decide.
+the same moment, and leaves both when you decide. The left window shows one tab at a time, so press **심사 대기 큐** there when its count
+badge turns yellow. A new row and the badge stay marked for 3 minutes, or until you click the row. The **진행 현황** tab does the same when a new application is created.
 
 ---
 
@@ -151,7 +153,7 @@ right away. The QR code / link works regardless.
 
 | # | On the dealer phone | What comes back | Say |
 | --- | --- | --- | --- |
-| 1 | send `hi` | list menu "NEXUS ASEAN Dealer Desk": New application / Check status / Help | "Only registered dealer numbers get this menu; anyone else gets a polite rejection." |
+| 1 | send `hi` | list menu "NEXUS AI Dealer Desk": New application / Check status / Help | "Only registered dealer numbers get this menu; anyone else gets a polite rejection." |
 | 2 | tap **New application** | buttons Yes, create / Cancel | |
 | 3 | tap **Yes, create** | application number `APP-2026-001001` plus a one-time form link, then a second message to forward to the customer with a `wa.me/...?text=START APP-2026-001001` link | "The dealer never types anything; the link pre-fills the START message for the customer." |
 | 4 | forward that second message to the customer phone | | |
@@ -204,11 +206,11 @@ within 15 seconds.
 | # | Right: review page | Phone | Left: dashboard | Say |
 | --- | --- | --- | --- | --- |
 | 1 | walk down the open application: the KTP and selfie images (click to enlarge), 추출 데이터, Dukcapil / PEFINDO results, the **Risk Flag** card with its evidence, the officer timeline (서류 접수 완료, 리스크 평가) | | | "Everything the officer needs is on one page, with the evidence behind every flag." |
-| 2 | open **자동 리뷰 요약** in the header card; flip the language button once | | | "The intake agent wrote the summary twice, Korean and English; the officer reads whichever language the page is in." |
-| 3 | under **심사 결정 → 고객 서류 재요청** tick **신분증 (KTP)**, type `the photo is blurry`, press **📷 고객에게 재요청** | the customer receives "our review team ... needs the following again: KTP ..." and "Step 1 of 2"; the dealer gets a heads-up | within 15 s: it has left both queues and is back under **진행 중인 신청** at **신분증** (on the 개요 tab, **고객 서류 재요청 중** ticks up and **심사 대기** down) | "Sending the customer back is one click, and the manager sees it as a stage, not a lost application." |
+| 2 | open **자동 리뷰 요약** below the copilot; flip the language button once | | | "The intake agent wrote the summary twice, Korean and English; the officer reads whichever language the page is in." |
+| 3 | under **심사 결정 → 고객 서류 재요청** tick **신분증 (KTP)**, type `the photo is blurry`, press **📷 고객에게 재요청** | the customer receives "our review team ... needs the following again: KTP ..." and "Step 1 of 2"; the dealer gets a heads-up | within 15 s: it has left both queues; on the 진행 현황 tab it is back under **진행 중인 신청** at **신분증** (on the 분석 tab, **고객 서류 재요청 중** ticks up and **심사 대기** down) | "Sending the customer back is one click, and the manager sees it as a stage, not a lost application." |
 | 4 | keep the application open | send a new KTP photo (caption `nik4` for the happy path) | the checks and lookups run again (timeline, 2 s); the application returns to both queues, now grade **A** with the badge **재무 정합성 및 담보 안정성 우수 고객** | "Same customer, usable ID: match on both registries, score 720, grade A." |
-| 5 | type a note and press **승인** | the dealer gets "Application approved"; the customer gets the approval message with the note | within 15 s: the application leaves the **심사 대기 큐**; switch the left to **개요**: **승인** ticks up and the current week's bar in 주간 추이 grows by one | "The decision is a person's, with a name and a note, and the dashboard reflects it in the same quarter minute." |
-| 6 | press **📄 고객 리포트**, then **📑 근거 보고서 PDF** if asked | | | "One page of evidence per decision, both languages, for the audit file." |
+| 5 | type a note and press **승인** | the dealer gets "Application approved"; the customer gets the approval message with the note | within 15 s: the application leaves the **심사 대기 큐**; switch the left to **분석**: the **승인** bar and figure tick up | "The decision is a person's, with a name and a note, and the dashboard reflects it in the same quarter minute." |
+| 6 | once decided, the report buttons appear at the right of the application number: press **📄 고객 리포트**, then **📑 근거 보고서 PDF** if asked | | | "One page of evidence per decision, both languages, for the audit file." |
 
 Rejecting instead of approving (**거절**) moves the same numbers to **거절**. A second decision on the same application is refused.
 
@@ -254,11 +256,13 @@ click them rather than typing. Answers follow the page language.
 
 | # | Where | Click | What comes back | Say |
 | --- | --- | --- | --- | --- |
-| 1 | **Left**, 개요 tab, **AI 대시보드 코파일럿** | **현재 고위험 비율 기준을?** | the definition (grade C or D over assessed applications), the excellent dealer bar of 15 %, and the current share overall, per dealer tier and per country, each marked 기준 충족 or 기준 초과, plus any dealers over the bar | "The standard and today's figure in one answer, from the same statistics the tiles show." |
+| 1 | **Left**, 분석 tab, **NEXUS AI** | **현재 고위험 비율 기준을?** | the definition (grade C or D over assessed applications), the excellent dealer bar of 15 %, and the current share overall, per dealer tier and per country, each marked 기준 충족 or 기준 초과, plus any dealers over the bar | "The standard and today's figure in one answer, from the same statistics the tiles show." |
 | 2 | **Left** | **심사 대기 큐에서 먼저 볼 신청은?** | the applications at the top of the queue, each with its grade, fraud warnings and waiting time (ask this before Act 3 step 5 and the live application is named first) | "The copilot ranks; the officer opens." |
-| 3 | **Right**, open application, **AI 심사 코파일럿** | **이 등급·점수가 나온 이유를 설명해줘** | the flags that make up the score and their evidence, from this application's case file | "Grounded in the case file, nothing invented; ID numbers reach the model masked to their last four digits." |
+| 3 | **Right**, open application, **NEXUS AI** | **이 등급·점수가 나온 이유를 설명해줘** | the flags that make up the score and their evidence, from this application's case file | "Grounded in the case file, nothing invented; ID numbers reach the model masked to their last four digits." |
 | 4 | **Right** | **승인해도 될까? 조건은?** | conditions tied to the flags; it will not decide | "It advises. The approve button stays with the person." |
-| 5 | **Left**, 우수 딜러 tab | the **우수 딜러 기준** button | the tier criteria, including the 15 % high-risk share the copilot just quoted | |
+| 5 | **Left**, 통계 tab, 우수 딜러 현황 | the **우수 딜러 기준** button | the tier criteria, including the 15 % high-risk share the copilot just quoted | |
+
+To run the copilots on a local model, follow [OLLAMA_DEMO.md](OLLAMA_DEMO.md); the back office must then run on `localhost:8080`.
 
 Without an `ANTHROPIC_API_KEY` the copilots answer from rules (the badge next to the title says so); with one they answer
 through Claude from the same case file. Either way the suggested questions work.
@@ -315,12 +319,12 @@ until the key is accepted; the page refreshes every 15 seconds and pauses while 
 
 What to point at:
 
-1. **개요 tab, summary tiles** - total applications, in progress, ready for review, approved, rejected, high-risk customers (grade C/D),
+1. **분석 tab, charts and the small figures under them** - total applications, in progress, ready for review, approved, rejected, high-risk customers (grade C/D),
    fraud/forgery warnings, officer review required, documents requested from customers, oldest waiting, average time to decision and
-   applications stalled for a day. The **주간 추이** chart shows applications per week by country with the high-risk count above each week.
-   **진행·대기 큐 tab** - every open application at its pipeline stage (신청 생성 → 고객 연결 → 개인정보 동의 → 신분증 → 셀피 → 신원·신용 조회 →
-   리스크 평가 → 심사 → 결정) and the **심사 대기 큐** an officer should open next (click a number to jump to `/review`).
-2. **국가·딜러 tab** - Indonesia, Myanmar and Cambodia are always listed. Dealers `DLR-003` / `DLR-004` are the Myanmar and
+   applications stalled for a day.
+   **진행 현황 tab** - every open application at its pipeline stage (신청 생성 → 고객 연결 → 개인정보 동의 → 신분증 → 셀피 → 신원·신용 조회 →
+   리스크 평가 → 심사 → 결정). **심사 대기 큐 tab** - the applications an officer should open next (click a number to jump to `/review`).
+2. **통계 tab, country buttons** - Indonesia, Myanmar and Cambodia are always listed. Dealers `DLR-003` / `DLR-004` are the Myanmar and
    Cambodia demo dealers; give them a phone in `wa.env` to produce rows for those countries (their verification runs on the
    mock NRC / GDI registries and credit bureaus).
 3. **리스크·사기 tab, Risk Flag · 위조/사기 감지 경고** - the application you created with caption `nik7` appears here as grade **C** with the
@@ -330,8 +334,8 @@ What to point at:
 5. With `DOCUMENT_CHECK=claude`, screen photos, tampering, wrong document types, invalid NIKs and a selfie holding a different
    KTP become additional fraud flags, and the method column switches to "Claude 비전 + 규칙".
 
-6. **AI 에이전트 tab** - what the pipeline and the review agent did across all applications; **우수 딜러 tab** - the tier comparison,
-   the ranking and the **우수 딜러 기준** button with the criteria.
+6. **AI 에이전트 tab** - what the pipeline and the review agent did across all applications; **통계 tab** - the review figures for the market you choose,
+   then the excellent dealers: the summary, the top three, the ranking with a detail panel (click any dealer), the scoring rules and the **우수 딜러 기준** button.
 
 Hover a bar or a flag chip for the exact numbers and evidence. `POST /admin/risk/reassess-all` recomputes every grade after a rule change.
 

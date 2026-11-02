@@ -95,24 +95,24 @@ class ApplyLinkController(
             """
             <!doctype html>
             <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta name="theme-color" content="#0a31a8">
+            <meta name="theme-color" content="#0b3c49">
             <link rel="icon" type="image/svg+xml" href="/icons/icon.svg"><link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png"><link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
-            <title>${esc(title)} · JB금융그룹 NEXUS ASEAN</title>
+            <title>${esc(title)} · JB금융그룹 NEXUS AI</title>
             <style>
-              body{font-family:"SUIT Variable",-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Segoe UI",Roboto,sans-serif;max-width:640px;margin:0 auto;padding:0 1rem 2rem;color:#1a1f2e;background:#f5f7fa;line-height:1.5}
-              .brand{display:flex;align-items:center;gap:.6rem;padding:1.1rem 0 1.25rem;border-top:4px solid #0a31a8;margin:0 -1rem 1.25rem;padding-left:1rem;padding-right:1rem;background:#fff;border-bottom:1px solid #e1e5ee}
-              .brand .mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0a31a8,#1c56ff);color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px}
-              .brand .group{font-size:.8rem;font-weight:700;color:#0a31a8} .brand .svc{color:#728197;font-weight:500;margin-left:.4rem}
-              h1{font-size:1.3rem;margin:0 0 .75rem;letter-spacing:-.01em} .card{background:#fff;border:1px solid #e1e5ee;border-radius:16px;padding:1.5rem;box-shadow:0 1px 2px rgba(13,45,119,.06),0 4px 16px rgba(13,45,119,.04)}
-              button{background:#0a31a8;color:#fff;border:0;border-radius:999px;padding:.65rem 1.4rem;font:inherit;font-weight:600;font-size:1rem;cursor:pointer} button:hover{background:#1c56ff}
-              textarea{width:100%;max-width:100%;border:1px solid #e1e5ee;border-radius:10px;padding:.6rem;font:inherit}
-              textarea:focus-visible{outline:none;border-color:#0a31a8;box-shadow:0 0 0 3px #eaf0ff}
-              footer{margin-top:1.25rem;font-size:.75rem;color:#728197}
+              body{font-family:"SUIT Variable",-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Segoe UI",Roboto,sans-serif;max-width:640px;margin:0 auto;padding:0 1rem 2rem;color:#1f2933;background:#f5f9fa;line-height:1.5}
+              .brand{display:flex;align-items:center;gap:.6rem;padding:1.1rem 0 1.25rem;border-top:4px solid #0b3c49;margin:0 -1rem 1.25rem;padding-left:1rem;padding-right:1rem;background:#fff;border-bottom:1px solid #d5e0e3}
+              .brand .mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0b3c49,#028090);color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px}
+              .brand .group{font-size:.8rem;font-weight:700;color:#0b3c49} .brand .svc{color:#5f6c72;font-weight:500;margin-left:.4rem}
+              h1{font-size:1.3rem;margin:0 0 .75rem;letter-spacing:-.01em} .card{background:#fff;border:1px solid #d5e0e3;border-radius:16px;padding:1.5rem;box-shadow:0 1px 2px rgba(11,60,73,.06),0 4px 16px rgba(11,60,73,.04)}
+              button{background:#0b3c49;color:#fff;border:0;border-radius:999px;padding:.65rem 1.4rem;font:inherit;font-weight:600;font-size:1rem;cursor:pointer} button:hover{background:#028090}
+              textarea{width:100%;max-width:100%;border:1px solid #d5e0e3;border-radius:10px;padding:.6rem;font:inherit}
+              textarea:focus-visible{outline:none;border-color:#0b3c49;box-shadow:0 0 0 3px #e6f2f3}
+              footer{margin-top:1.25rem;font-size:.75rem;color:#5f6c72}
             </style></head>
             <body>
-            <div class="brand"><span class="mark" aria-hidden="true">JB</span><div class="group">JB금융그룹 <span class="svc">NEXUS ASEAN</span></div></div>
+            <div class="brand"><span class="mark" aria-hidden="true">JB</span><div class="group">JB금융그룹 <span class="svc">NEXUS AI</span></div></div>
             <div class="card"><h1>${esc(title)}</h1>$body</div>
-            <footer>JB금융그룹 · NEXUS ASEAN dealer onboarding</footer>
+            <footer>JB금융그룹 · NEXUS AI dealer onboarding</footer>
             </body></html>
             """.trimIndent(),
         )

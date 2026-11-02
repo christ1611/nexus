@@ -116,13 +116,13 @@ class DecisionReportService(
         val doc = Document(PageSize.A4, 40f, 40f, 40f, 44f)
         PdfWriter.getInstance(doc, out)
         doc.addTitle("Decision evidence report ${app.applicationNumber}")
-        doc.addAuthor("NEXUS ASEAN onboarding back office")
+        doc.addAuthor("NEXUS AI onboarding back office")
         doc.open()
 
         // Header: brand, title, application number and report identity.
         val head = PdfPTable(floatArrayOf(3f, 2f)).also { it.widthPercentage = 100f }
         head.addCell(plain(Phrase().apply {
-            add(chunk("JB금융그룹 NEXUS ASEAN · WhatsApp 온보딩 백오피스\n", font(8f, color = GREY)))
+            add(chunk("JB금융그룹 NEXUS AI · WhatsApp 온보딩 백오피스\n", font(8f, color = GREY)))
             add(chunk("심사 근거 보고서\n", font(17f, Font.BOLD, BRAND)))
             add(chunk("Decision Evidence Report", font(11f, color = GREY)))
         }))
@@ -266,8 +266,8 @@ class DecisionReportService(
             doc.add(table)
         }
 
-        doc.add(Paragraph(txt("이 보고서는 NEXUS ASEAN 온보딩 백오피스가 결정 시점의 저장 데이터로 자동 생성했습니다. 근거 지문(SHA-256 앞 16자리)은 신청번호·결정·점수·Flag·서류 식별자로 계산되며, 같은 데이터면 같은 값이 나옵니다. " +
-            "Generated automatically by the NEXUS ASEAN onboarding back office from the data stored at decision time. The evidence fingerprint (first 16 hex digits of SHA-256) is computed from the application number, decision, score, flags and document identifiers."), font(7f, color = GREY)).apply { spacingBefore = 14f })
+        doc.add(Paragraph(txt("이 보고서는 NEXUS AI 온보딩 백오피스가 결정 시점의 저장 데이터로 자동 생성했습니다. 근거 지문(SHA-256 앞 16자리)은 신청번호·결정·점수·Flag·서류 식별자로 계산되며, 같은 데이터면 같은 값이 나옵니다. " +
+            "Generated automatically by the NEXUS AI onboarding back office from the data stored at decision time. The evidence fingerprint (first 16 hex digits of SHA-256) is computed from the application number, decision, score, flags and document identifiers."), font(7f, color = GREY)).apply { spacingBefore = 14f })
         doc.close()
         return out.toByteArray()
     }
@@ -320,11 +320,11 @@ class DecisionReportService(
     }
 
     private companion object {
-        val BRAND = Color(0x0a, 0x31, 0xa8)
-        val TINT = Color(0xf3, 0xf5, 0xf9)
-        val GRID = Color(0xe1, 0xe5, 0xee)
-        val GREY = Color(0x72, 0x81, 0x97)
-        val RED = Color(0xd9, 0x30, 0x25)
+        val BRAND = Color(0x0b, 0x3c, 0x49)
+        val TINT = Color(0xe6, 0xf2, 0xf3)
+        val GRID = Color(0xd5, 0xe0, 0xe3)
+        val GREY = Color(0x5f, 0x6c, 0x72)
+        val RED = Color(0xc0, 0x39, 0x2b)
         val ORANGE = Color(0xec, 0x7a, 0x3c)
         val AMBER = Color(0xb8, 0x86, 0x00)
         val GOOD = Color(0x0e, 0x9f, 0x6e)

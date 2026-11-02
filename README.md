@@ -1,5 +1,5 @@
 <a id="korean"></a>
-# NEXUS ASEAN WhatsApp 온보딩 웹훅 (wa-webhook)
+# NEXUS AI WhatsApp 온보딩 웹훅 (wa-webhook)
 
 **한국어** | [English](#english)
 
@@ -177,12 +177,15 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 1. 앱 실행 후 브라우저에서 `http://localhost:8080/dashboard` (또는 `https://nexus.jbax.axhub.ai/dashboard`)을 엽니다. 열면 바로 데이터를 불러옵니다. 헤더의 **대시보드 | 심사** 스위치로 심사 화면과 오갑니다.
 2. 페이지가 `GET /admin/dashboard/stats`를 호출하고 15초마다 자동 갱신됩니다.
-3. 섹션: 요약 타일(총 신청·진행 중·심사 대기·승인·거절·고위험·위조 경고·담당자 검토), 국가별 신청 현황(상태 누적 막대), 리스크 등급 분포, 국가별 통계 표,
-   **Risk Flag · 위조/사기 감지 경고**(고위험 고객 목록: 등급·점수·플래그 칩·배지·평가 방식), Risk Flag 발생 건수, 고객 배지 요약, 온보딩 퍼널, 딜러별 현황, 최근 신청.
-4. 차트는 외부 라이브러리 없이 인라인 SVG로 그리며 라이트/다크 모드와 색각 이상 검증(국가 3색: 파랑·주황·청록, 등급은 상태색 + 아이콘 + 라벨)을 거쳤습니다.
-5. 탭 구성: **개요**(요약 타일 · AI 코파일럿 · 주간 추이 · 국가별 신청 현황), **진행·대기 큐**(온보딩 진행 현황 · 진행 중인 신청 · 심사 대기 큐), 리스크·사기, 국가·딜러, AI 에이전트, 우수 딜러.
-   우수 딜러 탭의 **우수 딜러 기준 보기** 버튼은 등급의 의미, 기준(최근 6~12개월 결정 20건 이상 · 승인율 70%↑ · 고위험 비율 15%↓ · 위조 경고 0건 · 신원 일치율 90%↑ · 재요청 비율 10%↓ · 활동 6개월↑)과 분기 검토 규칙을 한국어/영어로 보여 줍니다.
-6. **AI 코파일럿** (개요 탭, 요약 타일 바로 아래): 심사 화면의 코파일럿과 같은 레이아웃으로, 대시보드가 보여주는 통계 전체(요약·파이프라인·심사 대기 큐·주간 추이·국가·Risk Flag·딜러·AI 에이전트 활동)를 포트폴리오 파일로 묶어 질문에 답합니다(`POST /admin/dashboard/copilot`).
+3. 리스크·사기 탭: 리스크 등급 분포, **Risk Flag · 위조/사기 감지 경고**(고위험 고객 목록: 등급·점수·플래그 칩·배지·평가 방식), Risk Flag 발생 건수, 고객 배지 요약.
+4. 차트는 외부 라이브러리 없이 인라인 SVG로 그리며 라이트/다크 모드를 지원하며, 등급은 상태색 + 아이콘 + 라벨로 표시합니다.
+5. 탭 구성: **통계**(국가별 심사통계: 월간 요약 · 월별 심사 결과 · 승인율과 Agent 자동 처리 비율 · 거절 사유 · 위조·사기 플래그 유형 · 평균 심사 소요시간 · 우수 딜러 현황), **분석**(신청 현황 · 확인이 필요한 신청 · 심사 대기 시간 그래프, 작은 수치 요약 · AI 코파일럿), **진행 현황**(온보딩 진행 현황 · 진행 중인 신청, 단계 숫자를 누르면 그 단계의 신청만 표시), **심사 대기 큐**(리스크 높은 순). 진행 중인 신청과 심사 대기 큐에 새로 들어온 신청은 행과 탭의 건수 배지가 3분간 다른 색으로 표시(행을 누르면 해제), 리스크·사기, AI 에이전트.
+   리스크·사기 탭 위쪽은 FDS 링크 분석 콘솔입니다: 신청(원)과 그 신청들이 공유하는 신분증 번호·전화번호·이름, 딜러(마름모)를 움직이는 연결망으로 그리고, 노드 상세와 최근 탐지 피드를 함께 보여 줍니다. 저장된 데이터만 사용하며 기기·IP·계좌 정보는 이 시스템에 없어 쓰지 않습니다. 색은 리스크 등급을 따르고 사기 확정을 뜻하지 않습니다.
+   심사 화면의 등급 오른쪽 **사기 연결망 보기** 버튼은 위조·사기 경고가 있거나 다른 신청과 연결된 신청에만 나타나며, 같은 콘솔(`static/fds.js`)을 팝업으로 열어 그 신청과 관련된 묶음만 보여 줍니다.
+   통계 탭의 우수 딜러 현황은 선택한 국가를 따릅니다: 요약 4칸, TOP 3, 딜러 순위(등급 필터·검색), 선택 딜러 상세(점수 구성·주요 지표·6개월 추이), 선정 기준. 종합점수(`DealerScorecard`)는 최근 6개월의 고객 리스크 35 · 위조·사기 경고 25 · 서류 완결도 15 · 승인율 15 · 결정 건수 10으로 계산하고, 등급은 S 92↑ · A 70↑ · B 50↑ · 관리입니다. 위조 경고가 있거나 결정이 20건 미만이면 B를 넘지 못하고, 평가 5건 미만이면 평가 전으로 표시합니다. 이 시스템에는 상환 데이터와 취급액이 없어 연체율·취급액은 쓰지 않습니다.
+   **우수 딜러 기준 보기** 버튼은 등급의 의미, 기준(최근 6~12개월 결정 20건 이상 · 승인율 70%↑ · 고위험 비율 15%↓ · 위조 경고 0건 · 신원 일치율 90%↑ · 재요청 비율 10%↓ · 활동 6개월↑)과 분기 검토 규칙을 한국어/영어로 보여 줍니다.
+   로컬 모델로 답하게 하려면 `COPILOT_ENGINE=ollama`를 설정합니다. 실행 방법은 [OLLAMA_DEMO.md](OLLAMA_DEMO.md)를 보세요.
+6. **AI 코파일럿** (분석 탭, 그래프와 수치 요약 아래): 심사 화면의 코파일럿과 같은 레이아웃으로, 대시보드가 보여주는 통계 전체(요약·파이프라인·심사 대기 큐·주간 추이·국가·Risk Flag·딜러·AI 에이전트 활동)를 포트폴리오 파일로 묶어 질문에 답합니다(`POST /admin/dashboard/copilot`).
    추천 질문(전체 현황 요약, 먼저 볼 신청, 국가별 고위험 비율, 최다 위조 Flag, 우수 딜러 vs 일반 딜러, 주간 추이, AI 에이전트 활동)을 누르거나 직접 입력하고, 답변 속 신청번호는 심사 화면 링크입니다.
    `DOCUMENT_CHECK=claude`면 Claude가, 아니면 규칙 엔진이 답합니다. 두 경우 모두 `NEXUS AI` 이름으로 표시되고(`COPILOT_LABEL`), 잠깐의 생각 시간과 타이핑 효과 뒤에 답이 나타나며, 엔진 표시는 `COPILOT_SHOW_ENGINE=true`일 때만 붙습니다. 대화와 입력 중인 질문은 15초 자동 갱신에도 유지됩니다. 개별 신청의 서류·근거는 보지 못하므로 심사 화면으로 안내합니다.
 
@@ -196,11 +199,11 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 
 1. 앱 실행 후 `http://localhost:8080/review` (또는 `https://nexus.jbax.axhub.ai/review`)를 엽니다. 열면 바로 심사 큐를 불러옵니다.
    **심사자 이름**을 입력하면 결정·메모·재요청에 기록됩니다(로그인이 아니라 기록용).
-2. **심사 큐(왼쪽)**: 기본은 열린 건만, 심사 대기 → 폼 제출 → 재요청 중 → 작성 중 순, 같은 상태 안에서는 리스크 점수 높은 순·오래된 순.
+2. **심사 큐(왼쪽)**: 기본은 열린 건만, 최신 신청 순. 새 신청은 맨 위에 나타나고 3분간 깜박이며, 누르면 멈춥니다.
    상태 / 국가 / 등급 필터와 신청번호·고객·딜러 검색, 15초 자동 갱신. 대시보드의 신청번호를 누르면 `/review?app=번호`로 바로 열립니다.
-3. **신청 상세(오른쪽)**: 상태·AI 리스크 등급(점수, 위조 경고 수, 평가 방식)·배지 → **심사 결정** → **서류**(이미지 썸네일, 클릭하면 확대, 검사 결과·캡션·감지 종류,
+3. **신청 상세(오른쪽)**: 상태·AI 리스크 등급(점수, 위조 경고 수, 평가 방식)·배지 → **NEXUS AI** → **자동 리뷰 요약** → **서류**(이미지 썸네일, 클릭하면 확대, 검사 결과·캡션·감지 종류,
    Claude 모드에서는 품질 문제·필드별 신뢰도·NIK 검증·검토 사유까지, 이전 제출본은 접힘) → **추출 데이터** / **신원·신용 조회** → **Risk Flag · 근거**(심각도 아이콘, 출처, 증거 문장) →
-   **자동 리뷰 요약**(Claude 모드) → **심사 이력**(타임라인).
+   **AI Agent 판단 타임라인** → **심사 결정** → **심사 이력**(타임라인).
 4. **심사 결정 카드의 동작**
 
    | 동작 | 결과 | 알림 |
@@ -253,8 +256,8 @@ Claude 서버 측 거절 폴백은 켜지 않았고, 거절은 "담당자 검토
 자리표시자 서류 이미지(`DEMO SAMPLE` 표시), 신원·신용 조회 결과, **실제 `RiskRules`로 계산한 등급·플래그·배지**, 심사자 결정(승인/거절/서류 재요청/메모),
 심사 이력과 AI Agent 판단 타임라인(일부는 Claude 비전·에이전트 턴 포함)이 함께 생성됩니다. WhatsApp 메시지는 전혀 보내지 않습니다.
 
-- 기동 시 자동: `wa.env`에 `DEMO_SEED_APPLICATIONS=true` (개수 `DEMO_SEED_COUNT`, 기본 40). 이미 데모 데이터가 있으면 다시 만들지 않습니다.
-- 수동: `POST /admin/demo/seed` 본문 `{"count": 40, "reset": true}` (reset이면 기존 데모 데이터 삭제 후 생성), 현황 `GET /admin/demo/seed`, 삭제 `DELETE /admin/demo/seed`.
+- 기동 시 자동: `wa.env`에 `DEMO_SEED_APPLICATIONS=true` (개수 `DEMO_SEED_COUNT`, 기본 240). 이미 데모 데이터가 있으면 다시 만들지 않습니다.
+- 수동: `POST /admin/demo/seed` 본문 `{"count": 240, "reset": true}` (reset이면 기존 데모 데이터 삭제 후 생성), 현황 `GET /admin/demo/seed`, 삭제 `DELETE /admin/demo/seed`.
 - 데모 행은 `APPLICATIONS.demo_seed = true`로 표시되고 대시보드 하단에 "데모 데이터 n건 포함"이 보입니다. 삭제하면 세션·서류 파일·이력·타임라인까지 함께 지워집니다.
 - MM/KH 딜러가 `wa.env`에 없으면 `DLR-DEMO-MM` / `DLR-DEMO-KH` 자리표시자 딜러가 만들어지며, 데모 데이터를 지우면 함께 제거됩니다.
 - 신청번호는 실제 시퀀스를 쓰므로 라이브 데모의 번호는 데모 데이터 다음 번호부터 시작합니다.
@@ -464,8 +467,8 @@ Every action lands in `REVIEW_EVENTS` and the API gained `GET /admin/application
 `GET /admin/applications/{n}/documents/{id}/file`, `POST .../request-documents`, `POST .../note`, plus `reviewer` on the existing POSTs
 and `customerNotified` in their responses.
 
-**Demo data.** `DEMO_SEED_APPLICATIONS=true` (or `POST /admin/demo/seed {"count":40,"reset":true}`) creates fake applications across
-the three countries over the last eight weeks with placeholder document images, provider results, real rule-based risk grades, officer
+**Demo data.** `DEMO_SEED_APPLICATIONS=true` (or `POST /admin/demo/seed {"count":240,"reset":true}`) creates fake applications for twelve demo dealers across
+the three countries over the last five months, each dealer with its own record (excellent dealers meet the written standard) with placeholder document images, provider results, real rule-based risk grades, officer
 decisions, review events and agent-timeline steps, without sending any WhatsApp message; `DELETE /admin/demo/seed` removes them.
 
 **AI agent timeline (Step 4b).** Every step the pipeline and the review agent take is stored in `AGENT_STEPS` and shown on the
@@ -487,7 +490,7 @@ age out of range). The rules that turn evidence into flags and grades live in co
 explainable and can be recomputed with `POST /admin/risk/reassess-all`. In stub mode only the provider and behaviour rules apply,
 and the dashboard labels the method ("Claude vision + rules" vs "rules (stub)").
 
-The dashboard also has an **AI copilot card** (overview tab, right under the summary tiles; the pipeline board and the review queue have their own "Pipeline & queue" tab, and a header switch moves between the dashboard and the review page) with the same layout as the review page's copilot: it answers portfolio-level
+The dashboard also has an **AI copilot card** (Analysis tab, right under the summary tiles; the pipeline board and the review queue each have their own tab, "Pipeline" and "Review queue", and a header switch moves between the dashboard and the review page) with the same layout as the review page's copilot: it answers portfolio-level
 questions (what to review first, high-risk share by country, the most frequent fraud flags, excellent vs standard dealers, the
 weekly trend, what the AI agents did) from the same statistics the page shows, written out as a portfolio file for Claude
 (`POST /admin/dashboard/copilot`; a rule-based summary answers without an API key). Application numbers in the answers link to

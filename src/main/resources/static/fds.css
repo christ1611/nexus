@@ -1,0 +1,55 @@
+/* FDS console: dark on purpose in both themes, like a monitoring screen. Everything on it comes from the stats and the fraud network. */
+.fds { --f-bg: #062530; --f-panel: #0b3c49; --f-line: #1b5563; --f-ink: #e6f2f3; --f-mute: #9cb8be; --f-fraud: #ff6b5e; --f-susp: #f2a541; --f-ok: #5f8f9a; --f-attr: #5cc8d4; --f-dealer: #cfe3e6;
+  background: var(--f-bg); color: var(--f-ink); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.fds-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fds-brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; }
+.fds-live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--f-fraud); border: 1px solid rgba(255, 107, 94, .4); border-radius: 5px; padding: 2px 8px; }
+.fds-live i { width: 7px; height: 7px; border-radius: 50%; background: var(--f-fraud); animation: fds-pulse 1.4s infinite; }
+.fds-clock { margin-left: auto; font-size: 12px; color: var(--f-mute); font-variant-numeric: tabular-nums; }
+.fds-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.fds-kpi { background: var(--f-panel); border: 1px solid var(--f-line); border-radius: 10px; padding: 10px 14px; position: relative; min-width: 0; }
+.fds-kpi span { display: block; font-size: 12px; color: var(--f-mute); }
+.fds-kpi b { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.fds-kpi.hot b { color: var(--f-fraud); } .fds-kpi.warn b { color: var(--f-susp); }
+.fds-kpi svg { position: absolute; right: 12px; bottom: 14px; width: 70px; height: 22px; }
+.fds-brand svg { width: 22px; height: 22px; flex: none; }
+.fds-gauge svg { width: 64px; height: 58px; flex: none; }
+.fds-kpi.flash { animation: fds-flash .9s ease-out; }
+@keyframes fds-flash { from { box-shadow: 0 0 0 2px var(--f-fraud); } to { box-shadow: 0 0 0 2px transparent; } }
+.fds-main { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 12px; }
+.fds-stage { position: relative; min-height: 560px; background: radial-gradient(circle at 50% 45%, #114c5a, var(--f-panel) 70%); border: 1px solid var(--f-line); border-radius: 10px; overflow: hidden; }
+.fds-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
+.fds-tools { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; }
+.fds button.fds-btn, .fds a.fds-btn { font: inherit; font-size: 12px; font-weight: 600; padding: 6px 11px; border-radius: 6px; border: 1px solid var(--f-line); background: var(--f-bg); color: var(--f-ink); cursor: pointer; text-decoration: none; text-align: center; }
+.fds button.fds-btn:hover:not(:disabled), .fds a.fds-btn:hover { border-color: var(--f-attr); color: var(--f-attr); background: var(--f-bg); }
+.fds button.fds-btn[aria-pressed="true"] { border-color: var(--f-attr); color: var(--f-attr); }
+.fds-legend { position: absolute; left: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 4px 12px; background: rgba(6, 37, 48, .85); border: 1px solid var(--f-line); border-radius: 6px; padding: 6px 10px; font-size: 11px; color: var(--f-mute); }
+.fds-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+.fds-legend i.sq { border-radius: 0; transform: rotate(45deg); }
+.fds-tip { position: absolute; pointer-events: none; background: #000; border: 1px solid var(--f-line); border-radius: 5px; padding: 4px 8px; font-size: 12px; white-space: nowrap; z-index: 3; }
+.fds-none[hidden], .fds-tip[hidden] { display: none; }
+.fds-none { position: absolute; inset: 0; display: grid; place-items: center; color: var(--f-mute); text-align: center; padding: 20px; pointer-events: none; }
+.fds-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.fds-card { background: var(--f-panel); border: 1px solid var(--f-line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.fds-card h3 { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--f-mute); }
+.fds-name { font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.fds-chip { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 4px; margin-left: 6px; vertical-align: 2px; }
+.fds-chip.f { color: var(--f-fraud); background: rgba(255, 107, 94, .15); } .fds-chip.s { color: var(--f-susp); background: rgba(242, 165, 65, .15); } .fds-chip.o { color: #b7d3d7; background: rgba(95, 143, 154, .25); }
+.fds-gauge { display: flex; gap: 12px; align-items: center; margin: 10px 0; }
+.fds-rows { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-size: 12px; flex: 1; min-width: 0; }
+.fds-rows dt { color: var(--f-mute); } .fds-rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fds-rules { list-style: none; margin: 8px 0; padding: 0; font-size: 12px; display: flex; flex-direction: column; gap: 5px; }
+.fds-rules li { padding-left: 13px; position: relative; } .fds-rules li::before { content: ""; position: absolute; left: 0; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--f-fraud); }
+.fds-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.fds-feed { flex: 1; }
+.fds-feed ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto; scrollbar-width: thin; }
+.fds-feed li { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: baseline; font-size: 12px; background: var(--f-bg); border-left: 2px solid var(--sev); border-radius: 4px; padding: 6px 8px; cursor: pointer; }
+.fds-feed li:hover { background: #0e4656; }
+.fds-feed li.new { animation: fds-new 1.6s ease-out; }
+@keyframes fds-new { from { background: var(--sev); } }
+.fds-feed time { color: var(--f-mute); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fds-feed b { color: var(--sev); font-variant-numeric: tabular-nums; }
+@media (max-width: 1000px) { .fds-main { grid-template-columns: minmax(0, 1fr); } .fds-stage { min-height: 440px; } }
+@media (max-width: 640px) { .fds-kpis { grid-template-columns: repeat(2, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .fds-live i, .fds-kpi.flash, .fds-feed li.new { animation: none; } }
+@keyframes fds-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }

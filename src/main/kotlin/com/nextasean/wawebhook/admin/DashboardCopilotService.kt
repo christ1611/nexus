@@ -10,6 +10,7 @@ import com.nextasean.wawebhook.admin.DashboardController.Metrics
 import com.nextasean.wawebhook.admin.DashboardController.Stats
 import com.nextasean.wawebhook.config.AppProperties
 import com.nextasean.wawebhook.config.ClaudeProperties
+import com.nextasean.wawebhook.review.OllamaCopilot
 import com.nextasean.wawebhook.review.ReviewCopilotService
 import com.nextasean.wawebhook.review.ReviewCopilotService.Answer
 import com.nextasean.wawebhook.review.ReviewCopilotService.Turn
@@ -30,13 +31,15 @@ import kotlin.jvm.optionals.getOrNull
  * backlog, what the AI agents did) from the same statistics the dashboard draws, written out as a portfolio file.
  *
  * With `app.document-check=claude` the questions go to Claude with the portfolio file as a cached system block.
- * Without an API client (stub demo) a rule-based answerer summarises the figures, so the panel always works.
+ * With `app.copilot-engine=ollama` they go to a local model instead. Without an API client (stub demo), or when the
+ * local model cannot answer, a rule-based answerer summarises the figures, so the panel always works.
  */
 @Service
 class DashboardCopilotService(
     private val client: ObjectProvider<AnthropicClient>,
     private val props: ClaudeProperties,
     private val appProps: AppProperties,
+    private val ollama: OllamaCopilot,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -45,7 +48,14 @@ class DashboardCopilotService(
 
     fun ask(stats: Stats, question: String, history: List<Turn>, reviewer: String?): Answer {
         val started = System.currentTimeMillis()
-        val c = client.ifAvailable
+        if (ollama.enabled) {
+            ollama.chat(SYSTEM, "# Portfolio file\n\n${portfolioFile(stats, compact = true)}", history, question, reviewer, RulesDashboardCopilot.facts(stats, question))?.let { r ->
+                val ms = System.currentTimeMillis() - started
+                log.info("Dashboard copilot | engine=ollama | model={} | in={} | out={} | {}ms", r.model, r.inputTokens, r.outputTokens, ms)
+                return Answer(r.text, "ollama", r.model, r.inputTokens, r.outputTokens, ms, appProps.copilotLabel, appProps.copilotShowEngine)
+            }
+        }
+        val c = if (ollama.enabled) null else client.ifAvailable
         if (c == null) {
             return Answer(RulesDashboardCopilot.answer(stats, question), "rules", null, durationMs = System.currentTimeMillis() - started, label = appProps.copilotLabel, showEngine = appProps.copilotShowEngine)
         }
@@ -73,10 +83,11 @@ class DashboardCopilotService(
     }
 
     /** Everything the dashboard shows, as text. Customer names stay out; applications are referred to by number. */
-    fun portfolioFile(s: Stats): String = buildString {
+    fun portfolioFile(s: Stats, compact: Boolean = false): String = buildString {
+        val maxRows = if (compact) COMPACT_ROWS else MAX_ROWS
         val t = s.totals
         appendLine("## Snapshot")
-        appendLine("- Generated: ${fmt(s.generatedAt)} · markets: ${s.countries.joinToString(", ")}")
+        appendLine("- Markets: ${s.countries.joinToString(", ")}")
         appendLine("- Applications ${t.applications} · dealers ${t.dealers} · in progress ${t.inProgress} · ready for review ${t.readyForReview} · documents requested ${t.documentsRequested} · approved ${t.approved} · rejected ${t.rejected}")
         appendLine("- Assessed ${t.assessed} · high risk (grade C/D) ${t.highRisk} · fraud/forgery warnings ${t.fraudWarnings} · officer review required ${t.officerReviewRequired}")
         appendLine("- Oldest application waiting for a decision: ${hours(t.oldestWaitingHours)} · average time to decision: ${hours(t.avgDecisionHours)}")
@@ -108,10 +119,10 @@ class DashboardCopilotService(
         appendLine()
         appendLine("## Review queue (${s.reviewQueue.size}, highest risk first)")
         if (s.reviewQueue.isEmpty()) appendLine("- Empty.")
-        s.reviewQueue.take(MAX_ROWS).forEach { q ->
+        s.reviewQueue.take(maxRows).forEach { q ->
             appendLine("- ${q.applicationNumber} · ${q.country} · dealer ${q.dealerCode ?: "?"} · ${q.status} · grade ${q.grade ?: "n/a"}${q.score?.let { " ($it pts)" } ?: ""} · fraud warnings ${q.fraudWarnings}${if (q.officerReviewRequired) " · officer review required" else ""} · waiting ${hours(q.waitingHours)}")
         }
-        if (s.reviewQueue.size > MAX_ROWS) appendLine("- … ${s.reviewQueue.size - MAX_ROWS} more")
+        if (s.reviewQueue.size > maxRows) appendLine("- … ${s.reviewQueue.size - maxRows} more")
 
         appendLine()
         appendLine("## Weekly trend (ISO weeks, oldest first)")
@@ -141,17 +152,20 @@ class DashboardCopilotService(
         appendLine()
         appendLine("## High-risk customers (grade C or D, ${s.highRiskApplications.size})")
         if (s.highRiskApplications.isEmpty()) appendLine("- None.")
-        s.highRiskApplications.take(MAX_ROWS).forEach { r ->
+        s.highRiskApplications.take(maxRows).forEach { r ->
             appendLine("- ${r.applicationNumber} · ${r.country} · dealer ${r.dealerCode ?: "?"} · ${r.status} · grade ${r.grade} (${r.score} pts, ${r.method}) · fraud warnings ${r.fraudWarnings} · flags ${r.flags.joinToString(", ") { "${it.code}/${it.severity}${if (it.fraud) "!" else ""}" }.ifBlank { "none" }} · badges ${r.badges.joinToString(", ").ifBlank { "none" }} · assessed ${fmt(r.assessedAt)}")
         }
-        if (s.highRiskApplications.size > MAX_ROWS) appendLine("- … ${s.highRiskApplications.size - MAX_ROWS} more")
+        if (s.highRiskApplications.size > maxRows) appendLine("- … ${s.highRiskApplications.size - maxRows} more")
 
+        appendLine()
+        appendLine("## Dealer scorecard rules (last ${DealerScorecard.WINDOW_MONTHS} months)")
+        appendLine("- Score out of 100: low-risk customers 35, fraud warnings 25, document completeness 15, approval rate 15, decided volume 10. Grades: S from 92, A from 70, B from 50, C (watch) below. Any fraud warning, or under ${DealerScorecard.MIN_DECIDED} decided applications, caps the grade at B. No repayment or loan amount data exists here.")
         appendLine()
         appendLine("## Dealer tiers")
         s.dealerTiers.forEach { appendLine("- ${it.tier} ${it.label} (${it.labelKo}) · ${it.dealers} dealers · ${metrics(it.metrics)}") }
         appendLine()
         appendLine("## Dealers (${s.dealers.size})")
-        s.dealers.forEach { appendLine("- ${it.code} ${it.name} · ${it.country} · ${it.tier} · ${metrics(it.metrics)}") }
+        s.dealers.forEach { appendLine("- ${it.code} ${it.name} · ${it.country} · ${it.tier} · ${scorecard(it.scorecard)} · ${metrics(it.metrics)}") }
 
         appendLine()
         appendLine("## AI agent activity (all applications)")
@@ -159,14 +173,24 @@ class DashboardCopilotService(
         appendLine("- Steps ${a.steps} · vision analyses ${a.visionAnalyses} (avg ${num(a.avgVisionMs)} ms) · agent turns ${a.agentTurns} · tool calls ${a.toolCalls} · documents requested by the agent ${a.documentsRequestedByAgent} · summaries written ${a.summariesWritten} · code guardrails ${a.guardrails} · fallbacks ${a.fallbacks} · customer retakes ${a.customerRetakes} · provider lookups ${a.providerLookups}")
         appendLine("- Steps by kind: ${map(a.byKind)}")
 
-        appendLine()
-        appendLine("## In progress (${s.inProgress.size} open applications)")
-        if (s.inProgress.isEmpty()) appendLine("- None.")
-        s.inProgress.take(MAX_ROWS).forEach { r ->
-            appendLine("- ${r.applicationNumber} · ${r.country} · dealer ${r.dealerCode ?: "?"} · ${r.status} · stage ${r.current} (${r.currentKo}) ${r.done}/${r.total}${r.idleHours?.let { " · idle ${hours(it)}" } ?: ""}${r.note?.let { " · $it" } ?: ""}")
+        if (!compact) {
+            appendLine()
+            appendLine("## In progress (${s.inProgress.size} open applications)")
+            if (s.inProgress.isEmpty()) appendLine("- None.")
+            s.inProgress.take(maxRows).forEach { r ->
+                appendLine("- ${r.applicationNumber} · ${r.country} · dealer ${r.dealerCode ?: "?"} · ${r.status} · stage ${r.current} (${r.currentKo}) ${r.done}/${r.total}${r.idleHours?.let { " · idle ${hours(it)}" } ?: ""}${r.note?.let { " · $it" } ?: ""}")
+            }
+            if (s.inProgress.size > maxRows) appendLine("- … ${s.inProgress.size - maxRows} more")
         }
-        if (s.inProgress.size > MAX_ROWS) appendLine("- … ${s.inProgress.size - MAX_ROWS} more")
+
+        // Last on purpose: everything before the first changed character can come from a prompt cache.
+        appendLine()
+        appendLine("Generated: ${fmt(s.generatedAt)}")
     }
+
+    private fun scorecard(c: DealerScorecard.Result): String =
+        if (!c.rated) "scorecard: not rated yet (under ${DealerScorecard.MIN_ASSESSED} assessed)"
+        else "scorecard: rank ${c.rank}, ${c.score}/100, grade ${c.grade}${c.cap?.let { " (capped at B: $it)" } ?: ""}, rework ${pct(c.reworkRate)}, meets excellent standard: ${c.meetsStandard}"
 
     private fun metrics(m: Metrics): String =
         "applications ${m.applications} (open ${m.open}, last 30 days ${m.applications30d}) · approved ${m.approved} · rejected ${m.rejected} · approval rate ${pct(m.approvalRate)} · assessed ${m.assessed} · high risk ${m.highRisk} (${pct(m.highRiskRate)}) · fraud ${m.fraudWarnings} (${pct(m.fraudRate)}) · avg risk score ${num(m.avgRiskScore)} · avg credit score ${num(m.avgCreditScore)} · identity match ${pct(m.identityMatchRate)} · referral badges ${m.referralBadges} · last application ${fmt(m.lastApplicationAt)}"
@@ -177,6 +201,8 @@ class DashboardCopilotService(
     companion object {
         const val MAX_QUESTION = 2_000
         const val MAX_ROWS = 25
+        /** Local models read slowly: their file lists fewer rows, and the figures for the question travel with it. */
+        const val COMPACT_ROWS = 5
         private val FMT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.of("Asia/Jakarta"))
 
         fun pct(v: Double?): String = v?.let { "${Math.round(it * 100)}%" } ?: "n/a"
@@ -192,7 +218,7 @@ class DashboardCopilotService(
         }
 
         val SYSTEM = """
-            You are the dashboard copilot inside the NEXUS ASEAN onboarding back office of JB Financial Group's ASEAN
+            You are the dashboard copilot inside the NEXUS AI onboarding back office of JB Financial Group's ASEAN
             subsidiaries (Indonesia, Myanmar, Cambodia). Credit officers and managers look at the onboarding
             dashboard and ask you portfolio-level questions: trends, the review backlog, countries, dealers, risk
             grades, fraud warnings, and what the AI agents did. The portfolio file in the next system block is the
@@ -228,8 +254,12 @@ object RulesDashboardCopilot {
     private val num = DashboardCopilotService.Companion::num
     private val hours = DashboardCopilotService.Companion::hours
 
-    fun answer(s: Stats, question: String): String {
-        val body = when {
+    fun answer(s: Stats, question: String): String =
+        CopilotVoice.openPortfolio(question) + facts(s, question).trimEnd() + CopilotVoice.closePortfolio(question)
+
+    /** The figures for the topic of the question, without the conversational framing. */
+    fun facts(s: Stats, question: String): String =
+        when {
             STANDARD.containsMatchIn(question) && !COUNTRY.containsMatchIn(question) -> highRiskStandard(s)
             QUEUE.containsMatchIn(question) -> queue(s)
             TREND.containsMatchIn(question) -> trend(s)
@@ -239,8 +269,6 @@ object RulesDashboardCopilot {
             RISK.containsMatchIn(question) -> risk(s)
             else -> overview(s)
         }
-        return CopilotVoice.openPortfolio(question) + body.trimEnd() + CopilotVoice.closePortfolio(question)
-    }
 
     fun overview(s: Stats): String = buildString {
         val t = s.totals
@@ -279,16 +307,16 @@ object RulesDashboardCopilot {
             appendLine("- ${c.nameKo} (${c.code}): 신청 ${c.applications} · 진행 중 ${c.inProgress} · 심사 대기 ${c.readyForReview} · 승인 ${c.approved} · 거절 ${c.rejected} · 고위험 ${c.highRisk} · 위조 경고 ${c.fraudWarnings} · 신원 일치율 ${pct(c.identityMatchRate)} · 평균 신용점수 ${num(c.avgCreditScore)} · 딜러 ${c.dealers}")
         }
         val worst = s.byCountry.filter { it.assessed > 0 }.maxByOrNull { it.highRisk.toDouble() / it.assessed }
-        if (worst != null) appendLine("- 평가 대비 고위험 비율이 가장 높은 시장: ${worst.nameKo} (${worst.highRisk}/${worst.assessed}).")
+        if (worst != null) appendLine("- 평가 대비 고위험 비율이 가장 높은 시장: ${worst.nameKo} ${DashboardCopilotService.share(worst.highRisk, worst.assessed)} (${worst.highRisk}/${worst.assessed}건).")
     }
 
     fun dealers(s: Stats): String = buildString {
         appendLine("**우수 딜러 vs 일반 딜러**")
         s.dealerTiers.forEach { d -> appendLine("- ${d.labelKo}: 딜러 ${d.dealers}명 · 신청 ${d.metrics.applications} · 승인율 ${pct(d.metrics.approvalRate)} · 고위험 비율 ${pct(d.metrics.highRiskRate)} · 위조 경고 ${d.metrics.fraudWarnings} · 평균 리스크 ${num(d.metrics.avgRiskScore)} · 평균 신용 ${num(d.metrics.avgCreditScore)}") }
-        val top = s.dealers.sortedByDescending { it.metrics.applications }.take(5)
+        val top = s.dealers.filter { it.scorecard.rated }.sortedBy { it.scorecard.rank }.take(5)
         if (top.isNotEmpty()) {
-            appendLine("**신청 많은 딜러**")
-            top.forEach { d -> appendLine("- ${d.code} ${d.name} (${d.country}, ${d.tierLabelKo}): 신청 ${d.metrics.applications} · 승인 ${d.metrics.approved} · 고위험 ${d.metrics.highRisk} · 위조 경고 ${d.metrics.fraudWarnings} · 최근 30일 ${d.metrics.applications30d}") }
+            appendLine("**종합점수 상위 딜러**")
+            top.forEach { d -> appendLine("- ${d.scorecard.rank}위 ${d.code} ${d.name} (${d.country}, ${d.tierLabelKo}): ${d.scorecard.score}점 ${d.scorecard.grade}등급 · 신청 ${d.metrics.applications} · 승인 ${d.metrics.approved} · 고위험 ${d.metrics.highRisk} · 위조 경고 ${d.metrics.fraudWarnings} · 최근 30일 ${d.metrics.applications30d}") }
         }
     }
 

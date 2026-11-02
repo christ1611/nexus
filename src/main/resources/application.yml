@@ -55,6 +55,15 @@ app:
   # How copilot answers are labelled in the back office. The engine (Claude model or rules) is only shown when COPILOT_SHOW_ENGINE=true.
   copilot-label: ${COPILOT_LABEL:NEXUS AI}
   copilot-show-engine: ${COPILOT_SHOW_ENGINE:false}
+  # auto = Claude when document-check=claude, otherwise rules; ollama = local model below (rules if it cannot answer).
+  copilot-engine: ${COPILOT_ENGINE:auto}
+
+# Local Ollama server for the copilots (used only when app.copilot-engine=ollama). See OLLAMA_DEMO.md.
+ollama:
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model: ${OLLAMA_MODEL:exaone3.5:2.4b}
+  timeout: ${OLLAMA_TIMEOUT:90s}
+  num-ctx: ${OLLAMA_NUM_CTX:16384}
 
 # Claude API (used only when app.document-check=claude).
 claude:
@@ -73,7 +82,7 @@ claude:
 demo:
   # Fake applications for the dashboard / review demo (DEMO_SEED_APPLICATIONS=true), or POST /admin/demo/seed at runtime.
   seed-applications: ${DEMO_SEED_APPLICATIONS:false}
-  seed-count: ${DEMO_SEED_COUNT:40}
+  seed-count: ${DEMO_SEED_COUNT:240}
   dealers:
     - code: DLR-001
       name: ${DEMO_DEALER_1_NAME:Demo Dealer One}

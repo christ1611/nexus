@@ -11,6 +11,7 @@ whatsapp:
   verify-token: test-verify-token
 
 app:
+  copilot-engine: auto
   public-base-url: https://example.test
   documents-dir: build/test-documents
 

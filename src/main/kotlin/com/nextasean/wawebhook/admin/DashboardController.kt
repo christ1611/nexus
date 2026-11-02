@@ -68,6 +68,7 @@ class DashboardController(
         val assessed: Int,
         val highRisk: Int,
         val fraudWarnings: Int,
+        /** Waiting applications the review agent flagged for a human (same count as the review page). */
         val officerReviewRequired: Int,
         /** Oldest application still waiting for a decision, in hours (null when the queue is empty). */
         val oldestWaitingHours: Double?,
@@ -123,7 +124,7 @@ class DashboardController(
         val applications30d: Int,
         val lastApplicationAt: Instant?,
     )
-    data class DealerStats(val code: String, val name: String, val country: String, val tier: String, val tierLabel: String, val tierLabelKo: String, val metrics: Metrics)
+    data class DealerStats(val code: String, val name: String, val country: String, val tier: String, val tierLabel: String, val tierLabelKo: String, val metrics: Metrics, val scorecard: DealerScorecard.Result)
     /** Excellent vs standard dealers side by side (the dashboard's dealer tab). */
     data class TierStats(val tier: String, val label: String, val labelKo: String, val dealers: Int, val metrics: Metrics)
     data class FlagSummary(val code: String, val title: String, val titleKo: String, val severity: String, val fraud: Boolean, val detail: String)
@@ -246,6 +247,8 @@ class DashboardController(
         val pipeline: List<PipelineStageCount>,
         val inProgress: List<ProgressRow>,
         val recentSteps: List<RecentStep>,
+        /** The statistics tab, per market code plus [ReviewStatistics.ALL]. */
+        val reviewStats: Map<String, ReviewStatistics.Result>,
     )
 
     @GetMapping("/stats")
@@ -271,8 +274,8 @@ class DashboardController(
             assessed = assessments.size,
             highRisk = assessments.count { it.second.grade.highRisk },
             fraudWarnings = assessments.count { it.second.fraudFlags.isNotEmpty() },
-            officerReviewRequired = apps.count { it.officerReviewRequired == true },
-            oldestWaitingHours = waiting.minOfOrNull { hours(waitingSince(it), now) },
+            officerReviewRequired = waiting.count { it.officerReviewRequired == true },
+            oldestWaitingHours = waiting.maxOfOrNull { hours(waitingSince(it), now) },
             avgDecisionHours = decided.takeIf { it.isNotEmpty() }?.map { hours((it.riskAssessedAt ?: it.verifiedAt)!!, it.decidedAt!!) }?.average(),
             demoApplications = apps.count { it.demoSeed },
         )
@@ -313,20 +316,29 @@ class DashboardController(
             .sortedWith(compareByDescending<FlagCount> { it.count }.thenBy { it.code })
         val badges = CustomerBadge.entries.map { b -> BadgeCount(b.name, b.label, b.labelKo, assessments.count { b in it.second.badges }) }
         val assessedById = assessments.associate { it.first.id to it.second }
+        val rework = trace.all()
+            .filter { (it.kind == TraceKind.CUSTOMER_MESSAGED && it.status == TraceStatus.DECISION) || it.kind == TraceKind.OFFICER_REQUEST }
+            .map { it.applicationId }.toSet<Long?>() + apps.filter { it.status == ApplicationStatus.DOCUMENTS_REQUESTED }.map { it.id }
         val dealerStats = allDealers
             .sortedWith(compareBy<Dealer> { it.tier != DealerTier.EXCELLENT }.thenByDescending { d -> apps.count { it.dealerId == d.id } }.thenBy { it.dealerCode })
-            .map { d -> DealerStats(d.dealerCode, d.name, d.country, d.tier.name, d.tier.label, d.tier.labelKo, metrics(apps.filter { it.dealerId == d.id }, assessedById, now)) }
+            .map { d ->
+                val group = apps.filter { it.dealerId == d.id }
+                DealerStats(d.dealerCode, d.name, d.country, d.tier.name, d.tier.label, d.tier.labelKo, metrics(group, assessedById, now), DealerScorecard.score(d.tier, group, assessedById, rework, zone, now))
+            }
+            .let { list ->
+                // Grade first, then score: a capped dealer never outranks one that earned a higher grade. Unrated dealers get no rank.
+                val ranks = list.filter { it.scorecard.rated }.sortedWith(compareBy<DealerStats> { DealerScorecard.GRADES.indexOf(it.scorecard.grade) }.thenByDescending { it.scorecard.score }).mapIndexed { i, x -> x.code to i + 1 }.toMap()
+                list.map { x -> ranks[x.code]?.let { r -> x.copy(scorecard = x.scorecard.copy(rank = r)) } ?: x }
+            }
         val dealerTiers = DealerTier.entries.map { tier ->
             val ids = allDealers.filter { it.tier == tier }.map { it.id }.toSet()
             TierStats(tier.name, tier.label, tier.labelKo, ids.size, metrics(apps.filter { it.dealerId in ids }, assessedById, now))
         }
         val highRisk = assessments.filter { it.second.grade.highRisk }
             .sortedWith(compareByDescending<Pair<DealerApplication, RiskAssessment>> { it.second.score }.thenByDescending { it.second.assessedAt })
-            .take(20)
             .map { (app, a) -> riskRow(app, a, dealerById[app.dealerId]) }
         val queue = waiting
             .sortedWith(compareByDescending<DealerApplication> { it.riskScore ?: -1 }.thenBy { waitingSince(it) })
-            .take(20)
             .map { app ->
                 val a = risk.stored(app)
                 QueueRow(
@@ -338,7 +350,7 @@ class DashboardController(
         val open = apps.filter { !it.status.isFinal }
         val progress = stages.forAll(open, now)
         val pipeline = OnboardingStage.entries.map { s -> PipelineStageCount(s.name, s.label, s.labelKo, open.count { progress[it.id]?.current == s.name }) }
-        val inProgress = open.sortedByDescending { it.updatedAt }.take(40).mapNotNull { app ->
+        val inProgress = open.sortedByDescending { it.updatedAt }.mapNotNull { app ->
             val p = progress[app.id] ?: return@mapNotNull null
             val current = p.stages.first { it.code == p.current }
             ProgressRow(
@@ -354,7 +366,9 @@ class DashboardController(
                 val app = appById[s.applicationId]
                 RecentStep(app?.applicationNumber ?: "?", app?.country ?: "", s.kind.name, s.kind.label, s.kind.labelKo, s.kind.phase.name, s.status.name, s.actor, s.title, s.createdAt)
             }
-        return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, dealerTiers, queue, trend(apps, assessments, dealerById, now), agentActivity(), pipeline, inProgress, recentSteps)
+        return Stats(now, Countries.ALL.map { it.code }, totals, funnel, byCountry, riskGrades, flagCounts, badges, dealerStats, highRisk, dealerTiers, queue, trend(apps, assessments, dealerById, now), agentActivity(), pipeline, inProgress, recentSteps,
+            (Countries.ALL.map { it.code }.associateWith { c -> apps.filter { it.country.equals(c, ignoreCase = true) } } + (ReviewStatistics.ALL to apps))
+                .mapValues { (_, group) -> ReviewStatistics.build(group, assessedById, rework, zone, now) })
     }
 
     /**

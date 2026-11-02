@@ -315,7 +315,7 @@ class ReviewBackOfficeTest @Autowired constructor(
 
         mockMvc.get("/review").andExpect {
             status { isOk() }
-            content { string(containsString("NEXUS ASEAN 심사")) }
+            content { string(containsString("NEXUS AI 심사")) }
         }
     }
 

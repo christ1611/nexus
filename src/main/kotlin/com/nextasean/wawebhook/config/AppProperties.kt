@@ -23,7 +23,9 @@ data class AppProperties(
     val documentCheck: String = "stub",
     /** Name the copilots answer under in the back office (badge and message footer). */
     val copilotLabel: String = "NEXUS AI",
-    /** Show which engine produced a copilot answer (Claude model or rules) next to the label. Off for demos. */
+    /** `auto` (Claude when its client exists, otherwise rules) or `ollama` (local model, see [OllamaProperties]; rules if it cannot answer). */
+    val copilotEngine: String = "auto",
+    /** Show which engine produced a copilot answer (model name or rules) next to the label. Off for demos. */
     val copilotShowEngine: Boolean = false,
 ) {
     val zoneId: ZoneId get() = ZoneId.of(timeZone)
@@ -31,6 +33,21 @@ data class AppProperties(
     override fun toString(): String =
         "AppProperties(publicBaseUrl=$publicBaseUrl, linkTtl=$linkTtl, documentsDir=$documentsDir, reportsDir=$reportsDir, timeZone=$timeZone, documentCheck=$documentCheck, copilotLabel=$copilotLabel, copilotShowEngine=$copilotShowEngine)"
 }
+
+/** Local Ollama server for the copilots (used only when app.copilot-engine=ollama). */
+@ConfigurationProperties(prefix = "ollama")
+data class OllamaProperties(
+    val baseUrl: String = "http://localhost:11434",
+    val model: String = "exaone3.5:2.4b",
+    /** How long one answer may take before the copilot falls back to rules. */
+    val timeout: Duration = Duration.ofSeconds(90),
+    /** Context window in tokens. Ollama's default cuts the case and portfolio files short. */
+    val numCtx: Int = 16384,
+    /** Low, so figures are quoted rather than paraphrased. */
+    val temperature: Double = 0.2,
+    /** How long the model stays in memory after a question, so the next answer does not wait for a reload. */
+    val keepAlive: String = "60m",
+)
 
 @ConfigurationProperties(prefix = "demo")
 data class DemoProperties(

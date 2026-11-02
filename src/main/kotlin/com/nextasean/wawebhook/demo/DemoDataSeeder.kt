@@ -1,6 +1,7 @@
 package com.nextasean.wawebhook.demo
 
 import com.nextasean.wawebhook.application.ApplicationRepository
+import com.nextasean.wawebhook.admin.DealerScorecard
 import com.nextasean.wawebhook.application.ApplicationStatus
 import com.nextasean.wawebhook.application.DealerApplication
 import com.nextasean.wawebhook.config.AppProperties
@@ -56,10 +57,11 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Year
+import java.time.YearMonth
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import javax.imageio.ImageIO
-import kotlin.math.sqrt
+import kotlin.math.pow
 import kotlin.random.Random
 
 /**
@@ -86,14 +88,18 @@ class DemoDataSeeder(
 
     data class SeedResult(val created: Int, val removed: Int, val total: Int)
 
-    private enum class Scenario { CLEAN, MEDIUM, IDENTITY_MISMATCH, NOT_FOUND, TIMEOUT, SCREEN_PHOTO, INVALID_NIK, SELFIE_MISMATCH, FORGERY, SHARED_ID, SHARED_PHONE, IN_PROGRESS, DRAFT }
+    /** Scenario shares of a kind of dealer; whatever they leave over is a clean application. */
+    data class DealerProfile internal constructor(internal val mix: List<Pair<Scenario, Double>>, val retake: Double)
+    data class RosterDealer(val suffix: String, val name: String, val tier: DealerTier, val share: Int, val profile: DealerProfile)
+    private data class Showcase(val scenario: Scenario, val daysAgo: Double, val dealer: String)
+
+    internal enum class Scenario { CLEAN, MEDIUM, IDENTITY_MISMATCH, NOT_FOUND, TIMEOUT, SCREEN_PHOTO, INVALID_NIK, SELFIE_MISMATCH, FORGERY, SHARED_ID, SHARED_PHONE, IN_PROGRESS, DRAFT }
 
     /** NIK of the last clean Indonesian application seeded in this run; [Scenario.SHARED_ID] submits it again under another name. */
     private var lastSeededNik: String? = null
     private var lastSeededName: String? = null
-    /** Phone and dealer of that application; [Scenario.SHARED_PHONE] reuses the phone, and both shared scenarios usually come through the same dealer. */
+    /** Phone of that application; [Scenario.SHARED_PHONE] reuses it. Only rows of standard dealers feed a ring, so excellent dealers stay clean. */
     private var lastSeededPhone: String? = null
-    private var lastSeededDealerId: Long? = null
 
     private class Persona(val name: String, val dob: LocalDate, val gender: String, val address: String, val phone: String)
 
@@ -104,39 +110,37 @@ class DemoDataSeeder(
         lastSeededNik = null
         lastSeededName = null
         lastSeededPhone = null
-        lastSeededDealerId = null
         val random = Random(seed + applications.findByDemoSeedTrue().size)
-        val dealersByCountry = ensureDealers()
+        val roster = ensureDealers()
+        val wanted = count.coerceIn(1, MAX_COUNT)
+        // A small seed still gets the first showcase cases, so the queue and the fraud flags are never empty.
+        val showcase = minOf(wanted, SHOWCASE.size)
+        val plan = dealerPlan(wanted - showcase).shuffled(random)
         val now = Instant.now()
+        val historyDays = Duration.between(YearMonth.from(now.atZone(props.zoneId)).minusMonths(DealerScorecard.WINDOW_MONTHS - 1).atDay(1).atStartOfDay(props.zoneId).toInstant(), now).toHours() / 24.0 - 1
         var created = 0
-        repeat(count.coerceIn(1, MAX_COUNT)) { i ->
-            val randomCountry = when {
-                random.nextDouble() < 0.6 -> "ID"
-                random.nextDouble() < 0.5 -> "MM"
-                else -> "KH"
-            }
-            // The first few are fixed so every screen has its showcase case (fraud flags, officer hand-off, queue, in-progress);
-            // after that scenarios are random, with a fifth of them landing in the last two days.
-            val fixed = i < SHOWCASE.size && count >= SHOWCASE.size
-            val country = if (fixed) "ID" else randomCountry
-            var scenario = if (fixed) SHOWCASE[i].first else scenarioFor(random, country)
-            // Excellent dealers bring in more volume and cleaner customers: a weighted pick, the showcase fraud cases filed by
-            // standard dealers, and most risky random scenarios re-rolled to clean when an excellent dealer drew them.
-            val pool = dealersByCountry.getValue(country)
-            val weighted = pool.flatMap { d -> List(if (d.tier == DealerTier.EXCELLENT) 2 else 1) { d } }
-            val standard = pool.filter { it.tier != DealerTier.EXCELLENT }
-            val ringDealer = if (scenario in SHARED) lastSeededDealerId?.let { id -> pool.firstOrNull { it.id == id } }?.takeIf { random.nextDouble() < 0.7 } else null
-            val dealer = ringDealer ?: if (fixed && scenario in RISKY && standard.isNotEmpty()) standard[random.nextInt(standard.size)] else weighted[random.nextInt(weighted.size)]
-            if (!fixed && dealer.tier == DealerTier.EXCELLENT && scenario in RISKY && random.nextDouble() < 0.6) scenario = Scenario.CLEAN
+        repeat(wanted) { i ->
+            // The first few are fixed so every screen has its showcase case (fraud flags, officer hand-off, queue, in-progress).
+            // After that each dealer files its share of applications with the scenario mix of its profile, so a dealer's
+            // grade comes from its own record: excellent dealers meet the written standard, weak ones visibly do not.
+            val fixed = i < showcase
+            val entry = if (fixed) DEMO_DEALERS.first { it.suffix == SHOWCASE[i].dealer } else plan[i - showcase]
+            val dealer = roster.getValue(entry.suffix)
+            val country = dealer.country
+            val scenario = if (fixed) SHOWCASE[i].scenario else scenarioFor(random, country, entry.profile)
             val daysAgo = when {
-                fixed -> SHOWCASE[i].second
-                random.nextDouble() < 0.2 -> random.nextDouble() * 2
-                else -> (TREND_DAYS * (1 - sqrt(random.nextDouble()))).coerceAtMost(TREND_DAYS - 0.1)
+                fixed -> SHOWCASE[i].daysAgo
+                // Unfinished work is recent: nothing sits half done for months.
+                scenario == Scenario.IN_PROGRESS -> random.nextDouble() * 3
+                scenario == Scenario.DRAFT -> random.nextDouble() * 6
+                random.nextDouble() < 0.06 -> random.nextDouble() * 2
+                // Spread over the whole statistics window, leaning gently toward recent months: steady growth, no empty month.
+                else -> historyDays * random.nextDouble().pow(1.25)
             }
             // The customer journey below adds up to about four hours of offsets, so nothing may start later than that.
             val createdAt = now.minus(Duration.ofMinutes((daysAgo * 24 * 60).toLong() + random.nextInt(0, 600)))
                 .let { if (scenario == Scenario.DRAFT) it else minOf(it, now.minus(JOURNEY_MARGIN)) }
-            createOne(random, country, dealer, scenario, createdAt, now, i)
+            createOne(random, country, dealer, scenario, createdAt, now, i, entry.profile.retake)
             created++
         }
         val total = applications.findByDemoSeedTrue().size
@@ -171,9 +175,19 @@ class DemoDataSeeder(
 
     fun count(): Int = applications.findByDemoSeedTrue().size
 
-    /** The configured dealers plus the demo roster ([DEMO_DEALERS]) per country; roster dealers are created on demand and removed by [clear] once unused. */
-    private fun ensureDealers(): Map<String, List<Dealer>> {
-        DEMO_DEALERS.forEachIndexed { i, (suffix, name, tier) ->
+    /** How many applications each roster dealer files out of [count], by share (largest remainders round up). */
+    private fun dealerPlan(count: Int): List<RosterDealer> {
+        val total = DEMO_DEALERS.sumOf { it.share }
+        val exact = DEMO_DEALERS.map { it to it.share.toDouble() * count / total }
+        val quota = exact.associate { (d, q) -> d.suffix to q.toInt() }.toMutableMap()
+        exact.sortedByDescending { (_, q) -> q - q.toInt() }.take(count - quota.values.sum()).forEach { (d, _) -> quota[d.suffix] = quota.getValue(d.suffix) + 1 }
+        return DEMO_DEALERS.flatMap { d -> List(quota.getValue(d.suffix)) { d } }
+    }
+
+    /** The demo roster ([DEMO_DEALERS]) by code suffix; created on demand and removed by [clear] once unused. Dealers from configuration get no fake applications. */
+    private fun ensureDealers(): Map<String, Dealer> {
+        DEMO_DEALERS.forEachIndexed { i, d ->
+            val (suffix, name, tier) = Triple(d.suffix, d.name, d.tier)
             val code = "$DEMO_DEALER_PREFIX$suffix"
             if (dealers.findByDealerCode(code) == null) {
                 // Not a dialable range; the notifiers skip demo rows anyway.
@@ -181,36 +195,26 @@ class DemoDataSeeder(
                 log.info("Demo dealer created | code={} | name={} | tier={}", code, name, tier)
             }
         }
-        return Countries.ALL.associate { c -> c.code to dealers.findAll().filter { it.active && it.country.equals(c.code, ignoreCase = true) } }
+        return DEMO_DEALERS.associate { it.suffix to dealers.findByDealerCode("$DEMO_DEALER_PREFIX${it.suffix}")!! }
     }
 
     /** True when every roster dealer exists, i.e. the stored demo data was made by this version of the seeder. */
-    fun rosterComplete(): Boolean = DEMO_DEALERS.all { dealers.findByDealerCode("$DEMO_DEALER_PREFIX${it.first}") != null }
+    fun rosterComplete(): Boolean = DEMO_DEALERS.all { dealers.findByDealerCode("$DEMO_DEALER_PREFIX${it.suffix}") != null }
 
-    private fun scenarioFor(random: Random, country: String): Scenario {
-        // Fraud rings: now and then an Indonesian application reuses the last clean customer's ID number or phone.
-        if (country == "ID" && lastSeededNik != null) {
-            val ring = random.nextDouble()
-            if (ring < 0.05) return Scenario.SHARED_ID
-            if (ring < 0.10) return Scenario.SHARED_PHONE
-        }
-        val r = random.nextDouble()
-        return when {
-            r < 0.42 -> Scenario.CLEAN
-            r < 0.58 -> Scenario.MEDIUM
-            r < 0.65 -> Scenario.IDENTITY_MISMATCH
-            r < 0.69 -> Scenario.NOT_FOUND
-            r < 0.73 -> Scenario.TIMEOUT
-            r < 0.78 -> if (country == "ID") Scenario.SCREEN_PHOTO else Scenario.MEDIUM
-            r < 0.83 -> if (country == "ID") Scenario.INVALID_NIK else Scenario.NOT_FOUND
-            r < 0.86 -> if (country == "ID") Scenario.SELFIE_MISMATCH else Scenario.IDENTITY_MISMATCH
-            r < 0.89 -> if (country == "ID") Scenario.FORGERY else Scenario.MEDIUM
-            r < 0.95 -> Scenario.IN_PROGRESS
-            else -> Scenario.DRAFT
+    private fun scenarioFor(random: Random, country: String, profile: DealerProfile): Scenario {
+        var r = random.nextDouble()
+        val picked = (profile.mix + (Scenario.IN_PROGRESS to OPEN_IN_PROGRESS) + (Scenario.DRAFT to OPEN_DRAFT)).firstOrNull { (_, p) -> r -= p; r < 0 }?.first ?: Scenario.CLEAN
+        // Rings need an earlier Indonesian customer; the vision-based fraud cases exist only for Indonesian documents.
+        return when (picked) {
+            Scenario.SHARED_ID, Scenario.SHARED_PHONE -> if (country == "ID" && lastSeededNik != null) picked else Scenario.IDENTITY_MISMATCH
+            Scenario.SCREEN_PHOTO, Scenario.FORGERY -> if (country == "ID") picked else Scenario.IDENTITY_MISMATCH
+            Scenario.INVALID_NIK -> if (country == "ID") picked else Scenario.NOT_FOUND
+            Scenario.SELFIE_MISMATCH -> if (country == "ID") picked else Scenario.IDENTITY_MISMATCH
+            else -> picked
         }
     }
 
-    private fun createOne(random: Random, country: String, dealer: Dealer, scenario: Scenario, createdAt: Instant, now: Instant, index: Int) {
+    private fun createOne(random: Random, country: String, dealer: Dealer, scenario: Scenario, createdAt: Instant, now: Instant, index: Int, retake: Double) {
         var persona = persona(random, country, index)
         // A shared ID or phone must come from a different person: never reuse the previous customer's name.
         var tries = 0
@@ -259,13 +263,13 @@ class DemoDataSeeder(
             else -> random.nextInt(0, 7)
         }
         val idNumber = reusedNik ?: idNumber(random, country, persona, lastDigit, encodeWrongDob = scenario == Scenario.INVALID_NIK)
-        if (country == "ID" && scenario in setOf(Scenario.CLEAN, Scenario.MEDIUM)) { lastSeededNik = idNumber; lastSeededName = persona.name; lastSeededPhone = persona.phone; lastSeededDealerId = dealer.id }
+        if (country == "ID" && scenario in setOf(Scenario.CLEAN, Scenario.MEDIUM) && dealer.tier != DealerTier.EXCELLENT) { lastSeededNik = idNumber; lastSeededName = persona.name; lastSeededPhone = persona.phone }
         sessions.save(CustomerSession(phone = persona.phone, customerName = app.customerName, applicationId = app.id!!, state = CustomerSessionState.COMPLETED, consentAt = consentAt, createdAt = startAt, updatedAt = consentAt.plus(Duration.ofMinutes(12))))
         var t = consentAt.plus(Duration.ofMinutes(random.nextLong(1, 6)))
         var round = 0
 
         // Optional blurry first attempt (fails the check right away).
-        if (random.nextDouble() < 0.25) {
+        if (random.nextDouble() < retake) {
             storeDocument(app, DocumentType.KTP, persona, idNumber, t, passed = false, reason = "Photo is blurry", analysis = null)
             step(app, TraceKind.DOCUMENT_RECEIVED, TraceStatus.INFO, AgentTraceService.CUSTOMER, "KTP photo received", "61 KB, image/jpeg", t)
             step(app, if (claudeMode) TraceKind.VISION_ANALYSIS else TraceKind.QUALITY_CHECK, TraceStatus.FAIL, if (claudeMode) AgentTraceService.claude(MODEL) else AgentTraceService.STUB, "KTP: rejected", "BLUR HIGH: text on the card is not legible", t.plusSeconds(3), if (claudeMode) 4200 else 2000)
@@ -398,10 +402,11 @@ class DemoDataSeeder(
         // Officer outcome depends on how long ago the documents were completed.
         val waitingHours = Duration.between(completedAt, now).toHours()
         val officer = OFFICERS[random.nextInt(OFFICERS.size)]
-        val decideProbability = if (waitingHours > 48) 0.85 else 0.4
+        // Nothing waits for an officer for weeks: after four days everything has been decided.
+        val decideProbability = when { waitingHours > 96 -> 1.0; waitingHours > 48 -> 0.85; else -> 0.4 }
         when {
             waitingHours < 6 -> Unit // still in the queue
-            waitingHours < 72 && assessment.grade.highRisk && country == "ID" && (scenario == Scenario.SCREEN_PHOTO || random.nextDouble() < 0.3) -> {
+            waitingHours < 72 && assessment.grade.highRisk && country == "ID" && scenario !in SHARED && (scenario == Scenario.SCREEN_PHOTO || random.nextDouble() < 0.3) -> {
                 // Officer sent the customer back for the KTP; still waiting for the new photo.
                 val at = completedAt.plus(Duration.ofHours(random.nextLong(1, 6)))
                 val reason = "KTP: the photo looks like a screen capture, please photograph the physical card"
@@ -413,8 +418,8 @@ class DemoDataSeeder(
                 step(app, TraceKind.OFFICER_REQUEST, TraceStatus.DECISION, AgentTraceService.officer(officer), "Officer sent the customer back for KTP", reason, at, null, null, round + 1)
             }
             random.nextDouble() < decideProbability -> {
-                val at = completedAt.plus(Duration.ofMinutes(random.nextLong(40, 36 * 60)).coerceAtMost(Duration.between(completedAt, now).minusMinutes(1)))
-                val approve = when (assessment.grade.name) { "A" -> true; "B" -> random.nextDouble() < 0.85; "C" -> random.nextDouble() < 0.3; else -> false }
+                val at = completedAt.plus(Duration.ofMinutes(random.nextLong(30, 61)).coerceAtMost(Duration.between(completedAt, now).minusMinutes(1)))
+                val approve = when (assessment.grade.name) { "A" -> random.nextDouble() < 0.99; "B" -> random.nextDouble() < 0.8; "C" -> random.nextDouble() < 0.2; else -> false }
                 val note = if (approve) APPROVE_NOTES[random.nextInt(APPROVE_NOTES.size)] else REJECT_NOTES[random.nextInt(REJECT_NOTES.size)]
                 if (random.nextDouble() < 0.3) event(app, ReviewEventKind.NOTE_ADDED, officer, OFFICER_NOTES[random.nextInt(OFFICER_NOTES.size)], at.minus(Duration.ofMinutes(20)))
                 app = applications.save(app.copy(status = if (approve) ApplicationStatus.APPROVED else ApplicationStatus.REJECTED, decisionNote = note, decidedBy = officer, decidedAt = at, updatedAt = at))
@@ -554,29 +559,44 @@ class DemoDataSeeder(
     }
 
     companion object {
-        const val DEFAULT_COUNT = 40
-        const val MAX_COUNT = 200
+        const val DEFAULT_COUNT = 240
+        const val MAX_COUNT = 400
         const val DEFAULT_SEED = 20261020L
-        const val TREND_DAYS = 52.0
+        private const val OPEN_IN_PROGRESS = 0.05
+        private const val OPEN_DRAFT = 0.03
         val JOURNEY_MARGIN: Duration = Duration.ofHours(4)
         const val DEMO_DEALER_PREFIX = "DLR-DEMO-"
-        /** Demo dealer roster: code suffix (country first), name, tier. Two or three per country so the dealer tab can compare tiers. */
-        val DEMO_DEALERS = listOf(
-            Triple("ID-1", "PT Astra Mobil Jakarta", DealerTier.EXCELLENT), Triple("ID-2", "Sinar Motor Surabaya", DealerTier.EXCELLENT),
-            Triple("ID-3", "Mandiri Oto Bandung", DealerTier.STANDARD), Triple("ID-4", "Jaya Motor Medan", DealerTier.STANDARD),
-            Triple("MM-1", "Yangon Auto Center", DealerTier.EXCELLENT), Triple("MM-2", "Mandalay Motors", DealerTier.STANDARD), Triple("MM-3", "Golden Land Cars", DealerTier.STANDARD),
-            Triple("KH-1", "Phnom Penh Auto", DealerTier.EXCELLENT), Triple("KH-2", "Angkor Motor", DealerTier.STANDARD), Triple("KH-3", "Mekong Cars", DealerTier.STANDARD),
+        /** Scenario shares of each kind of dealer (the rest is clean) and how often the first ID photo needs a retake. */
+        private val PROFILE_TOP = DealerProfile(listOf(Scenario.MEDIUM to 0.07, Scenario.TIMEOUT to 0.01), retake = 0.02)
+        private val PROFILE_STRONG = DealerProfile(listOf(Scenario.MEDIUM to 0.20, Scenario.TIMEOUT to 0.02), retake = 0.05)
+        private val PROFILE_SOLID = DealerProfile(listOf(Scenario.MEDIUM to 0.15, Scenario.TIMEOUT to 0.03), retake = 0.02)
+        private val PROFILE_AVERAGE = DealerProfile(listOf(Scenario.MEDIUM to 0.22, Scenario.IDENTITY_MISMATCH to 0.12, Scenario.NOT_FOUND to 0.08, Scenario.TIMEOUT to 0.03), retake = 0.20)
+        private val PROFILE_WEAK = DealerProfile(
+            listOf(Scenario.MEDIUM to 0.20, Scenario.IDENTITY_MISMATCH to 0.10, Scenario.NOT_FOUND to 0.07, Scenario.TIMEOUT to 0.04, Scenario.SCREEN_PHOTO to 0.06, Scenario.INVALID_NIK to 0.05, Scenario.SELFIE_MISMATCH to 0.03, Scenario.FORGERY to 0.03, Scenario.SHARED_ID to 0.03, Scenario.SHARED_PHONE to 0.02),
+            retake = 0.25,
         )
-        /** Scenarios that end in a fraud signal or a failed lookup; excellent dealers draw them less often. */
-        private val RISKY = setOf(Scenario.IDENTITY_MISMATCH, Scenario.NOT_FOUND, Scenario.SCREEN_PHOTO, Scenario.INVALID_NIK, Scenario.SELFIE_MISMATCH, Scenario.FORGERY)
+        /** Demo dealer roster, country first in the suffix. Excellent dealers carry enough volume and clean records to meet the written standard. */
+        val DEMO_DEALERS = listOf(
+            RosterDealer("ID-1", "PT Astra Mobil Jakarta", DealerTier.EXCELLENT, 36, PROFILE_TOP), RosterDealer("ID-2", "Sinar Motor Surabaya", DealerTier.EXCELLENT, 30, PROFILE_TOP),
+            RosterDealer("ID-5", "Bintang Mobil Semarang", DealerTier.EXCELLENT, 28, PROFILE_STRONG), RosterDealer("MM-1", "Yangon Auto Center", DealerTier.EXCELLENT, 28, PROFILE_STRONG),
+            RosterDealer("KH-1", "Phnom Penh Auto", DealerTier.EXCELLENT, 28, PROFILE_STRONG),
+            RosterDealer("ID-3", "Mandiri Oto Bandung", DealerTier.STANDARD, 26, PROFILE_SOLID), RosterDealer("ID-4", "Jaya Motor Medan", DealerTier.STANDARD, 14, PROFILE_WEAK),
+            RosterDealer("ID-6", "Nusantara Auto Makassar", DealerTier.STANDARD, 8, PROFILE_AVERAGE), RosterDealer("MM-2", "Mandalay Motors", DealerTier.STANDARD, 10, PROFILE_AVERAGE),
+            RosterDealer("MM-3", "Golden Land Cars", DealerTier.STANDARD, 7, PROFILE_WEAK), RosterDealer("KH-2", "Angkor Motor", DealerTier.STANDARD, 9, PROFILE_AVERAGE),
+            RosterDealer("KH-3", "Mekong Cars", DealerTier.STANDARD, 7, PROFILE_WEAK),
+        )
         /** Cross-application scenarios that build a fraud ring with the last clean customer. */
         private val SHARED = setOf(Scenario.SHARED_ID, Scenario.SHARED_PHONE)
         const val MODEL = "claude-opus-5-5"
         /** Scenario and age in days of the first applications of every seed run. */
         private val SHOWCASE = listOf(
-            Scenario.CLEAN to 0.08, Scenario.SCREEN_PHOTO to 0.4, Scenario.INVALID_NIK to 0.6, Scenario.IDENTITY_MISMATCH to 0.9, Scenario.MEDIUM to 1.2,
-            Scenario.SHARED_ID to 1.1, Scenario.FORGERY to 0.3, Scenario.SHARED_PHONE to 0.7,
-            Scenario.SELFIE_MISMATCH to 1.6, Scenario.NOT_FOUND to 2.5, Scenario.IN_PROGRESS to 0.05, Scenario.TIMEOUT to 3.5, Scenario.CLEAN to 5.0,
+            Showcase(Scenario.CLEAN, 0.08, "ID-1"), Showcase(Scenario.SCREEN_PHOTO, 0.4, "ID-4"), Showcase(Scenario.INVALID_NIK, 0.6, "ID-4"), Showcase(Scenario.IDENTITY_MISMATCH, 0.9, "ID-4"), Showcase(Scenario.MEDIUM, 1.2, "ID-3"),
+            Showcase(Scenario.SHARED_ID, 1.1, "ID-4"), Showcase(Scenario.FORGERY, 0.3, "ID-3"), Showcase(Scenario.SHARED_PHONE, 0.7, "ID-4"),
+            Showcase(Scenario.SELFIE_MISMATCH, 24.0, "ID-4"), Showcase(Scenario.NOT_FOUND, 40.0, "ID-4"), Showcase(Scenario.IN_PROGRESS, 0.05, "ID-1"), Showcase(Scenario.TIMEOUT, 3.5, "ID-6"), Showcase(Scenario.CLEAN, 5.0, "ID-2"),
+            // One ring grows around the MEDIUM customer above and is still open; two older ones have been decided.
+            Showcase(Scenario.SHARED_ID, 1.4, "ID-4"), Showcase(Scenario.SHARED_ID, 0.9, "ID-6"), Showcase(Scenario.SHARED_PHONE, 2.1, "ID-4"),
+            Showcase(Scenario.CLEAN, 62.0, "ID-6"), Showcase(Scenario.SHARED_PHONE, 55.0, "ID-4"), Showcase(Scenario.SHARED_PHONE, 48.0, "ID-6"),
+            Showcase(Scenario.CLEAN, 104.0, "ID-4"), Showcase(Scenario.SHARED_ID, 96.0, "ID-4"), Showcase(Scenario.SHARED_ID, 90.0, "ID-6"),
         )
         val PROVINCES = listOf("31", "32", "33", "35", "51", "12", "73")
         val OFFICERS = listOf("Officer Kim", "Officer Lee", "Officer Sari")

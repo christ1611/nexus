@@ -3,20 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0a31a8">
+<meta name="theme-color" content="#0b3c49">
 <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="manifest" href="/icons/site.webmanifest">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css">
-<title data-ko="JB금융그룹 NEXUS ASEAN 심사" data-en="JB Financial Group NEXUS ASEAN Review">JB금융그룹 NEXUS ASEAN 심사</title>
-<script src="/lang.js?v=2"></script>
+<title data-ko="NEXUS AI 심사" data-en="NEXUS AI Review">NEXUS AI 심사</title>
+<script src="/lang.js?v=3"></script>
+<link rel="stylesheet" href="/fds.css?v=2">
+<script src="/fds.js?v=4"></script>
 <style>
-  /* JB-style header: white bar, deep-blue top rule, monogram + group name */
+  /* Header: white bar, deep-blue top rule, NEXUS logo + product name */
   .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
   .brand .mark { flex: none; width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%); color: #fff; font-weight: 800; font-size: 15px; letter-spacing: -0.03em; display: grid; place-items: center; }
   .brand .group { font-size: 12px; font-weight: 700; color: var(--brand); letter-spacing: .01em; line-height: 1.2; }
-  .brand .group .svc { color: var(--text-3); font-weight: 500; margin-left: 6px; }
+  .brand .group .svc { color: var(--text-3); font-weight: 500; }
   footer { max-width: 1400px; margin: 0 auto; padding: 20px 24px 28px; display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: space-between; font-size: 12px; color: var(--text-3); }
   footer b { color: var(--brand); font-weight: 700; }
   input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-tint); }
@@ -30,40 +32,40 @@
   .pages a:hover { color: var(--brand); }
   .pages a[aria-current="page"] { background: var(--brand); color: #fff; }
   @media (max-width: 700px) { .brand .mark { width: 34px; height: 34px; font-size: 13px; border-radius: 9px; } h1 small { display: none; } }
-  /* JB금융그룹 corporate palette: deep blue #0A31A8, accent #1C56FF, sky #00B2FF, navy #0D2D77, slate greys. */
+  /* Palette from the KOIN Bridge deck: deep teal #0B3C49, teal #028090, amber #F2A541, teal-grey neutrals, red #C0392B. */
   :root {
     color-scheme: light;
-    --brand: #0a31a8; --brand-2: #1c56ff; --brand-3: #598aff; --brand-sky: #00b2ff; --brand-navy: #0d2d77; --brand-tint: #eaf0ff;
-    --page: #f5f7fa; --surface: #ffffff; --surface-2: #f3f5f9; --border: #e1e5ee; --grid: #eceff5;
-    --text: #1a1f2e; --text-2: #4a5464; --text-3: #728197;
-    --c-id: #1c56ff; --c-mm: #f28c28; --c-kh: #17a673;                 /* categorical slots 1-3: Indonesia, Myanmar, Cambodia */
-    --seq: var(--brand); --seq-light: #9bb6ff;                          /* sequential blue */
-    --good: #0e9f6e; --warn: #f5b400; --serious: #ec7a3c; --critical: #d93025;
-    --good-bg: #e6f7ef; --warn-bg: #fff6d9; --serious-bg: #fdebe0; --critical-bg: #fde8e7; --info-bg: var(--brand-tint);
-    --shadow: 0 1px 2px rgba(13, 45, 119, .06), 0 4px 16px rgba(13, 45, 119, .04);
+    --brand: #0b3c49; --brand-2: #028090; --brand-3: #5faab4; --brand-sky: #f2a541; --brand-navy: #0b3c49; --brand-tint: #e6f2f3;
+    --page: #f5f9fa; --surface: #ffffff; --surface-2: #eef4f5; --border: #d5e0e3; --grid: #e6eef0;
+    --text: #1f2933; --text-2: #5f6c72; --text-3: #7a858b;
+    --c-id: #028090; --c-mm: #f2a541; --c-kh: #0b3c49;                 /* categorical slots 1-3: Indonesia, Myanmar, Cambodia */
+    --seq: var(--brand-2); --seq-light: #b7d3d7;                        /* sequential teal */
+    --good: #0e9f6e; --warn: #f2a541; --serious: #ec7a3c; --critical: #c0392b;
+    --good-bg: #e6f7ef; --warn-bg: #fdf1dc; --serious-bg: #fdebe0; --critical-bg: #f9e7e5; --info-bg: var(--brand-tint);
+    --shadow: 0 1px 2px rgba(11, 60, 73, .06), 0 4px 16px rgba(11, 60, 73, .04);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --brand: #598aff; --brand-2: #7da2ff; --brand-3: #9bb6ff; --brand-navy: #0d2d77; --brand-tint: #1a2a5c;
-      --page: #0b1226; --surface: #121a33; --surface-2: #1a2445; --border: #27325a; --grid: #222c4f;
-      --text: #eef1f8; --text-2: #b7c0d9; --text-3: #8491b3;
-      --c-id: #598aff; --c-mm: #f28c28; --c-kh: #2bb985;
-      --seq: var(--brand); --seq-light: #2f4a9e;
+      --brand: #1f8f9e; --brand-2: #4fb6c3; --brand-3: #7fcad4; --brand-navy: #0b3c49; --brand-tint: #123f4b;
+      --page: #06202a; --surface: #0b2c37; --surface-2: #123a46; --border: #1f4b58; --grid: #184250;
+      --text: #e8f1f3; --text-2: #b3c6cb; --text-3: #87a0a7;
+      --c-id: #4fb6c3; --c-mm: #f2a541; --c-kh: #a7dce3;
+      --seq: var(--brand); --seq-light: #1f5e6c;
       --good: #34c38f; --critical: #ef5350;
-      --good-bg: #123a2c; --warn-bg: #3d3210; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
+      --good-bg: #123a2c; --warn-bg: #3d2f14; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
       --shadow: none;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --brand: #598aff; --brand-2: #7da2ff; --brand-3: #9bb6ff; --brand-navy: #0d2d77; --brand-tint: #1a2a5c;
-    --page: #0b1226; --surface: #121a33; --surface-2: #1a2445; --border: #27325a; --grid: #222c4f;
-    --text: #eef1f8; --text-2: #b7c0d9; --text-3: #8491b3;
-    --c-id: #598aff; --c-mm: #f28c28; --c-kh: #2bb985;
-    --seq: var(--brand); --seq-light: #2f4a9e;
+    --brand: #1f8f9e; --brand-2: #4fb6c3; --brand-3: #7fcad4; --brand-navy: #0b3c49; --brand-tint: #123f4b;
+    --page: #06202a; --surface: #0b2c37; --surface-2: #123a46; --border: #1f4b58; --grid: #184250;
+    --text: #e8f1f3; --text-2: #b3c6cb; --text-3: #87a0a7;
+    --c-id: #4fb6c3; --c-mm: #f2a541; --c-kh: #a7dce3;
+    --seq: var(--brand); --seq-light: #1f5e6c;
     --good: #34c38f; --critical: #ef5350;
-    --good-bg: #123a2c; --warn-bg: #3d3210; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
+    --good-bg: #123a2c; --warn-bg: #3d2f14; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
     --shadow: none;
   }
   * { box-sizing: border-box; }
@@ -208,7 +210,7 @@
   /* Onboarding progress pinned at the top of the detail: it sticks under the page header while the officer scrolls the
      evidence below, and once stuck it folds to its compact form (no stage notes or timestamps). */
   #stage-panel { position: sticky; top: calc(var(--header-h, 64px) + 8px); z-index: 4; transition: box-shadow .15s; }
-  #stage-panel.stuck { box-shadow: 0 10px 28px rgba(13,45,119,.18); padding-top: 10px; padding-bottom: 10px; }
+  #stage-panel.stuck { box-shadow: 0 10px 28px rgba(11,60,73,.18); padding-top: 10px; padding-bottom: 10px; }
   #stage-panel.stuck .stepper .note, #stage-panel.stuck .stepper time, #stage-panel.stuck .stepper .lb small { display: none; }
   #stage-panel.stuck { border-radius: 10px; }
   #stage-sentinel { height: 1px; margin-bottom: -1px; }  /* a 1px marker above the card: scrolled out of view means the card is stuck */
@@ -305,8 +307,18 @@
   .newapp .link { font-size: 12px; word-break: break-all; color: var(--text-2); }
   #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; z-index: 20; cursor: zoom-out; }
   #lightbox img { max-width: 96vw; max-height: 96vh; object-fit: contain; }
-  /* customer report popup (opened from the queue and the decision card) */
-  #report { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: flex-start; justify-content: center; z-index: 30; overflow: auto; padding: 24px 12px; }
+  /* a new application blinks in the queue */
+  @keyframes queue-blink { 0%, 100% { background: transparent; } 50% { background: var(--warn-bg); } }
+  tr.row.is-new td { animation: queue-blink 1s ease-in-out infinite; animation-delay: var(--blink-delay, 0ms); }
+  @media (prefers-reduced-motion: reduce) { tr.row.is-new td { animation: none; background: var(--warn-bg); } }
+  /* fraud link graph popup */
+  #fds-modal { position: fixed; inset: 0; background: rgba(11,60,73,.6); display: flex; align-items: flex-start; justify-content: center; z-index: 30; overflow: auto; padding: 24px 12px; }
+  #fds-modal[hidden] { display: none; }
+  #fds-modal .sheet { background: var(--surface); color: var(--text); border-radius: 16px; box-shadow: var(--shadow); width: min(1240px, 100%); padding: 16px 18px 18px; }
+  .fds-modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .fds-modal-head h2 { margin: 0; font-size: 18px; }
+  /* customer report popup (opened from a decided application's header) */
+  #report { position: fixed; inset: 0; background: rgba(11,60,73,.55); display: none; align-items: flex-start; justify-content: center; z-index: 30; overflow: auto; padding: 24px 12px; }
   #report .sheet { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); width: min(920px, 100%); padding: 20px 24px 24px; position: relative; }
   #report .sheet-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid var(--brand); margin-bottom: 14px; }
   #report .sheet-head h2 { font-size: 20px; margin: 0; }
@@ -318,7 +330,6 @@
   #report th, #report td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
   #report th { color: var(--text-3); font-weight: 600; font-size: 12px; }
   #report .foot { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; }
-  button.rp-mini { font-size: 11px; font-weight: 600; padding: 2px 9px; margin-left: 6px; vertical-align: middle; }
   @media print {
     body > *:not(#report) { display: none !important; }
     #report { display: block !important; position: static; background: none; padding: 0; overflow: visible; }
@@ -334,10 +345,10 @@
 <body>
 <header>
   <div class="brand">
-    <span class="mark" aria-hidden="true">JB</span>
+    <img class="mark" src="/icons/icon.svg" alt="" aria-hidden="true">
     <div>
-      <div class="group"><span data-ko="JB금융그룹" data-en="JB Financial Group">JB금융그룹</span> <span class="svc">NEXUS ASEAN</span></div>
-      <h1><span data-ko="심사" data-en="Review">심사</span> <small data-ko="심사 백오피스 · 서류, 근거, 결정" data-en="Reviewer back office · documents, evidence, decisions">심사 백오피스 · 서류, 근거, 결정</small></h1>
+      <div class="group"><span class="svc" data-ko="심사 백오피스 · 서류, 근거, 결정" data-en="Reviewer back office · documents, evidence, decisions">심사 백오피스 · 서류, 근거, 결정</span></div>
+      <h1>NEXUS AI</h1>
     </div>
   </div>
   <nav class="pages" aria-label="Back-office pages">
@@ -385,11 +396,12 @@
   </section>
 </main>
 <footer>
-  <span data-ko="<b>JB금융그룹</b> · NEXUS ASEAN 온보딩 백오피스 <span class=&quot;sub&quot; style=&quot;display:inline&quot;>내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span>" data-en="<b>JB Financial Group</b> · NEXUS ASEAN onboarding back office <span class=&quot;sub&quot; style=&quot;display:inline&quot;>Internal demo · Indonesia / Myanmar / Cambodia</span>"><b>JB금융그룹</b> · NEXUS ASEAN 온보딩 백오피스 <span class="sub" style="display:inline">내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span></span>
+  <span data-ko="<b>JB금융그룹</b> · NEXUS AI 온보딩 백오피스 <span class=&quot;sub&quot; style=&quot;display:inline&quot;>내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span>" data-en="<b>JB Financial Group</b> · NEXUS AI onboarding back office <span class=&quot;sub&quot; style=&quot;display:inline&quot;>Internal demo · Indonesia / Myanmar / Cambodia</span>"><b>JB금융그룹</b> · NEXUS AI 온보딩 백오피스 <span class="sub" style="display:inline">내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span></span>
   <span data-ko="데모용 공개 화면 · 로그인 없음" data-en="Open demo screen · no login">데모용 공개 화면 · 로그인 없음</span>
 </footer>
 <div id="lightbox"><img alt=""></div>
 <div id="report" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="sheet"></div></div>
+<div id="fds-modal" role="dialog" aria-modal="true" aria-labelledby="fds-modal-title" hidden><div class="sheet"><div class="fds-modal-head"><div><h2 id="fds-modal-title"></h2><div class="sub" id="fds-modal-note"></div></div><button type="button" id="fds-modal-close" aria-label="Close">✕</button></div><div id="fds-modal-body"></div></div></div>
 <div id="tip" role="tooltip"></div>
 
 <script>
@@ -445,7 +457,7 @@
   const summaryOf = rv => (LANG.lang === 'en' ? rv.summary : (rv.summaryKo || rv.summary)) || '';   // Korean summary when Korean is selected; English otherwise
   const fmtTime = iso => { if (!iso) return '–'; try { return new Date(iso).toLocaleString(LANG.locale, { hour12: false }); } catch { return iso; } };
   const nowClock = () => new Date().toLocaleTimeString(LANG.locale, { hour12: false });
-  const ago = iso => { if (!iso) return ''; const h = (Date.now() - new Date(iso).getTime()) / 36e5; return h < 1 ? Math.round(h * 60) + t('분', ' min') : h < 48 ? h.toFixed(1) + t('시간', ' h') : Math.round(h / 24) + t('일', ' d'); };
+  const ago = iso => { if (!iso) return ''; const h = (Date.now() - new Date(iso).getTime()) / 36e5; return h < 1 ? Math.round(h * 60) + t('분', ' min') : h < 48 ? h.toFixed(1) + t('시간', ' h') : (h / 24).toFixed(1) + t('일', ' d'); };
   const agoText = iso => { const a = ago(iso); return a ? t(a + ' 전', a + ' ago') : ''; };
   const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
   let apps = [], queueLoaded = false, current = null, blobs = new Map(), tracePoll = null, traceLastId = 0, traceSeenUpdatedAt = null;
@@ -473,7 +485,7 @@
   const copilotLog = new Map();   // application number -> [{ role, content, mode, model, ms, err, label, showEngine, typing }]
   const copilotBusy = new Set();
   const AI_NAME = 'NEXUS AI';     // default assistant name; answers carry the server's label (app.copilot-label)
-  const engineOf = m => m.mode === 'claude' ? esc(m.model || 'Claude') : t('규칙 엔진', 'rules engine');
+  const engineOf = m => m.mode === 'rules' ? t('규칙 엔진', 'rules engine') : esc(m.model || m.mode);
   const labelOf = m => esc(m.label || AI_NAME) + (m.showEngine ? ' · ' + engineOf(m) : '');
   const thinkPause = () => new Promise(r => setTimeout(r, 700 + Math.random() * 900));   // a beat before the answer, even when the engine is instant
   /** Reveals an answer progressively in its bubble, then repaints with the footer. */
@@ -505,10 +517,10 @@
   function renderCopilot(a) {
     const n = a.applicationNumber, log = copilotLog.get(n) || [], busy = copilotBusy.has(n);
     const last = [...log].reverse().find(m => m.role === 'assistant' && !m.err);
-    const mode = `<span class="mode">${last ? labelOf(last) : AI_NAME}</span>`;
-    return `<h2>${t('AI 심사 코파일럿', 'AI review copilot')} <small>${t('이 신청의 점수·Flag·근거에 대해 물어보세요 · 결정은 심사원이 합니다', "Ask about this application's score, flags and evidence · the officer decides")}</small>${mode}</h2>
+    const mode = last?.showEngine ? `<span class="mode">${labelOf(last)}</span>` : '';   // the title already gives the name
+    return `<h2>NEXUS AI <small>${t('이 신청의 점수·Flag·근거에 대해 물어보세요 · 결정은 심사원이 합니다', "Ask about this application's score, flags and evidence · the officer decides")}</small>${mode}</h2>
       <div class="chips">${COPILOT_PROMPTS.map(([ko, en]) => `<button type="button" data-q="${esc(t(ko, en))}">${esc(t(ko, en))}</button>`).join('')}${log.length ? `<button type="button" data-clear="1" title="${t('이 대화를 지웁니다', 'Clear this conversation')}">${t('대화 지우기', 'Clear chat')}</button>` : ''}</div>
-      <div class="log" id="copilot-log">${log.length ? log.map(m => m.role === 'user'
+      <div class="log" id="copilot-log" data-app="${esc(n)}">${log.length ? log.map(m => m.role === 'user'
         ? `<div class="msg user">${esc(m.content)}</div>`
         : `<div class="msg ai ${m.err ? 'err' : ''}"${m.typing ? ' data-typing="1"' : ''}>${m.typing ? '<span class="caret"></span>' : m.err ? esc(m.content) : md(m.content)}${m.ms != null && !m.typing ? `<span class="meta">${labelOf(m)} · ${(m.ms / 1000).toFixed(1)}s${m.showEngine && m.inputTokens != null ? ` · in ${m.inputTokens.toLocaleString()} · out ${m.outputTokens.toLocaleString()}` : ''}</span>` : ''}</div>`).join('')
         : `<p class="empty" style="padding:4px 0">${esc(a.risk ? t(`등급 ${a.risk.grade} · ${a.risk.score}점의 근거, Risk Flag의 의미, 추가 확인 사항을 물어보세요.`, `Ask why grade ${a.risk.grade} with ${a.risk.score} points, what the risk flags mean, or what to check next.`) : t('리스크 평가 전에도 서류·진행 상황에 대해 물어볼 수 있습니다.', 'Before the risk assessment you can still ask about the documents and the progress.'))} <span class="sub">${t('위의 추천 질문을 누르거나 직접 입력하세요.', 'Use a suggested question above, or type your own.')}</span></p>`}
@@ -678,23 +690,45 @@
       setStatus(t('업데이트 ', 'Updated ') + nowClock());
     } catch (e) { errStatus(e); }
   }
+  /* New arrivals blink in the queue. The first load of a filter only sets the baseline, so opening the page or changing a
+     filter marks nothing. --blink-delay keeps the blink steady across the redraws of the 15 s refresh. */
+  const QUEUE_BLINK_MS = 180000;
+  const queueNew = new Map();   // application number -> when it arrived
+  let queueSeen = null, queueSeenKey = null;
+  function trackQueueArrivals() {
+    const key = queryString(), now = Date.now(), numbers = apps.map(a => a.applicationNumber);
+    if (key !== queueSeenKey) { queueSeen = null; queueNew.clear(); queueSeenKey = key; }
+    if (queueSeen) numbers.filter(n => !queueSeen.has(n)).forEach(n => { queueNew.set(n, now); setTimeout(endQueueBlink, QUEUE_BLINK_MS + 100); });
+    queueSeen = new Set(numbers);
+  }
+  function endQueueBlink() {
+    const now = Date.now();
+    queueNew.forEach((at, n) => { if (now - at >= QUEUE_BLINK_MS) queueNew.delete(n); });
+    list.querySelectorAll('tr.row.is-new').forEach(tr => { if (!queueNew.has(tr.dataset.n)) tr.classList.remove('is-new'); });
+  }
+  // Opening an application ends its blink.
+  function dismissQueueBlink(number) { if (queueNew.delete(number)) endQueueBlink(); }
   function renderQueue() {
+    trackQueueArrivals();
+    // Newest application first, so a new one always appears on top.
+    apps.sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt));
     if (!apps.length) { list.innerHTML = `<p class="empty">${t('조건에 맞는 신청이 없습니다.', 'Nothing matches these filters.')}</p>`; $('#n-work').hidden = true; return; }
     list.innerHTML = `<div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('상태', 'Status')}</th><th>${t('등급', 'Grade')}</th><th>${t('대기', 'Waiting')}</th></tr></thead><tbody>${apps.map(a => {
       const r = a.risk, waitingSince = a.risk?.assessedAt || a.verifiedAt || a.updatedAt;
-      return `<tr class="row ${current && current.applicationNumber === a.applicationNumber ? 'selected' : ''}" data-n="${esc(a.applicationNumber)}">
-        <td><b>${esc(a.applicationNumber)}</b><button type="button" class="rp-mini report-btn" data-n="${esc(a.applicationNumber)}" title="${t('고객 리포트 보기', 'Open the customer report')}">📄 ${t('리포트', 'Report')}</button><br><span class="sub">${countryCell(a.country)} · ${esc(a.dealerCode || '–')} · ${esc(customerName(a))}</span></td>
+      const arrived = queueNew.get(a.applicationNumber);
+      return `<tr class="row ${current && current.applicationNumber === a.applicationNumber ? 'selected' : ''} ${arrived ? 'is-new' : ''}" data-n="${esc(a.applicationNumber)}"${arrived ? ` style="--blink-delay:${arrived - Date.now()}ms"` : ''}>
+        <td><b>${esc(a.applicationNumber)}</b><br><span class="sub">${countryCell(a.country)} · ${esc(a.dealerCode || '–')} · ${esc(customerName(a))}</span></td>
         <td>${pill(a.status)}${a.review?.officerReviewRequired ? `<br><span class="chip warn">${t('담당자 검토', 'Officer review')}</span>` : ''}${a.progress && a.status !== 'APPROVED' && a.status !== 'REJECTED' ? `<br><span style="white-space:nowrap">${miniBar(a.progress)} <span class="sub">${esc(curStage(a.progress))}</span></span>` : ''}</td>
         <td>${r ? gradeCell(r.grade, r.score) : '<span class="sub">–</span>'}${r && r.fraudWarnings ? `<br><span class="chip fraud">⚠ ${t('위조', 'fraud')} ${r.fraudWarnings}</span>` : ''}</td>
         <td class="num"><span class="sub" title="${esc(fmtTime(waitingSince))}">${a.status === 'READY_FOR_REVIEW' ? ago(waitingSince) : ago(a.updatedAt)}</span></td></tr>`; }).join('')}</tbody></table></div>
-      <p class="sub" style="margin:8px 0 0">${t(`${apps.length}건 · 심사 대기 우선, 리스크 점수 높은 순 · ${QUEUE_POLL_MS / 1000}초마다 갱신`, `${apps.length} applications · ready-for-review first, highest risk score first · refreshes every ${QUEUE_POLL_MS / 1000}s`)}</p>`;
+      <p class="sub" style="margin:8px 0 0">${t(`${apps.length}건 · 최신 신청 순 · ${QUEUE_POLL_MS / 1000}초마다 갱신`, `${apps.length} applications · newest first · refreshes every ${QUEUE_POLL_MS / 1000}s`)}</p>`;
     const waitingCount = apps.filter(a => a.status === 'READY_FOR_REVIEW').length; $('#n-work').textContent = waitingCount; $('#n-work').hidden = !waitingCount;
     list.querySelectorAll('tr.row').forEach(tr => tr.addEventListener('click', () => open(tr.dataset.n)));
-    list.querySelectorAll('button.report-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); showReport(b.dataset.n); }));
   }
 
   /* ---------- detail ---------- */
   async function open(number, keepScroll) {
+    dismissQueueBlink(number);
     if (!keepScroll) history.replaceState(null, '', '/review?app=' + encodeURIComponent(number));
     try {
       const a = await api('/admin/applications/' + encodeURIComponent(number));
@@ -714,21 +748,23 @@
     // onboarding stage stepper first, pinned under the page header while the rest scrolls; kept fresh by the trace poll
     let h = `<div id="stage-sentinel"></div><div class="card" id="stage-panel"><div id="stage-body">${renderStages(a.progress)}</div></div>`;
     h += `<div class="card" style="margin-top:16px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between"><h2 style="font-size:20px;margin:0">${esc(a.applicationNumber)} ${pill(a.status)}</h2>${final ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-left:auto"><button type="button" id="btn-report" title="${t('이 고객의 리포트를 팝업으로 봅니다', 'Open this customer\'s report in a popup')}">📄 ${t('고객 리포트', 'Customer report')}</button><button type="button" id="btn-decision-report" title="${t('결정 근거 보고서를 내려받습니다', 'Download the decision evidence report')}">📑 ${t('근거 보고서 PDF', 'Evidence report PDF')}</button></div>` : ''}</div>
       <div style="display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-start;justify-content:space-between">
         <div>
-          <h2 style="font-size:20px">${esc(a.applicationNumber)} ${pill(a.status)}</h2>
           <div class="sub">${countryCell(a.country)} ${esc(countryName(a.country))} · ${t('딜러', 'dealer')} ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''} · ${t('생성', 'created')} ${fmtTime(a.createdAt)} · ${t('최근', 'updated')} ${fmtTime(a.updatedAt)}</div>
           <div style="margin-top:6px"><b>${esc(customerName(a))}</b> ${a.customerPhone ? `<span class="sub">+${esc(a.customerPhone)}</span>` : `<span class="sub">${t('(START 링크를 아직 열지 않음)', '(START link not opened yet)')}</span>`}</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           ${r ? `<div class="gradebox" style="border-color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}"><span class="big" style="color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}">${esc(r.grade)}</span><div><div><b>${esc(L(r, 'gradeLabel'))}</b></div><div class="sub">${t('점수', 'score')} ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ ${t('위조·사기 경고', 'fraud / forgery warnings')} ${r.fraudWarnings}</span>` : t('위조 신호 없음', 'no fraud signal')}</div><div class="sub">${esc(methodName(r.method))} · ${fmtTime(r.assessedAt)}</div></div></div>` : `<span class="sub">${t('리스크 미평가 (서류 미완료)', 'Not assessed yet (documents incomplete)')}</span>`}
+          <button type="button" id="btn-fds"${r?.fraudWarnings ? '' : ' hidden'} title="${t('이 신청이 다른 신청과 어떻게 이어져 있는지 봅니다', 'See how this application links to others')}">🕸 ${t('사기 연결망 보기', 'Fraud link graph')}</button>
         </div>
       </div>
       <div style="margin-top:8px">${(r?.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(L(b))}</span>`).join('')}${a.review?.officerReviewRequired ? `<span class="chip warn" data-tip="${t('자동 분석이 일부 데이터를 확신하지 못했습니다. 이미지와 대조해 주세요.', 'The automatic analysis was not confident about some fields. Compare with the images.')}">${t('담당자 검토 필요', 'Officer review required')}</span>` : ''}${a.linkOutstanding ? `<span class="chip">${t('딜러 폼 링크 유효', 'Dealer form link active')}</span>` : ''}</div>
       ${final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin-top:10px"><b>${esc(statusName(a.status))}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : ''}
       ${a.status === 'DOCUMENTS_REQUESTED' || a.status === 'RESUBMISSION_REQUESTED' ? `<div class="notice warn" style="margin-top:10px">${a.status === 'DOCUMENTS_REQUESTED' ? t('고객에게 서류를 다시 요청한 상태입니다. 새 사진이 접수되면 검사·조회가 다시 실행되고 심사 대기로 돌아옵니다.', 'The customer has been asked to resend documents. When new photos arrive, the checks and lookups run again and the application returns to the queue.') : t('딜러에게 폼 재제출을 요청한 상태입니다.', 'The dealer has been asked to resubmit the form.')}${a.resubmissionReason ? '<br><span class="sub">' + esc(a.resubmissionReason) + '</span>' : ''}</div>` : ''}
-      ${a.review ? `<div class="summary"><h3>${t('자동 리뷰 요약', 'Review agent summary')} <span class="sub">${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}${a.review.reviewedAt ? ' · ' + fmtTime(a.review.reviewedAt) : ''}</span></h3>${summaryOf(a.review) ? `<pre>${esc(summaryOf(a.review))}</pre>` : `<p class="empty" style="padding:4px 0">${t('요약이 아직 없습니다.', 'No summary yet.')}</p>`}</div>` : ''}
+      <div class="copilot" id="copilot" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">${renderCopilot(a)}</div>
     </div>`;
+    if (a.review) h += `<div class="card summary" style="margin-top:16px;border-top:1px solid var(--border)"><h3>${t('자동 리뷰 요약', 'Review agent summary')} <span class="sub">${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}${a.review.reviewedAt ? ' · ' + fmtTime(a.review.reviewedAt) : ''}</span></h3>${summaryOf(a.review) ? `<pre>${esc(summaryOf(a.review))}</pre>` : `<p class="empty" style="padding:4px 0">${t('요약이 아직 없습니다.', 'No summary yet.')}</p>`}</div>`;
 
     // evidence panels, folded: documents, extracted data and lookups, risk flags. The officer's open/closed choice is remembered.
     h += fold('docs', `${t('서류', 'Documents')} <small>${t(`현재 ${live.length}건${old.length ? ', 이전 제출본 ' + old.length + '건' : ''}`, `${live.length} current${old.length ? ', ' + old.length + ' superseded' : ''}`)}</small>`, '');
@@ -755,8 +791,6 @@
     // fraud network: filled in asynchronously when this application is tied to others
     h += '<div id="fraud-links"></div>';
 
-    // reviewer copilot, under the evidence panels
-    h += `<div class="card copilot" id="copilot" style="margin-top:16px">${renderCopilot(a)}</div>`;
 
     // the AI agent timeline (Step 4b), folded by default; kept fresh by the trace poll
     const liveTrace = !final;
@@ -767,7 +801,7 @@
     h += `<div class="card" id="trace-card" style="margin-top:16px">${renderTraceSection(trace, liveTrace, prevLastId)}</div>`;
 
     // actions
-    h += `<div class="card" style="margin-top:16px"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between"><h2 style="margin:0">${t('심사 결정', 'Decisions')} <small>${t('알림은 WhatsApp으로 딜러와 고객에게 전송됩니다', 'notifications go to the dealer and the customer on WhatsApp')}</small></h2><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><button type="button" id="btn-report" title="${t('이 고객의 리포트를 팝업으로 봅니다', 'Open this customer\'s report in a popup')}">📄 ${t('고객 리포트', 'Customer report')}</button><button type="button" id="btn-decision-report" title="${a.decisionReport?.available ? t(`결정 시점에 자동 생성된 근거 보고서 (${fmtTime(a.decisionReport.generatedAt)})`, `Evidence report generated at decision time (${fmtTime(a.decisionReport.generatedAt)})`) : t('결정 전에는 현재 데이터로 임시본을 만듭니다', 'Before a decision this renders a draft from the current data')}">📑 ${t('근거 보고서 PDF', 'Evidence report PDF')}${a.decisionReport?.available ? '' : ` <span class="sub" style="color:inherit;opacity:.7">${t('임시본', 'draft')}</span>`}</button></div></div>
+    h += `<div class="card" style="margin-top:16px"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between"><h2 style="margin:0">${t('심사 결정', 'Decisions')} <small>${t('알림은 WhatsApp으로 딜러와 고객에게 전송됩니다', 'notifications go to the dealer and the customer on WhatsApp')}</small></h2></div>
       ${final ? `<p class="empty">${t('결정이 완료된 신청입니다. 메모만 추가할 수 있습니다.', 'This application is decided. Only notes can be added.')}</p>` : ''}
       <div class="actions">
         <div class="action"><h3>${t('승인 / 거절', 'Approve / reject')}</h3>
@@ -791,11 +825,18 @@
     // timeline
     h += `<div class="card" style="margin-top:16px"><h2>${t('심사 이력', 'Timeline')}</h2>${(a.events || []).length ? `<ul class="timeline">${a.events.map(eventRow).join('')}</ul>` : `<p class="empty">${t('아직 이력이 없습니다.', 'No history yet.')}</p>`}</div>`;
 
+    // A redraw of the same application (its state changed) keeps the reader's place in the chat and any half-typed question.
+    const prevLog = $('#copilot-log'), sameApp = prevLog?.dataset.app === a.applicationNumber;
+    const keepScroll = sameApp ? prevLog.scrollTop : null, keepDraft = sameApp ? $('#copilot-q')?.value : '', keepDetail = sameApp ? detail.scrollTop : null;
     detail.innerHTML = h;
     watchStagePanel();
     bindTips(detail);
     bindActions(a, final);
+    $('#btn-fds')?.addEventListener('click', e => openFds(a.applicationNumber, e.currentTarget));
     bindCopilot(a);
+    if (keepScroll != null) $('#copilot-log').scrollTop = keepScroll;
+    if (keepDraft && $('#copilot-q')) $('#copilot-q').value = keepDraft;
+    if (keepDetail != null) detail.scrollTop = keepDetail;
     loadImages(a);
     loadFraudLinks(a);
     if (liveTrace) startTracePolling(a.applicationNumber); else stopTracePolling();
@@ -849,6 +890,8 @@
       if (!current || current.applicationNumber !== a.applicationNumber || !detail.contains(slot)) return;
       const cluster = networkCache.clusters.find(c => c.applications.includes(a.applicationNumber));
       if (!cluster) return;
+      // Tied to other applications: a fraud possibility even without a warning of its own, since the risk rules flag only the later application of a pair.
+      const fdsBtn = $('#btn-fds'); if (fdsBtn) fdsBtn.hidden = false;
       const me = networkCache.nodes.find(x => x.type === 'application' && x.number === a.applicationNumber);
       const byId = Object.fromEntries(networkCache.nodes.map(x => [x.id, x]));
       const ties = networkCache.links.filter(l => l.kind !== 'DEALER' && (l.source === me?.id || l.target === me?.id)).map(l => ({ other: byId[l.source === me.id ? l.target : l.source], kind: l.kind, detail: l.detail }));
@@ -881,7 +924,7 @@
     }
   }
   lightbox.addEventListener('click', () => { lightbox.style.display = 'none'; });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { lightbox.style.display = 'none'; closeReport(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { lightbox.style.display = 'none'; closeReport(); closeFds(); } });
 
   /* Decision evidence report (PDF): fetched, then handed to the browser as a download. */
   async function downloadDecisionReport(number, btn) {
@@ -898,6 +941,76 @@
     } catch (e) { errStatus(e); }
     finally { if (btn) btn.disabled = false; }
   }
+
+  /* ---------- fraud link graph popup ---------- */
+  const fdsModal = $('#fds-modal'), fdsNote = $('#fds-modal-note');
+  const fdsConsole = createFdsConsole({ t, L, esc, statusName, onOpenApp: n => { closeFds(); showTab('work'); open(n); } });
+  let fdsFor = null, fdsTimer = null, fdsOpener = null;
+  function paintFdsHead(net) {
+    $('#fds-modal-title').textContent = `${t('사기 연결망', 'Fraud link graph')} · ${fdsFor}`;
+    $('#fds-modal-close').setAttribute('aria-label', t('닫기', 'Close'));
+    const ring = net?.clusters.find(c => c.applications.includes(fdsFor));
+    fdsNote.textContent = !net ? t('불러오는 중…', 'Loading…')
+      : ring ? `${t('묶음', 'Ring')} ${ring.id} · ${LANG.lang === 'en' ? ring.summary : ring.summaryKo}`
+      : t('이 신청은 다른 신청과 연결되어 있지 않아요. 이 신청의 경고만 보여줘요.', 'This application is not linked to any other. Only its own warnings are shown.');
+  }
+  /* Only what relates to this application: its ring, what the ring shares, and the dealers involved. An application
+     with a warning but no ring is shown on its own. */
+  function fdsScope(number, stats, net) {
+    const a = current?.applicationNumber === number ? current : null, r = a?.risk;
+    const ring = net.clusters.find(c => c.applications.includes(number));
+    const apps = net.nodes.filter(x => x.type === 'application' && x.cluster === ring?.id && ring);
+    const ids = new Set(apps.map(x => x.id));
+    const links = net.links.filter(l => ids.has(l.source) && (ids.has(l.target) || l.kind === 'DEALER'));
+    const dealerIds = new Set(links.filter(l => l.kind === 'DEALER').map(l => l.target));
+    const nodes = ring ? [...apps, ...net.nodes.filter(x => dealerIds.has(x.id))] : [{
+      id: 'self-' + number, type: 'application', number, label: number, name: a ? customerName(a) : null, grade: r?.grade, score: r?.score,
+      status: a?.status, dealerCode: a?.dealerCode, country: a?.country, highRisk: r?.grade === 'C' || r?.grade === 'D',
+    }];
+    const numbers = new Set(nodes.filter(x => x.type === 'application').map(x => x.number));
+    const high = stats.highRiskApplications.filter(x => numbers.has(x.applicationNumber));
+    // The stored list holds grades C and D; a lower grade can still carry a warning, so this application's own flags are added.
+    if (r && !high.some(x => x.applicationNumber === number)) high.push({ applicationNumber: number, flags: (r.flags || []).map(f => ({ ...f, fraud: f.fraud ?? f.fraudSignal })), score: r.score, assessedAt: r.assessedAt, fraudWarnings: r.fraudWarnings });
+    const shared = new Set(links.filter(l => l.kind !== 'DEALER').map(l => l.kind + l.detail)).size;
+    const warned = high.filter(x => x.fraudWarnings > 0).length;
+    return {
+      net: { ...net, nodes, links, clusters: ring ? [ring] : [] },
+      stats: { ...stats, highRiskApplications: high, reviewQueue: stats.reviewQueue.filter(q => numbers.has(q.applicationNumber)), kpis: [
+        { label: t('연결된 다른 신청', 'Other linked applications'), value: Math.max(numbers.size - 1, 0) },
+        { label: t('고위험 (C·D)', 'High risk (C·D)'), value: high.filter(x => x.grade ? 'CD'.includes(x.grade) : nodes.some(n => n.number === x.applicationNumber && n.highRisk)).length, cls: 'hot' },
+        { label: t('공유된 값', 'Shared values'), value: shared, cls: 'warn' },
+        { label: t('위조·사기 경고 신청', 'With fraud warnings'), value: warned },
+      ] },
+    };
+  }
+  async function loadFds(selectIt) {
+    const number = fdsFor;
+    try {
+      const [stats, net] = await Promise.all([api('/admin/dashboard/stats'), api('/admin/fraud-network')]);
+      if (fdsFor !== number) return;
+      const scoped = fdsScope(number, stats, net);
+      fdsConsole.mount(scoped.stats, scoped.net, $('#fds-modal-body'));
+      if (selectIt) fdsConsole.select(number);
+      paintFdsHead(net);
+    } catch (e) {
+      if (fdsFor === number) fdsNote.textContent = t('연결망을 불러오지 못했습니다: ', 'Could not load the network: ') + e.message;
+    }
+  }
+  function openFds(number, opener) {
+    fdsFor = number; fdsOpener = opener;
+    fdsModal.hidden = false; paintFdsHead(null);
+    $('#fds-modal-close').focus();
+    loadFds(true);
+    clearInterval(fdsTimer); fdsTimer = setInterval(() => { if (!document.hidden) loadFds(false); }, 15000);
+  }
+  function closeFds() {
+    if (!fdsFor) return;
+    fdsFor = null; fdsModal.hidden = true; clearInterval(fdsTimer);
+    if (fdsOpener?.isConnected) fdsOpener.focus();
+  }
+  $('#fds-modal-close').addEventListener('click', closeFds);
+  fdsModal.addEventListener('click', e => { if (e.target === fdsModal) closeFds(); });
+  LANG.onChange(() => { if (fdsFor) loadFds(false); });
 
   /* ---------- customer report popup ---------- */
   const sheet = $('#report .sheet');
@@ -957,7 +1070,7 @@
       ${a.review ? sec(t('자동 리뷰 요약', 'Review agent summary'), `${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}`, summaryOf(a.review) ? `<pre>${esc(summaryOf(a.review))}</pre>` : none(t('요약이 아직 없습니다.', 'No summary yet.'))) : ''}
       ${sec(t('심사 결정', 'Decision'), '', final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin:0"><b>${esc(statusName(a.status))}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : `<p class="empty" style="padding:4px 0">${t('아직 결정되지 않았습니다 · 현재 상태', 'Not decided yet · current status')} ${esc(statusName(a.status))}${a.resubmissionReason ? `<br><span class="sub">${esc(a.resubmissionReason)}</span>` : ''}</p>`)}
       ${sec(t('최근 이력', 'Recent history'), t(`최근 ${events.length}건 / 전체 ${(a.events || []).length}건`, `last ${events.length} of ${(a.events || []).length}`), events.length ? `<ul class="timeline">${events.map(eventRow).join('')}</ul>` : none(t('아직 이력이 없습니다.', 'No history yet.')))}
-      <div class="foot"><span>NEXUS ASEAN · ${t('심사 백오피스 리포트', 'review back office report')}</span><span>${t('생성', 'generated')} ${fmtTime(new Date().toISOString())}${reviewerInput.value.trim() ? ' · ' + esc(reviewerInput.value.trim()) : ''}</span></div>`;
+      <div class="foot"><span>NEXUS AI · ${t('심사 백오피스 리포트', 'review back office report')}</span><span>${t('생성', 'generated')} ${fmtTime(new Date().toISOString())}${reviewerInput.value.trim() ? ' · ' + esc(reviewerInput.value.trim()) : ''}</span></div>`;
   }
 
   function bindActions(a, final) {
@@ -984,8 +1097,8 @@
       });
     }
     $('#btn-reassess').addEventListener('click', e => run(e.target, async () => { await api('/admin/applications/' + n + '/assess-risk' + (reviewer() ? '?reviewer=' + encodeURIComponent(reviewer()) : ''), { method: 'POST' }); after(t('리스크 재평가 완료', 'Risk re-assessed')); }));
-    $('#btn-report').addEventListener('click', () => showReport(a.applicationNumber));
-    $('#btn-decision-report').addEventListener('click', e => downloadDecisionReport(a.applicationNumber, e.target.closest('button')));
+    $('#btn-report')?.addEventListener('click', () => showReport(a.applicationNumber));
+    $('#btn-decision-report')?.addEventListener('click', e => downloadDecisionReport(a.applicationNumber, e.target.closest('button')));
     $('#btn-note').addEventListener('click', e => { const note = $('#note-text').value.trim(); if (!note) { setStatus(t('메모를 입력하세요.', 'Enter a note.'), true); return; } run(e.target, async () => { await api('/admin/applications/' + n + '/note', { method: 'POST', body: JSON.stringify({ note, reviewer: reviewer() }) }); after(t('메모 추가 완료', 'Note added')); }); });
   }
 

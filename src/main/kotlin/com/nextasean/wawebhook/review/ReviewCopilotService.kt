@@ -31,13 +31,15 @@ import kotlin.jvm.optionals.getOrNull
  * what to ask the customer for, approve or not) from a case file built out of everything the back office stores.
  *
  * With `app.document-check=claude` the questions go to Claude with the case file as a cached system block. Without
- * an API client (stub demo) a rule-based answerer explains the stored assessment, so the panel always works.
+ * an API client (stub demo), or when `app.copilot-engine=ollama` and the local model cannot answer, a rule-based
+ * answerer explains the stored assessment, so the panel always works.
  */
 @Service
 class ReviewCopilotService(
     private val client: ObjectProvider<AnthropicClient>,
     private val props: ClaudeProperties,
     private val appProps: AppProperties,
+    private val ollama: OllamaCopilot,
     private val documents: DocumentRepository,
     private val dealers: DealerRepository,
     private val risk: RiskAssessmentService,
@@ -51,7 +53,7 @@ class ReviewCopilotService(
 
     data class Answer(
         val answer: String,
-        /** `claude` or `rules`. */
+        /** `claude`, `ollama` or `rules`. */
         val mode: String,
         val model: String?,
         val inputTokens: Long? = null,
@@ -67,7 +69,14 @@ class ReviewCopilotService(
     fun ask(app: DealerApplication, question: String, history: List<Turn>, reviewer: String?): Answer {
         val assessment = risk.stored(app)
         val started = System.currentTimeMillis()
-        val c = client.ifAvailable
+        if (ollama.enabled) {
+            ollama.chat(SYSTEM, "# Case file\n\n${caseFile(app, assessment)}", history, question, reviewer, RulesCopilot.facts(app, assessment, question))?.let { r ->
+                val ms = System.currentTimeMillis() - started
+                log.info("Review copilot | engine=ollama | application={} | model={} | in={} | out={} | {}ms", app.applicationNumber, r.model, r.inputTokens, r.outputTokens, ms)
+                return Answer(r.text, "ollama", r.model, r.inputTokens, r.outputTokens, ms, appProps.copilotLabel, appProps.copilotShowEngine)
+            }
+        }
+        val c = if (ollama.enabled) null else client.ifAvailable
         if (c == null) {
             val text = RulesCopilot.answer(app, assessment, question)
             return Answer(text, "rules", null, durationMs = System.currentTimeMillis() - started, label = appProps.copilotLabel, showEngine = appProps.copilotShowEngine)
@@ -193,7 +202,7 @@ class ReviewCopilotService(
         private val FMT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("Asia/Jakarta"))
 
         val SYSTEM = """
-            You are the review copilot inside the NEXUS ASEAN onboarding back office of JB Financial Group's ASEAN
+            You are the review copilot inside the NEXUS AI onboarding back office of JB Financial Group's ASEAN
             subsidiaries. A credit reviewing officer (심사원) is looking at one customer application and asks you
             questions about it. The case file in the next system block is everything the back office knows.
 
@@ -222,15 +231,18 @@ object RulesCopilot {
 
     fun answer(app: DealerApplication, a: RiskAssessment?, question: String): String {
         if (a == null) return CopilotVoice.open(question, app.applicationNumber) + "아직 리스크 평가가 없습니다. 고객 서류와 신원·신용 조회가 끝나면 점수와 등급이 계산되고, 그때 근거를 바로 설명해 드릴게요." + CopilotVoice.close(question)
-        val body = when {
+        return CopilotVoice.open(question, app.applicationNumber) + facts(app, a, question).orEmpty().trimEnd() + CopilotVoice.close(question)
+    }
+
+    /** The stored figures for the topic of the question, without the conversational framing; null before an assessment exists. */
+    fun facts(app: DealerApplication, a: RiskAssessment?, question: String): String? =
+        if (a == null) null else when {
             RECOMMEND.containsMatchIn(question) -> recommendation(app, a)
             FRAUD.containsMatchIn(question) -> fraud(a)
             LOOKUP.containsMatchIn(question) -> lookups(app)
             DOCS.containsMatchIn(question) -> documentsAdvice(app, a)
             else -> scoreBreakdown(a)
         }
-        return CopilotVoice.open(question, app.applicationNumber) + body.trimEnd() + CopilotVoice.close(question)
-    }
 
     fun scoreBreakdown(a: RiskAssessment): String = buildString {
         appendLine("**점수 ${a.score} / 100 → 등급 ${a.grade.name} (${a.grade.labelKo})**")

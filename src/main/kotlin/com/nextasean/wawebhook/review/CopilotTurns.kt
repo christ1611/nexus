@@ -12,7 +12,18 @@ fun copilotConversation(
     question: String,
     reviewer: String?,
     maxHistory: Int = ReviewCopilotService.MAX_HISTORY,
-): List<MessageParam> {
+): List<MessageParam> =
+    copilotTurns(history, question, reviewer, maxHistory).map { (user, content) ->
+        MessageParam.builder().role(if (user) MessageParam.Role.USER else MessageParam.Role.ASSISTANT).content(content).build()
+    }
+
+/** The same conversation as (isUser, content) pairs, independent of the model provider. */
+fun copilotTurns(
+    history: List<ReviewCopilotService.Turn>,
+    question: String,
+    reviewer: String?,
+    maxHistory: Int = ReviewCopilotService.MAX_HISTORY,
+): List<Pair<Boolean, String>> {
     val turns = mutableListOf<Pair<Boolean, String>>()
     for (t in history.takeLast(maxHistory)) {
         val content = t.content.trim()
@@ -25,7 +36,5 @@ fun copilotConversation(
     if (turns.isNotEmpty() && turns.last().first) turns.removeAt(turns.lastIndex)
     val asked = reviewer?.trim()?.ifBlank { null }?.let { "[Reviewer: $it] $question" } ?: question
     turns += true to asked
-    return turns.map { (user, content) ->
-        MessageParam.builder().role(if (user) MessageParam.Role.USER else MessageParam.Role.ASSISTANT).content(content).build()
-    }
+    return turns
 }

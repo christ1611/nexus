@@ -3,20 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0a31a8">
+<meta name="theme-color" content="#0b3c49">
 <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="manifest" href="/icons/site.webmanifest">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css">
-<title data-ko="JB금융그룹 NEXUS ASEAN 온보딩 대시보드" data-en="JB Financial Group NEXUS ASEAN Onboarding Dashboard">JB금융그룹 NEXUS ASEAN 온보딩 대시보드</title>
-<script src="/lang.js?v=2"></script>
+<title data-ko="NEXUS AI 온보딩 대시보드" data-en="NEXUS AI Onboarding Dashboard">NEXUS AI 온보딩 대시보드</title>
+<script src="/lang.js?v=3"></script>
+<link rel="stylesheet" href="/fds.css?v=2">
+<script src="/fds.js?v=4"></script>
 <style>
-  /* JB-style header: white bar, deep-blue top rule, monogram + group name */
+  /* Header: white bar, deep-blue top rule, NEXUS logo + product name */
   .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
   .brand .mark { flex: none; width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%); color: #fff; font-weight: 800; font-size: 15px; letter-spacing: -0.03em; display: grid; place-items: center; }
   .brand .group { font-size: 12px; font-weight: 700; color: var(--brand); letter-spacing: .01em; line-height: 1.2; }
-  .brand .group .svc { color: var(--text-3); font-weight: 500; margin-left: 6px; }
+  .brand .group .svc { color: var(--text-3); font-weight: 500; }
   footer { max-width: 1400px; margin: 0 auto; padding: 20px 24px 28px; display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: space-between; font-size: 12px; color: var(--text-3); }
   footer b { color: var(--brand); font-weight: 700; }
   input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-tint); }
@@ -30,40 +32,40 @@
   .pages a:hover { color: var(--brand); }
   .pages a[aria-current="page"] { background: var(--brand); color: #fff; }
   @media (max-width: 700px) { .brand .mark { width: 34px; height: 34px; font-size: 13px; border-radius: 9px; } h1 small { display: none; } }
-  /* JB금융그룹 corporate palette: deep blue #0A31A8, accent #1C56FF, sky #00B2FF, navy #0D2D77, slate greys. */
+  /* Palette from the KOIN Bridge deck: deep teal #0B3C49, teal #028090, amber #F2A541, teal-grey neutrals, red #C0392B. */
   :root {
     color-scheme: light;
-    --brand: #0a31a8; --brand-2: #1c56ff; --brand-3: #598aff; --brand-sky: #00b2ff; --brand-navy: #0d2d77; --brand-tint: #eaf0ff;
-    --page: #f5f7fa; --surface: #ffffff; --surface-2: #f3f5f9; --border: #e1e5ee; --grid: #eceff5;
-    --text: #1a1f2e; --text-2: #4a5464; --text-3: #728197;
-    --c-id: #1c56ff; --c-mm: #f28c28; --c-kh: #17a673;                 /* categorical slots 1-3: Indonesia, Myanmar, Cambodia */
-    --seq: var(--brand); --seq-light: #9bb6ff;                          /* sequential blue */
-    --good: #0e9f6e; --warn: #f5b400; --serious: #ec7a3c; --critical: #d93025;
-    --good-bg: #e6f7ef; --warn-bg: #fff6d9; --serious-bg: #fdebe0; --critical-bg: #fde8e7; --info-bg: var(--brand-tint);
-    --shadow: 0 1px 2px rgba(13, 45, 119, .06), 0 4px 16px rgba(13, 45, 119, .04);
+    --brand: #0b3c49; --brand-2: #028090; --brand-3: #5faab4; --brand-sky: #f2a541; --brand-navy: #0b3c49; --brand-tint: #e6f2f3;
+    --page: #f5f9fa; --surface: #ffffff; --surface-2: #eef4f5; --border: #d5e0e3; --grid: #e6eef0;
+    --text: #1f2933; --text-2: #5f6c72; --text-3: #7a858b;
+    --c-id: #028090; --c-mm: #f2a541; --c-kh: #0b3c49;                 /* categorical slots 1-3: Indonesia, Myanmar, Cambodia */
+    --seq: var(--brand-2); --seq-light: #b7d3d7;                        /* sequential teal */
+    --good: #0e9f6e; --warn: #f2a541; --serious: #ec7a3c; --critical: #c0392b;
+    --hot: #f2a541; --hot-ink: #2b1d00; --hot-line: #c9851f; --hot-text: #8a5700; --hot-soft: #fce9c8; --good-bg: #e6f7ef; --warn-bg: #fdf1dc; --serious-bg: #fdebe0; --critical-bg: #f9e7e5; --info-bg: var(--brand-tint);
+    --shadow: 0 1px 2px rgba(11, 60, 73, .06), 0 4px 16px rgba(11, 60, 73, .04);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --brand: #598aff; --brand-2: #7da2ff; --brand-3: #9bb6ff; --brand-navy: #0d2d77; --brand-tint: #1a2a5c;
-      --page: #0b1226; --surface: #121a33; --surface-2: #1a2445; --border: #27325a; --grid: #222c4f;
-      --text: #eef1f8; --text-2: #b7c0d9; --text-3: #8491b3;
-      --c-id: #598aff; --c-mm: #f28c28; --c-kh: #2bb985;
-      --seq: var(--brand); --seq-light: #2f4a9e;
+      --brand: #1f8f9e; --brand-2: #4fb6c3; --brand-3: #7fcad4; --brand-navy: #0b3c49; --brand-tint: #123f4b;
+      --page: #06202a; --surface: #0b2c37; --surface-2: #123a46; --border: #1f4b58; --grid: #184250;
+      --text: #e8f1f3; --text-2: #b3c6cb; --text-3: #87a0a7;
+      --c-id: #4fb6c3; --c-mm: #f2a541; --c-kh: #a7dce3;
+      --seq: var(--brand); --seq-light: #1f5e6c;
       --good: #34c38f; --critical: #ef5350;
-      --good-bg: #123a2c; --warn-bg: #3d3210; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
+      --hot: #f2a541; --hot-ink: #2b1d00; --hot-line: #d4912f; --hot-text: #f2a541; --hot-soft: #3d2f14; --good-bg: #123a2c; --warn-bg: #3d2f14; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
       --shadow: none;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --brand: #598aff; --brand-2: #7da2ff; --brand-3: #9bb6ff; --brand-navy: #0d2d77; --brand-tint: #1a2a5c;
-    --page: #0b1226; --surface: #121a33; --surface-2: #1a2445; --border: #27325a; --grid: #222c4f;
-    --text: #eef1f8; --text-2: #b7c0d9; --text-3: #8491b3;
-    --c-id: #598aff; --c-mm: #f28c28; --c-kh: #2bb985;
-    --seq: var(--brand); --seq-light: #2f4a9e;
+    --brand: #1f8f9e; --brand-2: #4fb6c3; --brand-3: #7fcad4; --brand-navy: #0b3c49; --brand-tint: #123f4b;
+    --page: #06202a; --surface: #0b2c37; --surface-2: #123a46; --border: #1f4b58; --grid: #184250;
+    --text: #e8f1f3; --text-2: #b3c6cb; --text-3: #87a0a7;
+    --c-id: #4fb6c3; --c-mm: #f2a541; --c-kh: #a7dce3;
+    --seq: var(--brand); --seq-light: #1f5e6c;
     --good: #34c38f; --critical: #ef5350;
-    --good-bg: #123a2c; --warn-bg: #3d3210; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
+    --hot: #f2a541; --hot-ink: #2b1d00; --hot-line: #d4912f; --hot-text: #f2a541; --hot-soft: #3d2f14; --good-bg: #123a2c; --warn-bg: #3d2f14; --serious-bg: #3f2616; --critical-bg: #3f1b1b; --info-bg: var(--brand-tint);
     --shadow: none;
   }
   * { box-sizing: border-box; }
@@ -88,7 +90,6 @@
   .chip.fraud { border-color: var(--critical); color: var(--critical); }
   .notice { padding: 8px 12px; border-radius: 10px; font-size: 13px; margin-bottom: 10px; }
   .notice.ok { background: var(--good-bg); color: var(--good); }
-  @media (max-width: 760px) { .netgrid { grid-template-columns: 1fr !important; } }
   .key { display: flex; gap: 8px; align-items: center; }
   input[type=password], input[type=text] { font: inherit; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); min-width: 220px; }
   button { font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
@@ -120,6 +121,12 @@
   .segbar i { display: block; height: 100%; min-width: 2px; }
   .stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
   .stages .s { padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border-left: 3px solid var(--brand-3); }
+  button.s { font: inherit; text-align: left; border: 0; border-left: 3px solid var(--brand-3); width: 100%; color: inherit; cursor: pointer; }
+  button.s:hover:not(:disabled) { background: var(--brand-tint); color: inherit; }
+  button.s[aria-pressed="true"] { background: var(--brand-tint); box-shadow: inset 0 0 0 2px var(--brand); }
+  button.s:disabled { cursor: default; }
+  .pipe-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 16px 0 6px; font-size: 13px; color: var(--text-2); }
+  .pipe-head .dl-chip { margin-left: auto; }
   .stages .s .n { font-size: 20px; font-weight: 700; color: var(--brand); font-variant-numeric: tabular-nums; line-height: 1.1; }
   .stages .s .k { font-size: 11px; color: var(--text-2); font-weight: 600; } .stages .s .k small { display: block; color: var(--text-3); font-weight: 400; }
   .stages .s.zero .n { color: var(--text-3); } .stages .s.zero { border-left-color: var(--grid); }
@@ -138,6 +145,186 @@
   .feed .t { color: var(--text-2); font-size: 12px; }
   .feed li.new { animation: arrive 3s ease-out; }
   @keyframes arrive { 0%, 70% { background: var(--info-bg); } 100% { background: transparent; } }
+  /* Excellent dealer board: summary, top three, ranking with a detail panel. Scores come from DealerScorecard. */
+  .dl { display: flex; flex-direction: column; gap: 14px; min-width: 0; scroll-margin-top: 96px; }
+  .dl > * { min-width: 0; }
+  .dl-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 12px; }
+  .dl-head h2 { margin: 0; }
+  .dl-sample { font-size: 12px; font-weight: 600; color: var(--hot-text); background: var(--hot-soft); padding: 4px 10px; border-radius: 6px; }
+  .dl-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .dl-kpi, .dl-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; min-width: 0; }
+  .dl-kpi { padding: 14px 16px; }
+  .dl-kpi .l, .dl-kpi .note { font-size: 12px; color: var(--text-2); }
+  .dl-kpi .v { font-size: 26px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .dl-kpi .v small { font-size: 13px; font-weight: 400; color: var(--text-2); margin-left: 4px; }
+  .dl-podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .dl-card { position: relative; font: inherit; text-align: left; cursor: pointer; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  button.dl-card:hover:not(:disabled) { border-color: var(--hot-line); color: var(--text); }
+  .dl-card[aria-pressed="true"] { border-color: var(--hot-line); box-shadow: 0 0 0 1px var(--hot-line); }
+  .dl-card .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .dl-card .rk { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--hot-text); }
+  .dl-card .rk svg { width: 16px; height: 16px; fill: currentColor; }
+  .dl-card .body { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+  .dl-card .nm { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+  .dl-card .rg { font-size: 12px; color: var(--text-2); }
+  .dl-card .sc { font-size: 32px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .dl-card .meta { display: flex; gap: 18px; border-top: 1px solid var(--border); padding-top: 10px; font-size: 12px; }
+  .dl-card .meta div { display: flex; flex-direction: column; }
+  .dl-card .meta span:first-child { color: var(--text-2); }
+  .dl-card .meta span:last-child { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .dl-card.p1, button.dl-card.p1:hover:not(:disabled) { color: var(--hot-ink); border: 4px solid transparent; padding: 11px 13px;
+    background: linear-gradient(160deg, #f7c06e, #f2a541 60%, #f5b35a) padding-box, linear-gradient(135deg, #fde5bd 0%, #d98f2b 22%, #fbdca8 45%, #a86a14 70%, #f7c987 100%) border-box;
+    box-shadow: 0 0 0 1px #a86a14, 0 8px 24px rgba(242, 165, 65, .45); }
+  .dl-card.p1[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px #a86a14, 0 8px 24px rgba(242, 165, 65, .55); }
+  .dl-card.p1 .rk { color: inherit; }
+  .dl-card.p1 .rg, .dl-card.p1 .meta span:first-child { color: inherit; opacity: .8; }
+  .dl-card.p1 .meta { border-top-color: rgba(43, 29, 0, .28); }
+  .dl-main { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+  .dl-phead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .dl-phead h2 { margin: 0; font-size: 15px; }
+  .dl-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .dl-chips { display: flex; gap: 4px; }
+  .dl-chip { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-2); cursor: pointer; }
+  .dl-chip[aria-pressed="true"] { background: var(--brand-tint); color: var(--brand); border-color: var(--brand); font-weight: 600; }
+  .dl-search { font: inherit; font-size: 13px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--text); width: 150px; }
+  .dl-table { overflow-x: auto; }
+  .dl-table table { width: 100%; min-width: 620px; border-collapse: collapse; }
+  .dl-table th { font-size: 12px; font-weight: 500; color: var(--text-2); text-align: right; padding: 8px 7px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .dl-table td { padding: 10px 7px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; vertical-align: middle; }
+  .dl-table th.l, .dl-table td.l { text-align: left; }
+  .dl-table tbody tr { cursor: pointer; }
+  .dl-table tbody tr:last-child td { border-bottom: 0; }
+  .dl-table tbody tr:hover { background: var(--surface-2); }
+  .dl-table tbody tr[aria-selected="true"] { background: var(--brand-tint); }
+  .dl-table tr.top td.l:first-child { box-shadow: inset 3px 0 0 var(--hot); }
+  .dl-table tr.top[aria-selected="true"] { background: var(--hot-soft); }
+  .dl-table tr.top .name { font-size: 15px; }
+  .dl-table .rank { width: 40px; text-align: center; color: var(--text-2); }
+  .dl-table .name { font-weight: 600; }
+  .dl-table .rg { font-size: 12px; color: var(--text-2); }
+  .dl-table .bad { color: var(--critical); font-weight: 600; }
+  .dl-medal { width: 26px; height: 32px; display: block; margin: 0 auto; filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, .25)); }
+  .dl-sc { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .dl-bar { width: 36px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .dl-bar > i { display: block; height: 100%; background: var(--brand); border-radius: 3px; }
+  .dl-grade { display: inline-block; min-width: 40px; text-align: center; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid transparent; }
+  .dl-grade.S { background: var(--brand); color: #fff; }
+  .dl-grade.A { background: var(--brand-tint); color: var(--brand); }
+  .dl-grade.B { background: var(--surface-2); color: var(--text-2); border-color: var(--border); }
+  .dl-grade.C { background: var(--warn-bg); color: var(--hot-text); }
+  .dl-grade.none { background: transparent; color: var(--text-3); border-color: var(--border); font-weight: 500; }
+  .dl-card .dl-grade.S, .dl-card .dl-grade.A { background: var(--hot-soft); color: var(--hot-text); border: 0; }
+  .dl-card.p1 .dl-grade.S, .dl-card.p1 .dl-grade.A { background: var(--hot-ink); color: #f2a541; }
+  .dl-flag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px; color: var(--critical); background: var(--critical-bg); }
+  .dl-flag.review { color: var(--hot-text); background: var(--hot-soft); }
+  .dl-empty { padding: 28px 16px; text-align: center; color: var(--text-2); }
+  .dl-detail { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .dl-dhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .dl-dhead h3 { margin: 0; font-size: 18px; font-weight: 700; }
+  .dl-dhead .rg { font-size: 12px; color: var(--text-2); }
+  .dl-dscore { text-align: right; }
+  .dl-dscore .big { font-size: 32px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+  .dl-capnote { font-size: 12px; background: var(--critical-bg); color: var(--critical); padding: 8px 10px; border-radius: 6px; }
+  .dl-h4 { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 0 0 8px; }
+  .dl-comp { display: grid; grid-template-columns: 92px 1fr 62px; gap: 8px; align-items: center; margin-bottom: 7px; font-size: 13px; }
+  .dl-comp .track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .dl-comp .track i { display: block; height: 100%; background: var(--brand); border-radius: 0 4px 4px 0; }
+  .dl-comp .pts { text-align: right; color: var(--text-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .dl-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .dl-metric { display: flex; flex-direction: column; }
+  .dl-metric span:first-child { font-size: 12px; color: var(--text-2); }
+  .dl-metric span:last-child { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .dl-spark svg { width: 100%; height: auto; display: block; }
+  .dl-spark text { fill: var(--text-2); font-size: 10px; }
+  .dl-agent { border-top: 1px solid var(--border); padding-top: 12px; font-size: 13px; color: var(--text-2); }
+  .dl-agent b { color: var(--text); font-weight: 600; }
+  .dl-criteria { padding: 14px 16px; font-size: 12px; color: var(--text-2); display: flex; flex-direction: column; gap: 4px; }
+  .dl-criteria b { color: var(--text); font-weight: 600; }
+  .dl-spk { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 2px; background: var(--hot); pointer-events: none; z-index: 5; }
+  @keyframes dl-pop { 0% { transform: scale(1); } 30% { transform: scale(1.07); } 60% { transform: scale(.98); } 100% { transform: scale(1); } }
+  @keyframes dl-ring { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.22); } }
+  @keyframes dl-fly { 0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.2) rotate(var(--rot)); } }
+  @keyframes dl-flash { 0% { box-shadow: 0 0 0 0 var(--hot); border-color: var(--hot); } 100% { box-shadow: 0 0 0 16px rgba(242, 165, 65, 0); } }
+  @keyframes dl-rowhit { from { background: var(--hot); } }
+  @media (prefers-reduced-motion: no-preference) {
+    .dl-card.burst { animation: dl-pop .45s cubic-bezier(.2, .8, .3, 1); }
+    .dl-card.burst::after { content: ""; position: absolute; inset: -2px; border: 3px solid var(--hot); border-radius: 14px; pointer-events: none; animation: dl-ring .6s ease-out forwards; }
+    .dl-spk { animation: dl-fly .75s cubic-bezier(.15, .7, .3, 1) forwards; }
+    .dl-detail.flash { animation: dl-flash .65s ease-out; }
+    .dl-table tr.rowhit { animation: dl-rowhit .8s ease-out; }
+  }
+  @media (max-width: 960px) { .dl-kpis { grid-template-columns: repeat(2, 1fr); } .dl-main { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 640px) { .dl-podium { grid-template-columns: 1fr; } }
+  @media (max-width: 420px) { .dl-kpis { grid-template-columns: 1fr; } .dl-search { width: 100%; } }
+  .fds-rings { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .fds-rings .action { margin-bottom: 0 !important; }
+  /* Analysis tab: charts first, the figures below them as a small reference. */
+  .an-charts .card h2 { margin-bottom: 12px; }
+  .softbars { width: 100%; height: auto; display: block; }
+  .softbars text { font-size: 12px; }
+  .softbars text.lbl { fill: var(--text-2); }
+  .softbars text.val { fill: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .softbars .track { fill: var(--surface-2); }
+  .softbars .bar { transition: opacity .15s; } .softbars .bar:hover { opacity: .8; }
+  .an-cap { font-size: 12px; color: var(--text-2); margin: 8px 0 0; }
+  .an-nums { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; font-size: 12px; color: var(--text-2); }
+  .an-num { display: inline-flex; gap: 5px; align-items: baseline; white-space: nowrap; }
+  .an-num b { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .an-num.alert b { color: var(--critical); }
+  /* Statistics tab: review results by month, one market at a time. */
+  .st { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .st > * { min-width: 0; }
+  .st-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 12px; }
+  .st-head h2 { margin: 0; }
+  .st-ctl .dl-chips { flex-wrap: wrap; }
+  .st-ctl .dl-sample { white-space: normal; }
+  .st-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .st-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  .st-kpi, .st-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; min-width: 0; }
+  .st-kpi { padding: 14px 16px; }
+  .st-kpi .l, .st-kpi .d { font-size: 12px; color: var(--text-2); }
+  .st-kpi .v { font-size: 26px; font-weight: 700; margin-top: 2px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .st-kpi .v small { font-size: 13px; font-weight: 400; color: var(--text-2); margin-left: 3px; }
+  .st-kpi .good { color: var(--good); font-weight: 600; } .st-kpi .bad { color: var(--critical); font-weight: 600; }
+  .st-row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .st-row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .st-phead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .st-phead h2 { margin: 0; font-size: 15px; }
+  .st-body { padding: 14px 16px 16px; }
+  .st-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-2); }
+  .st-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+  .st-chart svg { width: 100%; height: auto; display: block; }
+  .st-chart text { font-size: 11px; fill: var(--text-2); }
+  .st-chart text.ink { fill: var(--text); font-weight: 600; }
+  .st-chart .grid { stroke: var(--grid); stroke-width: 1; }
+  .st-chart .hit { fill: transparent; } .st-chart .hit:hover { fill: var(--text); fill-opacity: .06; }
+  .st-cap { font-size: 12px; color: var(--text-2); margin: 10px 0 0; }
+  .st-rows { display: flex; flex-direction: column; gap: 9px; }
+  .st-brow { display: grid; grid-template-columns: minmax(96px, 1.1fr) 2fr minmax(76px, auto); gap: 10px; align-items: center; font-size: 13px; }
+  .st-brow .track { height: 10px; background: var(--border); border-radius: 0 5px 5px 0; }
+  .st-brow .track i { display: block; height: 100%; border-radius: 0 5px 5px 0; }
+  .st-brow .val { text-align: right; font-size: 12px; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .st-brow .val b { color: var(--text); font-weight: 600; }
+  .st-strip { display: flex; gap: 2px; height: 12px; margin-top: 4px; }
+  .st-strip i { display: block; height: 100%; border-radius: 2px; }
+  .st-empty { color: var(--text-2); font-size: 13px; margin: 0; }
+  .st-table { overflow-x: auto; }
+  .st-table table { width: 100%; min-width: 640px; border-collapse: collapse; }
+  .st-table th { font-size: 12px; font-weight: 500; color: var(--text-2); text-align: right; padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .st-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; vertical-align: middle; }
+  .st-table th.l, .st-table td.l { text-align: left; }
+  .st-table tbody tr:last-child td { border-bottom: 0; }
+  .st-table tbody tr:hover { background: var(--surface-2); }
+  .st-table .name { font-weight: 600; } .st-table .rg { font-size: 12px; color: var(--text-2); }
+  .st-table .bad { color: var(--critical); font-weight: 600; }
+  .st-panel > summary { padding: 14px 16px; cursor: pointer; font-weight: 600; font-size: 14px; }
+  .st-notes { padding: 14px 16px; font-size: 12px; color: var(--text-2); display: flex; flex-direction: column; gap: 4px; }
+  .st-notes b { color: var(--text); font-weight: 600; }
+  @media (max-width: 1000px) { .st-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .st-row2, .st-row3 { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 420px) { .st-kpis { grid-template-columns: minmax(0, 1fr); } }
+  /* A new arrival in the pipeline or the review queue stays in a different color for NEW_MS, on its row and on the tab's count badge. */
+  tr.is-new td { background: var(--warn-bg); }
+  .tabs button.is-new .n, .tabs button.is-new[aria-selected="true"] .n { background: var(--warn); color: #000; }
   @keyframes pulse { 0% { opacity: 1; } 50% { opacity: .45; } 100% { opacity: 1; } }
   .auto { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); }
   .auto .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 1.4s infinite; }
@@ -159,8 +346,6 @@
   svg .lbl { fill: var(--text); font-size: 11px; }
   svg .grid { stroke: var(--grid); stroke-width: 1; }
   .bar { cursor: default; }
-  .fraudnet .netnode { cursor: grab; } .fraudnet .netnode.dragging { cursor: grabbing; }
-  .netreset { background: none; border: 0; padding: 0; color: var(--brand); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
   .bar:hover { filter: brightness(0.9); }
   #tip { position: fixed; pointer-events: none; background: var(--brand-navy); color: #fff; font-size: 12px; padding: 6px 8px; border-radius: 6px; opacity: 0; transition: opacity .1s; z-index: 10; max-width: 260px; }
   .empty { color: var(--text-3); font-size: 13px; padding: 12px 0; }
@@ -205,8 +390,8 @@
   .copilot .ask textarea { min-height: 42px; max-height: 140px; border-radius: 12px; }
   .copilot .foot { font-size: 11px; color: var(--text-3); margin-top: 6px; }
   /* Standard dialog (excellent dealer criteria) */
-  dialog.standard { border: 1px solid var(--border); border-radius: 18px; padding: 0; width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); background: var(--surface); color: var(--text); box-shadow: 0 24px 64px rgba(13,45,119,.28); }
-  dialog.standard::backdrop { background: rgba(13,45,119,.35); backdrop-filter: blur(2px); }
+  dialog.standard { border: 1px solid var(--border); border-radius: 18px; padding: 0; width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); background: var(--surface); color: var(--text); box-shadow: 0 24px 64px rgba(11,60,73,.28); }
+  dialog.standard::backdrop { background: rgba(11,60,73,.35); backdrop-filter: blur(2px); }
   dialog.standard .inner { padding: 20px 22px 18px; overflow-y: auto; max-height: calc(100vh - 48px); }
   dialog.standard .head { display: flex; align-items: flex-start; gap: 12px; justify-content: space-between; margin-bottom: 8px; }
   dialog.standard h2 { font-size: 17px; margin: 0; }
@@ -224,10 +409,10 @@
 <body>
 <header>
   <div class="brand">
-    <span class="mark" aria-hidden="true">JB</span>
+    <img class="mark" src="/icons/icon.svg" alt="" aria-hidden="true">
     <div>
-      <div class="group"><span data-ko="JB금융그룹" data-en="JB Financial Group">JB금융그룹</span> <span class="svc">NEXUS ASEAN</span></div>
-      <h1><span data-ko="온보딩 대시보드" data-en="Onboarding dashboard">온보딩 대시보드</span> <small data-ko="WhatsApp 온보딩 현황 · 인도네시아 / 미얀마 / 캄보디아" data-en="WhatsApp onboarding · Indonesia / Myanmar / Cambodia">WhatsApp 온보딩 현황 · 인도네시아 / 미얀마 / 캄보디아</small></h1>
+      <div class="group"><span class="svc" data-ko="대시보드" data-en="Dashboard">대시보드</span></div>
+      <h1>NEXUS AI</h1>
     </div>
   </div>
   <nav class="pages" aria-label="Back-office pages">
@@ -244,7 +429,7 @@
   <p class="empty" data-ko="불러오는 중…" data-en="Loading…">불러오는 중…</p>
 </main>
 <footer>
-  <span data-ko="<b>JB금융그룹</b> · NEXUS ASEAN 온보딩 백오피스 <span class=&quot;sub&quot; style=&quot;display:inline&quot;>내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span>" data-en="<b>JB Financial Group</b> · NEXUS ASEAN onboarding back office <span class=&quot;sub&quot; style=&quot;display:inline&quot;>Internal demo · Indonesia / Myanmar / Cambodia</span>"><b>JB금융그룹</b> · NEXUS ASEAN 온보딩 백오피스 <span class="sub" style="display:inline">내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span></span>
+  <span data-ko="<b>JB금융그룹</b> · NEXUS AI 온보딩 백오피스 <span class=&quot;sub&quot; style=&quot;display:inline&quot;>내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span>" data-en="<b>JB Financial Group</b> · NEXUS AI onboarding back office <span class=&quot;sub&quot; style=&quot;display:inline&quot;>Internal demo · Indonesia / Myanmar / Cambodia</span>"><b>JB금융그룹</b> · NEXUS AI 온보딩 백오피스 <span class="sub" style="display:inline">내부 데모 · 인도네시아 / 미얀마 / 캄보디아</span></span>
   <span data-ko="데모용 공개 화면 · 로그인 없음" data-en="Open demo screen · no login">데모용 공개 화면 · 로그인 없음</span>
 </footer>
 <div id="tip" role="tooltip"></div>
@@ -276,15 +461,11 @@
   let pipelineStages = [];   // stage code -> labels, from the last payload (progress rows carry only the code and the Korean label)
   const curStage = r => LANG.lang === 'en' ? (pipelineStages.find(s => s.code === r.current)?.label || r.current) : r.currentKo;
   const noteOf = r => (LANG.lang === 'en' ? (r.noteEn ?? r.note) : r.note) || '';
-  const STAGE_COLORS = ['#9bb6ff', '#7da2ff', '#598aff', '#3b6ef0', '#1c56ff', '#1446d6', '#0a31a8', '#0d2d77', '#17a673'];
+  const STAGE_COLORS = ['#b7d3d7', '#8fc2ca', '#5faab4', '#2f95a2', '#028090', '#026a78', '#0b5563', '#0b3c49', '#f2a541'];
   const AUTO_MS = 15000;
   let seenStepKeys = null;   // activity-feed keys already shown, to highlight what is new on each refresh
   let lastData = null;       // last payload, redrawn as is when the language changes
   let lastNetwork = null;    // fraud network, loaded alongside the stats
-  const netPinned = new Map(); // fraud-network nodes the user dragged: id → {x, y}; kept across refreshes and page loads in this tab
-  try { for (const [k, v] of Object.entries(JSON.parse(sessionStorage.getItem('fraudNetPins') || '{}'))) netPinned.set(k, v); } catch {}
-  function saveNetPins() { try { sessionStorage.setItem('fraudNetPins', JSON.stringify(Object.fromEntries(netPinned))); } catch {} }
-
 
   function showTip(e, text) { tip.textContent = text; tip.style.opacity = 1; moveTip(e); }
   function moveTip(e) { tip.style.left = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; }
@@ -297,49 +478,24 @@
     });
   }
 
-  /* Fraud network: a node can be dragged. Its lines follow while dragging, the place is remembered (netPinned) so the
-     next refresh keeps it, and the moved node stays fixed while the layout settles the others around it. A plain click
-     on a circle still opens the review page: a click right after a drag is swallowed. */
-  function bindNetworkDrag(root) {
-    const svg = root.querySelector('svg.fraudnet'); if (!svg) return;
-    const W = +svg.dataset.w, H = +svg.dataset.h;
-    const toSvg = e => { const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse()); return { x: pt.x, y: pt.y }; };
-    const lines = [...svg.querySelectorAll('line[data-src]')];
-    const place = (g, id, x, y) => {
-      g.setAttribute('transform', `translate(${(x - +g.dataset.x).toFixed(1)} ${(y - +g.dataset.y).toFixed(1)})`);
-      for (const l of lines) {
-        if (l.dataset.src === id) { l.setAttribute('x1', x.toFixed(1)); l.setAttribute('y1', y.toFixed(1)); }
-        if (l.dataset.dst === id) { l.setAttribute('x2', x.toFixed(1)); l.setAttribute('y2', y.toFixed(1)); }
-      }
-    };
-    let drag = null, justDragged = false;
-    svg.addEventListener('pointerdown', e => {
-      const g = e.target.closest('.netnode'); if (!g || (e.pointerType === 'mouse' && e.button !== 0)) return;
-      const id = g.dataset.node, cur = netPinned.get(id) || { x: +g.dataset.x, y: +g.dataset.y }, p = toSvg(e);
-      drag = { g, id, dx: cur.x - p.x, dy: cur.y - p.y, x: cur.x, y: cur.y, moved: false, sx: e.clientX, sy: e.clientY };
-      justDragged = false;
-      try { g.setPointerCapture(e.pointerId); } catch {}
-      e.preventDefault();
+  /* Horizontal bar chart: rows = [{label, value, color, tip}] ; one axis, thin marks, rounded data-end, gaps between bars. */
+  let hbarGrad = 0;
+  /* Rounded gradient bars on a soft track, value at the right edge, no grid: the analysis tab's look. r.grad = [from, to]. */
+  function softBars(rows, opts = {}) {
+    const W = 340, rowH = 32, left = opts.left || 96, right = 34, h = 14, H = rows.length * rowH + 4, plot = W - left - right;
+    const max = Math.max(1, ...rows.map(r => r.value));
+    let defs = '', s = '';
+    rows.forEach((r, i) => {
+      const y = 2 + i * rowH + (rowH - h) / 2, w = r.value > 0 ? Math.max(h, plot * r.value / max) : 0, id = 'sb' + (++hbarGrad);
+      defs += `<linearGradient id="${id}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${r.grad[0]}"/><stop offset="1" stop-color="${r.grad[1]}"/></linearGradient>`;
+      s += `<text x="${left - 10}" y="${y + h / 2 + 4}" text-anchor="end" class="lbl">${esc(r.label)}</text>`;
+      s += `<rect class="track" x="${left}" y="${y}" width="${plot}" height="${h}" rx="${h / 2}"/>`;
+      if (w) s += `<rect class="bar" x="${left}" y="${y}" width="${w.toFixed(1)}" height="${h}" rx="${h / 2}" fill="url(#${id})" data-tip="${esc(r.tip || r.label + ': ' + r.value)}"/>`;
+      s += `<text x="${W}" y="${y + h / 2 + 4}" text-anchor="end" class="val">${r.value}</text>`;
     });
-    svg.addEventListener('pointermove', e => {
-      if (!drag) return;
-      if (!drag.moved) { if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 3) return; drag.moved = true; drag.g.classList.add('dragging'); hideTip(); }
-      const p = toSvg(e);
-      drag.x = Math.max(16, Math.min(W - 16, p.x + drag.dx)); drag.y = Math.max(12, Math.min(H - 26, p.y + drag.dy));
-      place(drag.g, drag.id, drag.x, drag.y);
-    });
-    const end = () => {
-      if (!drag) return;
-      drag.g.classList.remove('dragging');
-      if (drag.moved) { netPinned.set(drag.id, { x: drag.x, y: drag.y }); saveNetPins(); root.querySelector('.netreset')?.removeAttribute('hidden'); justDragged = true; setTimeout(() => { justDragged = false; }, 0); }
-      drag = null;
-    };
-    svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
-    svg.addEventListener('click', e => { if (justDragged) { e.preventDefault(); e.stopPropagation(); } }, true);
-    root.querySelector('.netreset')?.addEventListener('click', () => { netPinned.clear(); saveNetPins(); if (lastData) render(lastData); });
+    return `<svg class="softbars" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria || '')}"><defs>${defs}</defs>${s}</svg>`;
   }
 
-  /* Horizontal bar chart: rows = [{label, value, color, tip}] ; one axis, thin marks, rounded data-end, gaps between bars. */
   function hbars(rows, opts = {}) {
     const W = 520, rowH = 26, left = opts.left || 120, right = 44, top = 4;
     const H = top + rows.length * rowH + 4;
@@ -356,80 +512,6 @@
     return s + '</svg>';
   }
 
-  /* Grouped bars per country for one measure set: groups = countries, series = statuses (sequential steps of one hue). */
-  function countryStacked(byCountry) {
-    const series = [
-      { key: 'inProgress', label: t('진행 중', 'In progress'), color: 'var(--seq-light)' },
-      { key: 'readyForReview', label: t('심사 대기', 'Ready for review'), color: 'var(--seq)' },
-      { key: 'approved', label: t('승인', 'Approved'), color: 'var(--good)' },
-      { key: 'rejected', label: t('거절', 'Rejected'), color: 'var(--critical)' },
-    ];
-    const W = 520, rowH = 34, left = 110, right = 40, top = 4, H = top + byCountry.length * rowH + 4;
-    const max = Math.max(1, ...byCountry.map(c => c.applications));
-    const scale = v => (W - left - right) * v / max;
-    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Applications by country and status">`;
-    byCountry.forEach((c, i) => {
-      const y = top + i * rowH + 7, h = rowH - 14;
-      s += `<text x="${left - 8}" y="${y + h / 2 + 4}" text-anchor="end" class="lbl">${esc(L(c, 'name'))} ${esc(c.code)}</text>`;
-      let x = left;
-      series.forEach(sr => {
-        const v = c[sr.key]; if (!v) return;
-        const w = Math.max(3, scale(v)) - 2;
-        s += `<rect class="bar" x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${sr.color}" data-tip="${esc(L(c, 'name') + ' · ' + sr.label + ': ' + v)}"/>`;
-        x += w + 2;
-      });
-      s += `<text x="${x + 6}" y="${y + h / 2 + 4}">${c.applications}</text>`;
-    });
-    s += '</svg><div class="legend">' + series.map(sr => `<span><span class="dot" style="background:${sr.color}"></span>${sr.label}</span>`).join('') + '</div>';
-    return s;
-  }
-
-  /* Weekly columns stacked by country (categorical), with the high-risk count as a dark marker above each week. */
-  function trendChart(weeks) {
-    const W = 520, H = 170, left = 36, right = 8, top = 22, bottom = 26, n = weeks.length;
-    const max = Math.max(1, ...weeks.map(w => w.created));
-    const plotW = W - left - right, plotH = H - top - bottom, colW = plotW / n, barW = Math.min(34, colW * 0.6);
-    const y = v => top + plotH - plotH * v / max;
-    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Applications per week by country">`;
-    [0, 0.5, 1].forEach(f => { const yy = y(max * f); s += `<line class="grid" x1="${left}" x2="${W - right}" y1="${yy}" y2="${yy}"/><text x="${left - 6}" y="${yy + 4}" text-anchor="end">${Math.round(max * f)}</text>`; });
-    weeks.forEach((w, i) => {
-      const cx = left + colW * i + colW / 2, x = cx - barW / 2;
-      let acc = 0;
-      ['ID', 'MM', 'KH'].forEach(c => {
-        const v = w.createdByCountry[c] || 0; if (!v) return;
-        const y1 = y(acc + v), h = y(acc) - y1;
-        s += `<rect class="bar" x="${x}" y="${y1}" width="${barW}" height="${Math.max(h - 1, 1)}" rx="2" fill="${COUNTRY_COLOR[c]}" data-tip="${esc(t(`${w.label} 주 · ${c}: ${v}건 신청`, `week ${w.label} · ${c}: ${v} applications`))}"/>`;
-        acc += v;
-      });
-      if (w.created) s += `<text x="${cx}" y="${y(acc) - 4}" text-anchor="middle">${w.created}</text>`;
-      if (w.highRisk) s += `<text x="${cx}" y="${top - 8}" text-anchor="middle" fill="var(--critical)" style="fill:var(--critical);font-weight:600" data-tip="${esc(t(`${w.label} 주 · 고위험 ${w.highRisk}건, 위조 경고 ${w.fraudWarnings}건`, `week ${w.label} · ${w.highRisk} high-risk, ${w.fraudWarnings} fraud warnings`))}">⚠${w.highRisk}</text>`;
-      s += `<text x="${cx}" y="${H - 8}" text-anchor="middle" class="lbl">${esc(w.label)}</text>`;
-    });
-    s += `</svg><div class="legend">${['ID', 'MM', 'KH'].map(c => `<span><span class="dot" style="background:${COUNTRY_COLOR[c]}"></span>${c}</span>`).join('')}<span><span style="color:var(--critical);font-weight:600">⚠n</span> ${t('그 주에 서류가 완료된 고위험(C·D) 건수', 'high-risk (C·D) applications completed that week')}</span></div>`;
-    return s;
-  }
-
-  /* Weekly columns per dealer tier, side by side: excellent dealers in the brand blue, standard dealers in the light step. */
-  function tierTrendChart(weeks) {
-    const W = 520, H = 170, left = 36, right = 8, top = 16, bottom = 26, n = weeks.length;
-    const TIERS = [['EXCELLENT', t('우수 딜러', 'Excellent'), 'var(--seq)'], ['STANDARD', t('일반 딜러', 'Standard'), 'var(--seq-light)']];
-    const max = Math.max(1, ...weeks.flatMap(w => TIERS.map(([k]) => (w.createdByTier || {})[k] || 0)));
-    const plotW = W - left - right, plotH = H - top - bottom, colW = plotW / n, barW = Math.min(16, colW * 0.3);
-    const y = v => top + plotH - plotH * v / max;
-    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Applications per week by dealer tier">`;
-    [0, 0.5, 1].forEach(f => { const yy = y(max * f); s += `<line class="grid" x1="${left}" x2="${W - right}" y1="${yy}" y2="${yy}"/><text x="${left - 6}" y="${yy + 4}" text-anchor="end">${Math.round(max * f)}</text>`; });
-    weeks.forEach((w, i) => {
-      const cx = left + colW * i + colW / 2;
-      TIERS.forEach(([k, label, color], j) => {
-        const v = (w.createdByTier || {})[k] || 0, x = cx + (j - 1) * barW + 1;
-        if (v) s += `<rect class="bar" x="${x}" y="${y(v)}" width="${barW - 2}" height="${Math.max(y(0) - y(v), 1)}" rx="2" fill="${color}" data-tip="${esc(t(`${w.label} 주 · ${label}: ${v}건 신청, 승인 ${(w.approvedByTier || {})[k] || 0}`, `week ${w.label} · ${label}: ${v} applications, ${(w.approvedByTier || {})[k] || 0} approved`))}"/>`;
-      });
-      s += `<text x="${cx}" y="${H - 8}" text-anchor="middle" class="lbl">${esc(w.label)}</text>`;
-    });
-    s += `</svg><div class="legend">${TIERS.map(([, label, color]) => `<span><span class="dot" style="background:${color}"></span>${label}</span>`).join('')}</div>`;
-    return s;
-  }
-
   /* Fraud network: applications tied by a shared ID number, phone or name + date of birth, with the dealers they came
      through. A small force layout (deterministic, so the picture stays put across refreshes) drawn as SVG. */
   const LINK_STYLE = {
@@ -439,83 +521,384 @@
     SAME_NAME: { color: 'var(--warn)', width: 1.5, dash: '2 3', ko: '같은 이름·생년월일', en: 'same name & DOB' },
     DEALER: { color: 'var(--border)', width: 1, dash: '', ko: '접수 딜러', en: 'filed by dealer' },
   };
-  function layoutNetwork(nodes, links, W, H, pinned) {
-    let seed = 20261027; const rnd = () => { seed = (seed + 0x6D2B79F5) | 0; let x = Math.imul(seed ^ (seed >>> 15), 1 | seed); x ^= x + Math.imul(x ^ (x >>> 7), 61 | x); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
-    const idx = new Map(nodes.map((x, i) => [x.id, i])), n = nodes.length;
-    const px = new Float64Array(n), py = new Float64Array(n), vx = new Float64Array(n), vy = new Float64Array(n);
-    const clusters = [...new Set(nodes.map(x => x.cluster).filter(x => x != null))];
-    const clusterOfDealer = id => nodes.find(a => a.type === 'application' && links.some(l => l.kind === 'DEALER' && l.source === a.id && l.target === id))?.cluster;
-    nodes.forEach((x, i) => {
-      const c = clusters.indexOf(x.cluster ?? clusterOfDealer(x.id));
-      const ang = ((c >= 0 ? c : i) / Math.max(clusters.length, 1)) * Math.PI * 2;
-      px[i] = W / 2 + Math.cos(ang) * W / 3.2 + (rnd() - .5) * 50; py[i] = H / 2 + Math.sin(ang) * H / 3.2 + (rnd() - .5) * 50;
-      const pin = pinned && pinned.get(x.id); if (pin) { px[i] = pin.x; py[i] = pin.y; }
-    });
-    const fixed = nodes.map(x => !!(pinned && pinned.has(x.id)));
-    const L = links.map(l => [idx.get(l.source), idx.get(l.target), l.kind === 'DEALER' ? 80 : 50, l.kind === 'DEALER' ? 0.03 : 0.08]).filter(l => l[0] != null && l[1] != null);
-    for (let it = 0; it < 320; it++) {
-      const alpha = 1 - it / 320;
-      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
-        const dx = px[j] - px[i], dy = py[j] - py[i], d2 = Math.max(dx * dx + dy * dy, 1), d = Math.sqrt(d2), f = 2200 / d2;
-        vx[i] -= dx / d * f; vy[i] -= dy / d * f; vx[j] += dx / d * f; vy[j] += dy / d * f;
-      }
-      for (const [a, b, len, k] of L) {
-        const dx = px[b] - px[a], dy = py[b] - py[a], d = Math.max(Math.sqrt(dx * dx + dy * dy), 1), f = (d - len) * k;
-        vx[a] += dx / d * f; vy[a] += dy / d * f; vx[b] -= dx / d * f; vy[b] -= dy / d * f;
-      }
-      for (let i = 0; i < n; i++) {
-        if (fixed[i]) { vx[i] = vy[i] = 0; continue; }
-        vx[i] += (W / 2 - px[i]) * 0.012; vy[i] += (H / 2 - py[i]) * 0.012;
-        px[i] = Math.max(24, Math.min(W - 24, px[i] + vx[i] * alpha * 0.5)); py[i] = Math.max(20, Math.min(H - 20, py[i] + vy[i] * alpha * 0.5));
-        vx[i] *= 0.55; vy[i] *= 0.55;
-      }
-    }
-    return nodes.map((x, i) => ({ x: px[i], y: py[i] }));
-  }
   function fraudNetworkCard(net) {
     const title = `<div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">${t('사기 연결망 탐지', 'Fraud network detection')} <small>${t('같은 신분증 번호 · 같은 전화번호 · 같은 이름을 선으로 이어 의심 묶음을 보여줘요', 'applications tied by the same ID number, phone or name, with the dealers they came through')}</small></h2><button type="button" class="btn-standard" data-standard="fraud">${t('연결망 설명 보기', 'How this works')}</button></div>`;
     if (!net) return `<section class="card">${title}<p class="empty">${t('연결망을 불러오지 못했어요.', 'The network could not be loaded.')}</p></section>`;
     if (!net.clusters.length) return `<section class="card">${title}<p class="notice ok">${t(`신청 ${net.scanned}건을 대조했지만 신분증 번호·전화번호·이름이 겹치는 묶음이 없어요.`, `${net.scanned} applications compared; no shared ID numbers, phones or names.`)}</p></section>`;
-    const W = 660, H = 440, pos = layoutNetwork(net.nodes, net.links, W, H, netPinned), at = Object.fromEntries(net.nodes.map((x, i) => [x.id, pos[i]]));
-    const label = x => x.type === 'dealer' ? x.label : x.label.replace(/^APP-\d{4}-/, '');
-    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fraud network" class="fraudnet" data-w="${W}" data-h="${H}" style="max-height:460px;touch-action:none">`;
-    [...net.links].sort((a, b) => (a.kind === 'DEALER' ? 0 : 1) - (b.kind === 'DEALER' ? 0 : 1)).forEach(l => {
-      const a = at[l.source], b = at[l.target], st = LINK_STYLE[l.kind] || LINK_STYLE.DEALER; if (!a || !b) return;
-      s += `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="${st.color}" stroke-width="${st.width}"${st.dash ? ` stroke-dasharray="${st.dash}"` : ''} stroke-linecap="round" data-src="${esc(l.source)}" data-dst="${esc(l.target)}" data-tip="${esc(t(st.ko, st.en) + (l.detail ? ' · ' + l.detail : ''))}"/>`;
-    });
-    net.nodes.forEach(x => {
-      const p = at[x.id];
-      if (x.type === 'dealer') {
-        s += `<g class="netnode" data-node="${esc(x.id)}" data-x="${p.x.toFixed(1)}" data-y="${p.y.toFixed(1)}" data-tip="${esc(`${x.label} · ${x.name} · ${x.tier === 'EXCELLENT' ? t('우수 딜러', 'excellent dealer') : t('일반 딜러', 'standard dealer')} · ${t(`연결 신청 ${x.applications}건`, `${x.applications} linked applications`)}`)}"><rect x="${(p.x - 9).toFixed(1)}" y="${(p.y - 9).toFixed(1)}" width="18" height="18" rx="4" fill="var(--surface)" stroke="${x.tier === 'EXCELLENT' ? 'var(--good)' : 'var(--text-2)'}" stroke-width="2"/><text x="${p.x.toFixed(1)}" y="${(p.y + 22).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:10px">${esc(label(x))}</text></g>`;
-      } else {
-        const g = GRADE[x.grade], fill = g ? g.color : 'var(--text-3)';
-        s += `<a href="/review?app=${encodeURIComponent(x.number)}"><g class="netnode" data-node="${esc(x.id)}" data-x="${p.x.toFixed(1)}" data-y="${p.y.toFixed(1)}" data-tip="${esc(`${x.number} · ${x.name || t('고객 미연결', 'no customer')} · ${x.country} · ${statusName(x.status)}${x.grade ? ` · ${t('등급', 'grade')} ${x.grade} ${x.score ?? ''}` : ''} · ID ${x.idMasked || '–'} · ${t('전화', 'phone')} ${x.phoneMasked || '–'} · ${t('딜러', 'dealer')} ${x.dealerCode || '–'}`)}"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${x.highRisk ? 11 : 9}" fill="${fill}" stroke="var(--surface)" stroke-width="2"${x.highRisk ? ' style="filter:drop-shadow(0 0 4px var(--critical))"' : ''}/><text x="${p.x.toFixed(1)}" y="${(p.y + 22).toFixed(1)}" text-anchor="middle" class="lbl" style="font-size:10px">${esc(label(x))}</text></g></a>`;
-      }
-    });
-    s += '</svg>';
-    const legend = `<div class="legend">${['SAME_ID', 'SAME_PHONE', 'DUPLICATE', 'SAME_NAME', 'DEALER'].map(k => { const st = LINK_STYLE[k]; return `<span><span style="display:inline-block;width:18px;border-top:${st.width}px ${st.dash ? 'dashed' : 'solid'} ${st.color};vertical-align:middle;margin-right:4px"></span>${t(st.ko, st.en)}</span>`; }).join('')}<span><span class="dot" style="background:var(--critical)"></span>${t('원 = 신청 (색은 등급)', 'circle = application (colour = grade)')}</span><span><span style="display:inline-block;width:10px;height:10px;border:2px solid var(--text-2);border-radius:2px;vertical-align:-1px;margin-right:4px"></span>${t('사각형 = 딜러', 'square = dealer')}</span><button type="button" class="netreset"${netPinned.size ? '' : ' hidden'}>${t('배치 초기화', 'Reset layout')}</button></div>`;
     const clusters = net.clusters.map(c => `<div class="action" style="border-left:3px solid ${c.severity === 'HIGH' ? 'var(--critical)' : 'var(--warn)'};padding:8px 10px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b>${t('묶음', 'Ring')} ${c.id}</b><span class="chip ${c.severity === 'HIGH' ? 'fraud' : ''}">${c.severity === 'HIGH' ? t('높음', 'high') : t('중간', 'medium')}</span>${c.singleDealer ? `<span class="chip">${t('단일 딜러', 'single dealer')}</span>` : ''}</div><div class="sub" style="display:block;margin-top:2px">${esc(LANG.lang === 'en' ? c.summary : c.summaryKo)}</div><div style="margin-top:4px">${c.applications.map(n => appLink(n)).join(' · ')}</div></div>`).join('');
-    const high = net.clusters.filter(c => c.severity === 'HIGH').length;
-    return `<section class="card">${title}
-      <div class="tiles" style="margin:6px 0 10px"><div class="tile ${high ? 'alert' : ''}"><div class="k">${t('의심 묶음', 'Suspicious rings')}</div><div class="v">${net.clusters.length} <span class="sub" style="display:inline;font-size:14px">${t('높음', 'high')} ${high}</span></div></div><div class="tile"><div class="k">${t('연결된 신청', 'Linked applications')} <small>${t(`대조 ${net.scanned}건 중`, `of ${net.scanned} compared`)}</small></div><div class="v">${net.linkedApplications}</div></div><div class="tile"><div class="k">${t('신분증 번호 공유', 'Shared ID numbers')}</div><div class="v">${net.clusters.reduce((a, c) => a + c.sharedIds, 0)}</div></div><div class="tile"><div class="k">${t('전화번호 공유', 'Shared phones')}</div><div class="v">${net.clusters.reduce((a, c) => a + c.sharedPhones, 0)}</div></div></div>
-      <div style="display:grid;gap:14px;grid-template-columns:minmax(0,1fr) minmax(260px,320px)" class="netgrid"><div>${s}${legend}</div><div style="max-height:520px;overflow-y:auto">${clusters}</div></div>
-      <p class="sub" style="display:block;margin:8px 0 0">${t('리스크 규칙은 나중에 들어온 신청에만 "동일 신분증 번호" 플래그를 올려요. 이 그림은 먼저 들어온 신청까지 묶어 사람이 한 건씩 볼 때는 놓치는 연결을 보여줘요. 원을 누르면 심사 화면이 열리고, 원이나 사각형을 끌어서 옮길 수 있어요.', 'The risk rules flag only the later application of a pair. This picture ties the earlier ones in too, so a ring an officer would miss case by case becomes visible. Click a circle to open the review page; drag a circle or square to move it.')}</p>
+    return `<section class="card">${title}<div class="fds-rings">${clusters}</div>
+      <p class="sub" style="display:block;margin:8px 0 0">${t('리스크 규칙은 나중에 들어온 신청에만 "동일 신분증 번호" 플래그를 올려요. 이 연결망은 먼저 들어온 신청까지 묶어 사람이 한 건씩 볼 때는 놓치는 연결을 보여줘요.', 'The risk rules flag only the later application of a pair. This network ties the earlier ones in too, showing connections a one-by-one review misses.')}</p>
     </section>`;
   }
 
   function gradeCell(g) { const m = GRADE[g] || { color: 'var(--text-3)', icon: '○', ko: '미평가', en: 'n/a' }; return `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g || '–')} <span class="sub" style="display:inline">${t(m.ko, m.en)}</span></span>`; }
 
   const TABS = [
-    ['overview', '개요', 'Overview'], ['pipeline', '진행·대기 큐', 'Pipeline & queue'], ['risk', '리스크·사기', 'Risk & fraud'], ['country', '국가·딜러', 'Countries & dealers'],
-    ['agent', 'AI 에이전트', 'AI agent'], ['dealers', '우수 딜러', 'Excellent dealers'],
+    ['stats', '통계', 'Statistics'], ['overview', '분석', 'Analysis'], ['pipeline', '진행 현황', 'Pipeline'], ['queue', '심사 대기 큐', 'Review queue'], ['risk', '리스크·사기', 'Risk & fraud'],
+    ['agent', 'AI 에이전트', 'AI agent'],
   ];
-  let activeTab = 'overview';
-  try { activeTab = sessionStorage.getItem('dashboardTab') || activeTab; } catch {}
-  if (!TABS.some(x => x[0] === activeTab)) activeTab = 'overview';
-  if (location.hash.length > 1 && TABS.some(x => x[0] === location.hash.slice(1))) activeTab = location.hash.slice(1);
+  // Old links and remembered tabs: these sections now live on the statistics tab.
+  const tabAlias = id => ({ dealers: 'overview', country: 'stats' }[id] || id);
+  let activeTab = 'stats';
+  try { activeTab = tabAlias(sessionStorage.getItem('dashboardTab') || activeTab); } catch {}
+  if (!TABS.some(x => x[0] === activeTab)) activeTab = 'stats';
+  if (location.hash.length > 1 && TABS.some(x => x[0] === tabAlias(location.hash.slice(1)))) activeTab = tabAlias(location.hash.slice(1));
+
+  // New arrivals in the pipeline's in-progress list and the review queue. The first load only sets the baseline, so opening the page marks nothing;
+  // an application that leaves the queue and comes back (documents re-requested, then resubmitted) counts as new again.
+  const NEW_MS = 180000;
+  function newTracker(tab) {
+    const since = new Map();   // application number -> when it first showed up in this list
+    let seen = null;
+    function end() {
+      const now = Date.now();
+      since.forEach((at, n) => { if (now - at >= NEW_MS) since.delete(n); });
+      main.querySelectorAll(`[data-panel="${tab}"] tr.is-new`).forEach(r => { if (!since.has(r.dataset.newApp)) r.classList.remove('is-new'); });
+      if (!since.size) main.querySelector(`[data-tab="${tab}"]`)?.classList.remove('is-new');
+    }
+    return {
+      track(numbers) {
+        const now = Date.now();
+        if (seen) numbers.filter(n => !seen.has(n)).forEach(n => { since.set(n, now); setTimeout(end, NEW_MS + 100); });   // +100: a timer can fire a millisecond early, which would leave the mark until the next refresh
+        seen = new Set(numbers);
+        [...since.keys()].forEach(n => { if (!seen.has(n)) since.delete(n); });
+        end();
+      },
+      dismiss(n) { if (since.delete(n)) end(); },
+      rowAttrs: n => since.has(n) ? ` class="is-new" data-new-app="${esc(n)}"` : '',
+      tabAttrs: () => since.size ? ' class="is-new"' : '',
+    };
+  }
+  const newInTab = { pipeline: newTracker('pipeline'), queue: newTracker('queue') };
+  // Clicking a marked row ends its highlight, in every list it is marked in.
+  main.addEventListener('click', e => { const row = e.target.closest('tr.is-new'); if (row) Object.values(newInTab).forEach(x => x.dismiss(row.dataset.newApp)); });
+
+  /* Excellent dealer board. The numbers come from the scorecard on each dealer in the stats (DealerScorecard); the
+     chosen dealer, grade filter and search live here so they survive the auto-refresh. */
+  const dlState = { grade: 'all', q: '', sel: null };
+  const dlGradeLabel = g => g === 'C' ? t('관리', 'Watch') : g;
+  const dlGrade = c => c.rated ? `<span class="dl-grade ${c.grade}">${dlGradeLabel(c.grade)}</span>` : `<span class="dl-grade none">${t('평가 전', 'Not rated')}</span>`;
+  const dlCountry = (d, x) => { const c = (d.byCountry || []).find(y => y.code === x.country); return c ? L(c, 'name') : x.country; };
+  const dlSearchText = (d, x) => { const c = (d.byCountry || []).find(y => y.code === x.country); return `${x.name} ${x.code} ${x.country} ${c?.name ?? ''} ${c?.nameKo ?? ''}`.toLowerCase(); };
+  const dlList = d => d.dealers.filter(x => stState.market === 'ALL' || x.country === stState.market);
+  const dlSorted = d => dlList(d).sort((a, b) => (a.scorecard.rank ?? 1e6) - (b.scorecard.rank ?? 1e6) || b.metrics.applications - a.metrics.applications);
+  /* Rank within the market on screen: the server's rank orders the same way, across all markets. */
+  const dlRankOf = (d, x) => { if (!x.scorecard.rated) return null; return dlSorted(d).filter(y => y.scorecard.rated).findIndex(y => y.code === x.code) + 1; };
+  const DL_MEDALS = {
+    1: { ko: '금메달', en: 'Gold', ribbon: '#d64545', fill: '#f5c211', edge: '#a87000', inner: '#ffe066' },
+    2: { ko: '은메달', en: 'Silver', ribbon: '#3f6fb8', fill: '#cfd5de', edge: '#6f7885', inner: '#eef1f5' },
+    3: { ko: '동메달', en: 'Bronze', ribbon: '#2f8a64', fill: '#d0873f', edge: '#80481a', inner: '#e9ad6c' },
+  };
+  function dlMedal(rank) {
+    const m = DL_MEDALS[rank];
+    if (!m) return rank ?? '–';
+    return `<svg class="dl-medal" viewBox="0 0 26 32" role="img" aria-label="${t(m.ko, m.en)} ${rank}"><path d="M5 0h6l3.5 11H8.5z" fill="${m.ribbon}"/><path d="M21 0h-6l-3.5 11H17.5z" fill="${m.ribbon}" opacity=".8"/><circle cx="13" cy="20" r="10" fill="${m.fill}" stroke="${m.edge}" stroke-width="1.5"/><circle cx="13" cy="20" r="7.3" fill="${m.inner}" stroke="${m.edge}" stroke-width=".8" opacity=".9"/><text x="13" y="24.2" text-anchor="middle" font-size="11" font-weight="700" fill="#2b1d00">${rank}</text></svg>`;
+  }
+  function dlKpis(d) {
+    const dealers = dlList(d);
+    const top = dealers.filter(x => x.scorecard.grade === 'S' || x.scorecard.grade === 'A');
+    const gradeCount = g => dealers.filter(x => x.scorecard.grade === g).length;
+    const apps = list => list.reduce((s, x) => s + x.scorecard.applications, 0);
+    const share = list => { const a = list.reduce((s, x) => s + x.scorecard.assessed, 0); return a ? list.reduce((s, x) => s + Math.round((x.scorecard.highRiskRate || 0) * x.scorecard.assessed), 0) / a : null; };
+    const capped = dealers.filter(x => x.scorecard.cap === 'FRAUD');
+    const all = apps(dealers), topApps = apps(top);
+    const items = [
+      [t('우수 딜러 (S·A)', 'Excellent dealers (S·A)'), top.length, `/ ${dealers.length}${t('곳', '')}`, `S ${gradeCount('S')} · A ${gradeCount('A')}`],
+      [t('우수 딜러 신청 비중', 'Share of applications'), all ? (topApps / all * 100).toFixed(0) : '–', '%', t(`전체 ${all}건 중 ${topApps}건`, `${topApps} of ${all} applications`)],
+      [t('고위험 비율 (C·D)', 'High-risk share (C·D)'), pct(share(top)).replace('%', ''), t('% 우수', '% excellent'), `${t('전체', 'all dealers')} ${pct(share(dealers))}`],
+      [t('위조 경고 등급 제한', 'Capped by fraud warnings'), capped.length, t('곳', 'dealers'), capped.length ? capped.map(x => x.name).join(', ') + t(' (B 상한)', ' (at most B)') : t('해당 없음', 'none')],
+    ];
+    return items.map(([l, v, u, n]) => `<div class="dl-kpi"><div class="l">${l}</div><div class="v">${v}<small>${u}</small></div><div class="note">${esc(n)}</div></div>`).join('');
+  }
+  function dlPodium(d) {
+    const top = dlSorted(d).filter(x => x.scorecard.rated).slice(0, 3);
+    return top.map((x, i) => { const c = x.scorecard; return `<button type="button" class="dl-card p${i + 1}" data-dl-sel="${esc(x.code)}" data-dl-kind="card" aria-pressed="${x.code === dlState.sel}">
+      <div class="top"><span class="rk">${i === 0 ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v2h3v3c0 2.2-1.8 4-4 4h-.3A5 5 0 0 1 13 14.9V17h3v2H8v-2h3v-2.1A5 5 0 0 1 8.3 12H8c-2.2 0-4-1.8-4-4V5h3V3zM6 7v1c0 1.1.9 2 2 2V7H6zm12 0h-2v3c1.1 0 2-.9 2-2V7z"/></svg>TOP 1 · ${t('최우수', 'Best')}` : `TOP ${i + 1}`}</span>${dlGrade(c)}</div>
+      <div class="body"><div><div class="nm">${esc(x.name)}</div><div class="rg">${esc(dlCountry(d, x))} · ${esc(x.code)}</div></div><div class="sc">${c.score.toFixed(1)}</div></div>
+      <div class="meta"><div><span>${t('승인율', 'Approval')}</span><span>${pct(c.approvalRate)}</span></div><div><span>${t('고위험 비율', 'High risk')}</span><span>${pct(c.highRiskRate)}</span></div><div><span>${t('위조 경고', 'Fraud')}</span><span>${c.fraudWarnings}${t('건', '')}</span></div></div></button>`; }).join('');
+  }
+  function dlRows(d) {
+    const q = dlState.q.trim().toLowerCase();
+    const list = dlSorted(d).filter(x => (dlState.grade === 'all' || x.scorecard.grade === dlState.grade) && (!q || dlSearchText(d, x).includes(q)));
+    if (!list.length) return `<tr><td colspan="9"><div class="dl-empty">${t('조건에 맞는 딜러가 없습니다.', 'No dealers match.')}</div></td></tr>`;
+    return list.map(x => { const c = x.scorecard, rank = dlRankOf(d, x), top = rank != null && rank <= 3; return `<tr tabindex="0" class="${top ? 'top' : ''}" data-dl-sel="${esc(x.code)}" data-dl-kind="row" aria-selected="${x.code === dlState.sel}">
+      <td class="l rank">${dlMedal(rank)}</td>
+      <td class="l"><div><span class="name">${esc(x.name)}</span>${c.cap === 'FRAUD' ? `<span class="dl-flag">${t('위조 경고', 'Fraud')}</span>` : ''}${c.tierReview ? `<span class="dl-flag review">${x.tier === 'EXCELLENT' ? t('등급 재검토', 'Tier review') : t('승격 후보', 'Promotion')}</span>` : ''}</div><div class="rg"><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(dlCountry(d, x))} · ${esc(x.code)}</div></td>
+      <td><span class="dl-sc"><span class="dl-bar"><i style="width:${c.score ?? 0}%"></i></span><span>${c.rated ? c.score.toFixed(1) : '–'}</span></span></td>
+      <td>${dlGrade(c)}</td>
+      <td>${pct(c.approvalRate)}</td>
+      <td class="${(c.highRiskRate ?? 0) > 0.15 ? 'bad' : ''}">${pct(c.highRiskRate)}</td>
+      <td class="${c.fraudWarnings ? 'bad' : ''}">${c.fraudWarnings}</td>
+      <td class="${(c.reworkRate ?? 0) > 0.1 ? 'bad' : ''}">${pct(c.reworkRate)}</td>
+      <td>${c.applications}</td></tr>`; }).join('');
+  }
+  function dlSpark(c) {
+    const pts = c.trend.map((m, i) => ({ i, v: m.score, m: m.month })).filter(p => p.v != null);
+    if (pts.length < 2) return `<p class="sub" style="display:block;margin:0">${t('추이를 그리기에는 이력이 부족해요.', 'Not enough history for a trend yet.')}</p>`;
+    const W = 320, H = 110, pl = 28, pr = 14, pt = 12, pb = 22, n = c.trend.length;
+    const lo = Math.max(0, Math.floor(Math.min(...pts.map(p => p.v)) - 3)), hi = Math.min(100, Math.ceil(Math.max(...pts.map(p => p.v)) + 3));
+    const x = i => pl + i * (W - pl - pr) / (n - 1), y = v => pt + (hi - v) * (H - pt - pb) / Math.max(hi - lo, 1);
+    const line = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(' ');
+    const area = `${line} L${x(pts.at(-1).i).toFixed(1)} ${H - pb} L${x(pts[0].i).toFixed(1)} ${H - pb} Z`;
+    const grid = [lo, Math.round((lo + hi) / 2), hi].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--grid)"/><text x="${pl - 6}" y="${(y(v) + 3).toFixed(1)}" text-anchor="end">${v}</text>`).join('');
+    const label = m => { const mo = Number(m.slice(5)); return LANG.lang === 'en' ? new Date(2000, mo - 1, 1).toLocaleString('en-GB', { month: 'short' }) : `${mo}월`; };
+    const labels = c.trend.map((m, i) => `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${label(m.month)}</text>`).join('');
+    const last = pts.at(-1);
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('최근 6개월 종합점수 추이', 'Overall score, last 6 months')}: ${pts.map(p => p.v.toFixed(0)).join(', ')}">${grid}<path d="${area}" fill="var(--brand)" opacity=".12"/><path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${x(last.i).toFixed(1)}" cy="${y(last.v).toFixed(1)}" r="4" fill="var(--brand)" stroke="var(--surface)" stroke-width="2"/>${labels}</svg>`;
+  }
+  function dlNote(x) {
+    const c = x.scorecard, label = `<b>${t('심사 연계:', 'In review:')}</b> `;
+    if (!c.rated) return label + t(`리스크 평가 ${5}건이 쌓이면 점수와 등급이 계산돼요. 지금은 일반 심사 절차를 적용해요.`, `A score and grade appear after 5 assessed applications. The normal review applies until then.`);
+    if (c.tierReview && x.tier === 'EXCELLENT') return label + t('설정 등급은 우수지만 현재 실적이 우수 딜러 기준에 못 미쳐요. 분기 검토에서 등급 조정을 확인하세요.', 'This dealer is set as excellent, but its current record misses the standard. Check the tier at the quarterly review.');
+    if (c.tierReview) return label + t('실적이 우수 딜러 기준을 모두 충족해요. 분기 검토에서 승격을 검토할 수 있어요.', 'The record meets every part of the standard. Consider promotion at the quarterly review.');
+    if (x.tier === 'EXCELLENT') return label + t('이 딜러 유입 고객은 리스크 평가에서 "우수 딜러 유입 고객" 배지를 받아요. 배지는 참고 정보이며 위조 검증과 최종 승인은 동일하게 적용해요.', 'Customers from this dealer get the "referred by an excellent dealer" badge. It is informational: forgery checks and the final approval stay the same.');
+    if (c.grade === 'C') return label + t('등급 관리 대상이에요. 위조 경고와 서류 재요청 원인을 분기 검토에서 확인하세요. 심사 절차 자체는 동일해요.', 'This dealer is on watch. Look into its fraud warnings and document rework at the quarterly review. The review steps stay the same.');
+    return label + t('일반 심사 절차를 적용해요. 유입 고객에게 우수 딜러 배지는 붙지 않아요.', 'The normal review applies. Customers from this dealer do not get the excellent dealer badge.');
+  }
+  function dlDetail(d) {
+    const x = dlList(d).find(y => y.code === dlState.sel) || dlSorted(d)[0];
+    if (!x) return `<div class="dl-empty">${t('딜러가 없습니다.', 'No dealers yet.')}</div>`;
+    const c = x.scorecard;
+    const capNote = c.cap === 'FRAUD' ? t(`점수 기준 ${c.pointsGrade} 등급이지만 위조·사기 경고 ${c.fraudWarnings}건으로 B 등급에 제한됐어요.`, `The points give grade ${c.pointsGrade}, but ${c.fraudWarnings} fraud warning(s) cap it at B.`)
+      : c.cap === 'VOLUME' ? t(`점수 기준 ${c.pointsGrade} 등급이지만 결정 건수가 ${c.decided}건으로 20건 미만이라 B 등급에 제한됐어요.`, `The points give grade ${c.pointsGrade}, but ${c.decided} decided applications is under 20, so it stays at B.`) : '';
+    const metric = (k, v) => `<div class="dl-metric"><span>${k}</span><span>${v}</span></div>`;
+    return `<div class="dl-dhead"><div><h3>${esc(x.name)}</h3><div class="rg">${esc(dlCountry(d, x))} · ${esc(x.code)}${dlRankOf(d, x) ? ` · ${stState.market === 'ALL' ? t(`전체 ${dlRankOf(d, x)}위`, `rank ${dlRankOf(d, x)}`) : t(`${esc(dlCountry(d, x))} ${dlRankOf(d, x)}위`, `rank ${dlRankOf(d, x)} in ${esc(dlCountry(d, x))}`)}` : ''}</div></div>
+        <div class="dl-dscore"><div class="big">${c.rated ? c.score.toFixed(1) : '–'}</div>${dlGrade(c)}</div></div>
+      ${capNote ? `<div class="dl-capnote">${capNote}</div>` : ''}
+      ${c.rated ? `<div><p class="dl-h4">${t('점수 구성', 'Score breakdown')}</p>${c.components.map(p => `<div class="dl-comp"><span>${esc(L(p))}</span><div class="track"><i style="width:${(p.points / p.max * 100).toFixed(0)}%"></i></div><span class="pts">${p.points.toFixed(1)} / ${p.max}</span></div>`).join('')}</div>` : ''}
+      <div><p class="dl-h4">${t('주요 지표', 'Key figures')}</p><div class="dl-metrics">
+        ${metric(t('승인율', 'Approval rate'), pct(c.approvalRate))}${metric(t('고위험 비율', 'High-risk share'), pct(c.highRiskRate))}
+        ${metric(t('서류 재요청률', 'Document rework'), pct(c.reworkRate))}${metric(t('신원 일치율', 'Identity match'), pct(c.identityMatchRate))}
+        ${metric(t('결정 건수', 'Decided'), `${c.decided} / ${c.applications}`)}${metric(t('평균 심사 소요', 'Avg time to decision'), hrs(c.avgDecisionHours))}
+      </div></div>
+      <div class="dl-spark"><p class="dl-h4">${t('종합점수 추이', 'Score trend')}</p>${dlSpark(c)}</div>
+      <div class="dl-agent">${dlNote(x)}</div>`;
+  }
+  const dlMarkets = d => [...d.countries.map(c => [c, dlCountry(d, { country: c })]), ['ALL', t('전체', 'All')]];
+  function dealerBoard(d) {
+    const sorted = dlSorted(d);
+    if (!sorted.some(x => x.code === dlState.sel)) dlState.sel = sorted[0]?.code ?? null;
+    const chips = [['all', t('전체', 'All')], ['S', 'S'], ['A', 'A'], ['B', 'B'], ['C', dlGradeLabel('C')]];
+    return `<div class="dl" id="dl-board">
+      <div class="dl-head"><div><h2>${t('우수 딜러 현황', 'Excellent dealers')} <small>${t('선택한 국가의 딜러 · 최근 6개월 실적 기준', 'dealers of the chosen market · last 6 months')}</small></h2></div>
+        <div class="dl-ctl"><div class="dl-chips" role="group" aria-label="${t('국가 선택', 'Market')}">${dlMarkets(d).map(([c, l]) => `<button type="button" class="dl-chip" data-st-market="${c}" aria-pressed="${stState.market === c}">${esc(l)}</button>`).join('')}</div><button type="button" class="btn-standard" data-standard="dealer">${t('우수 딜러 기준 보기', 'Excellent dealer standard')}</button></div></div>
+      <div class="dl-kpis" aria-label="${t('요약', 'Summary')}">${dlKpis(d)}</div>
+      <div class="dl-podium" id="dl-podium" aria-label="${t('상위 3개 딜러', 'Top three dealers')}">${dlPodium(d)}</div>
+      <div class="dl-main">
+        <section class="dl-panel" aria-label="${t('딜러 순위', 'Dealer ranking')}">
+          <div class="dl-phead"><h2>${t('딜러 순위', 'Dealer ranking')}</h2><div class="dl-ctl">
+            <div class="dl-chips" role="group" aria-label="${t('등급 필터', 'Grade filter')}">${chips.map(([g, l]) => `<button type="button" class="dl-chip" data-dl-grade="${g}" aria-pressed="${dlState.grade === g}">${l}</button>`).join('')}</div>
+            <input type="search" class="dl-search" id="dl-q" value="${esc(dlState.q)}" placeholder="${t('딜러·국가 검색', 'Search dealer or country')}" aria-label="${t('딜러 또는 국가 검색', 'Search dealer or country')}"></div></div>
+          <div class="dl-table"><table><thead><tr><th class="l">#</th><th class="l">${t('딜러', 'Dealer')}</th><th>${t('종합점수', 'Score')}</th><th>${t('등급', 'Grade')}</th><th>${t('승인율', 'Approval')}</th><th>${t('고위험 비율', 'High risk')}</th><th>${t('위조 경고', 'Fraud')}</th><th>${t('서류 보완', 'Rework')}</th><th>${t('신청', 'Apps')}</th></tr></thead><tbody id="dl-rows">${dlRows(d)}</tbody></table></div>
+        </section>
+        <aside class="dl-panel dl-detail" id="dl-detail" aria-live="polite">${dlDetail(d)}</aside>
+      </div>
+      <section class="dl-panel dl-criteria" aria-label="${t('선정 기준', 'How it is scored')}">
+        <div><b>${t('종합점수(100점)', 'Score (100 points)')}</b> ${t('고객 리스크 35 · 위조·사기 경고 25 · 서류 완결도 15 · 승인율 15 · 결정 건수 10', 'low-risk customers 35 · fraud warnings 25 · document completeness 15 · approval rate 15 · decided volume 10')}</div>
+        <div><b>${t('등급', 'Grades')}</b> ${t('S 92점 이상 · A 70점 이상 · B 50점 이상 · 관리 50점 미만', 'S from 92 · A from 70 · B from 50 · Watch below 50')}</div>
+        <div><b>${t('등급 상한', 'Grade cap')}</b> ${t('위조·사기 경고가 1건이라도 있거나 결정 건수가 20건 미만이면 점수와 무관하게 B를 넘지 못해요. 우수 등급은 심사 승인이나 위조 검증을 면제하지 않아요.', 'One fraud warning, or fewer than 20 decided applications, keeps a dealer at B whatever the points. The excellent tier never waives approval or forgery checks.')}</div>
+      </section>
+    </div>`;
+  }
+  function dlRepaint(parts) {
+    if (!lastData) return;
+    if (parts.includes('podium')) { const el = $('#dl-podium'); if (el) el.innerHTML = dlPodium(lastData); }
+    if (parts.includes('rows')) { const el = $('#dl-rows'); if (el) el.innerHTML = dlRows(lastData); }
+    if (parts.includes('detail')) { const el = $('#dl-detail'); if (el) el.innerHTML = dlDetail(lastData); }
+  }
+  function dlRestart(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function dlSelect(code, kind, e) {
+    dlState.sel = code;
+    dlRepaint(['podium', 'rows', 'detail']);
+    const detail = $('#dl-detail'); if (detail) dlRestart(detail, 'flash');
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const el = main.querySelector(kind === 'card' ? `#dl-podium [data-dl-sel="${CSS.escape(code)}"]` : `#dl-rows [data-dl-sel="${CSS.escape(code)}"]`);
+    if (!el) return;
+    if (kind !== 'card') { dlRestart(el, 'rowhit'); return; }
+    dlRestart(el, 'burst');
+    const r = el.getBoundingClientRect(), cx = e?.clientX ? e.clientX - r.left : r.width / 2, cy = e?.clientY ? e.clientY - r.top : r.height / 2;
+    for (let k = 0; k < 14; k++) {
+      const p = document.createElement('span'), a = Math.PI * 2 * k / 14 + Math.random() * .4, dist = 50 + Math.random() * 60;
+      p.className = 'dl-spk'; p.style.left = cx + 'px'; p.style.top = cy + 'px';
+      p.style.setProperty('--dx', (Math.cos(a) * dist).toFixed(0) + 'px'); p.style.setProperty('--dy', (Math.sin(a) * dist).toFixed(0) + 'px'); p.style.setProperty('--rot', (Math.random() * 360 - 180).toFixed(0) + 'deg');
+      if (k % 2) p.style.background = 'var(--hot-line)';
+      el.appendChild(p); setTimeout(() => p.remove(), 800);
+    }
+  }
+  main.addEventListener('click', e => {
+    const chip = e.target.closest('[data-dl-grade]');
+    if (chip) { dlState.grade = chip.dataset.dlGrade; main.querySelectorAll('[data-dl-grade]').forEach(b => b.setAttribute('aria-pressed', String(b === chip))); dlRepaint(['rows']); return; }
+    const sel = e.target.closest('[data-dl-sel]');
+    if (sel) dlSelect(sel.dataset.dlSel, sel.dataset.dlKind, e);
+  });
+  main.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const row = e.target.closest('tr[data-dl-sel]');
+    if (row) { e.preventDefault(); dlSelect(row.dataset.dlSel, 'row'); }
+  });
+  main.addEventListener('input', e => { if (e.target.id === 'dl-q') { dlState.q = e.target.value; dlRepaint(['rows']); } });
+
+  const fds = createFdsConsole({ t, L, esc, statusName, standard: true, onDealer: (code, country) => stOpenDealer(code, country) });
+
+  /* Statistics tab. The market chosen here survives the auto-refresh; the numbers come from reviewStats in the stats. */
+  const stState = { market: 'ID' };
+  const stNum = v => v == null ? '–' : Number(v).toLocaleString(LANG.locale);
+  const stMonth = m => { const mo = Number(m.slice(5)); return LANG.lang === 'en' ? new Date(2000, mo - 1, 1).toLocaleString('en-GB', { month: 'short' }) : `${mo}월`; };
+  const stMin = h => h == null ? null : Math.round(h * 60);
+  const stPct1 = v => v == null ? '–' : (v * 100).toFixed(1);
+  function stDelta(cur, prev, unit, goodWhenUp, digits = 1) {
+    if (cur == null || prev == null) return `<div class="d">${t('전월 비교 불가', 'no prior month')}</div>`;
+    const diff = cur - prev;
+    if (Math.abs(diff) < Math.pow(10, -digits) / 2) return `<div class="d">${t('전월과 같음', 'same as last month')}</div>`;
+    return `<div class="d"><span class="${(diff > 0) === goodWhenUp ? 'good' : 'bad'}">${diff > 0 ? '▲' : '▼'} ${Math.abs(diff).toFixed(digits)}${unit}</span> ${t('전월 대비', 'vs last month')}</div>`;
+  }
+  function stKpis(months) {
+    const cur = months.at(-2), prev = months.at(-3), name = stMonth(cur.month), rate = m => m.applications ? m.fraudApplications / m.applications : null;
+    const mins = t('분', 'min');
+    const growth = prev.applications ? (cur.applications / prev.applications - 1) * 100 : null;
+    const items = [
+      [t('신청 건수', 'Applications'), stNum(cur.applications), t('건', ''), stDelta(growth, growth == null ? null : 0, '%', true)],
+      [t('승인율', 'Approval rate'), stPct1(cur.approvalRate), '%', stDelta(cur.approvalRate == null ? null : cur.approvalRate * 100, prev.approvalRate == null ? null : prev.approvalRate * 100, '%p', true)],
+      [t('평균 심사 소요', 'Avg time to decision'), stMin(cur.avgDecisionHours) ?? '–', mins, stDelta(stMin(cur.avgDecisionHours), stMin(prev.avgDecisionHours), mins, false, 0)],
+      [t('Agent 자동 처리', 'Agent handled'), stPct1(cur.agentRate), '%', stDelta(cur.agentRate == null ? null : cur.agentRate * 100, prev.agentRate == null ? null : prev.agentRate * 100, '%p', true)],
+      [t('위조·사기 경고', 'Fraud warnings'), stNum(cur.fraudApplications), `${t('건', '')} · ${stPct1(rate(cur))}%`, stDelta(rate(cur) == null ? null : rate(cur) * 100, rate(prev) == null ? null : rate(prev) * 100, '%p', false)],
+    ];
+    return items.map(([l, v, u, d]) => `<div class="st-kpi"><div class="l">${l} (${name})</div><div class="v">${v}<small>${u}</small></div>${d}</div>`).join('');
+  }
+  function stStack(months) {
+    const W = 520, H = 260, l = 40, r = 10, top = 22, b = 28, iw = W - l - r, ih = H - top - b;
+    const peak = Math.max(1, ...months.map(m => m.applications)), step = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find(x => x * 4 >= peak) || Math.ceil(peak / 4), max = step * 4;
+    const y = v => top + ih - v / max * ih, band = iw / months.length, bw = band * .58;
+    let s = '';
+    for (let v = 0; v <= max; v += step) s += `<line class="grid" x1="${l}" x2="${W - r}" y1="${y(v)}" y2="${y(v)}"/><text x="${l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+    months.forEach((m, i) => {
+      const x = l + i * band + (band - bw) / 2, seg = (from, n, c) => n ? `<rect x="${x}" y="${y(from + n)}" width="${bw}" height="${y(from) - y(from + n)}" fill="${c}" stroke="var(--surface)" stroke-width="2"/>` : '';
+      s += seg(0, m.approved, 'var(--brand)') + seg(m.approved, m.pending, 'var(--text-3)') + seg(m.approved + m.pending, m.rejected, 'var(--critical)');
+      s += `<text x="${x + bw / 2}" y="${y(m.applications) - 6}" text-anchor="middle" class="ink">${m.applications}</text><text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle">${stMonth(m.month)}</text>`;
+      s += `<rect class="hit" x="${l + i * band}" y="${top}" width="${band}" height="${ih + 6}" data-tip="${esc(`${stMonth(m.month)} · ${t('신청', 'applied')} ${m.applications} · ${t('승인', 'approved')} ${m.approved} · ${t('보류', 'pending')} ${m.pending} · ${t('거절', 'rejected')} ${m.rejected}`)}"/>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('월별 심사 결과', 'Review results by month')}">${s}</svg>`;
+  }
+  function stLines(months) {
+    const W = 520, H = 260, l = 40, r = 104, top = 16, b = 28, iw = W - l - r, ih = H - top - b;
+    const y = v => top + ih - v * ih, x = i => l + i * iw / (months.length - 1);
+    let s = '';
+    [0, .25, .5, .75, 1].forEach(v => { s += `<line class="grid" x1="${l}" x2="${W - r + 8}" y1="${y(v)}" y2="${y(v)}"/><text x="${l - 6}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`; });
+    const pts = months.map((m, i) => ({ i, v: m.approvalRate })).filter(p => p.v != null);
+    if (pts.length) {
+      const last = pts.at(-1), color = 'var(--brand)';
+      s += `<path d="${pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
+        + pts.map(p => `<circle cx="${x(p.i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="4" fill="${color}" stroke="var(--surface)" stroke-width="2"/>`).join('')
+        + `<text x="${x(last.i) + 12}" y="${y(last.v) - 2}" class="ink">${stPct1(last.v)}%</text><text x="${x(last.i) + 12}" y="${y(last.v) + 12}">${t('승인율', 'Approval')}</text>`;
+    }
+    months.forEach((m, i) => {
+      const bw = iw / (months.length - 1);
+      s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${stMonth(m.month)}</text><rect class="hit" x="${x(i) - bw / 2}" y="${top}" width="${bw}" height="${ih}" data-tip="${esc(`${stMonth(m.month)} · ${t('승인율', 'approval')} ${stPct1(m.approvalRate)}%`)}"/>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('월별 승인율', 'Approval rate by month')}">${s}</svg>`;
+  }
+  function stBars(items, color) {
+    if (!items.length) return `<p class="st-empty">${t('해당 건이 없어요.', 'None in this period.')}</p>`;
+    const total = items.reduce((a, b) => a + b.count, 0);
+    const rest = items.slice(5).reduce((a, b) => a + b.count, 0);
+    const shown = items.length > 6 ? [...items.slice(0, 5), { label: 'Other', labelKo: '기타', count: rest }] : items;
+    const max = Math.max(...shown.map(x => x.count));
+    return `<div class="st-rows">${shown.map(x => `<div class="st-brow" data-tip="${esc(`${L(x)} · ${x.count} (${(x.count / total * 100).toFixed(1)}%)`)}"><span>${esc(L(x))}</span><span class="track"><i style="width:${(x.count / max * 100).toFixed(1)}%;background:${color}"></i></span><span class="val"><b>${x.count}</b> · ${(x.count / total * 100).toFixed(1)}%</span></div>`).join('')}</div>`;
+  }
+  function stTat(months) {
+    const pts = months.map((m, i) => ({ i, v: stMin(m.avgDecisionHours), m: m.month })).filter(p => p.v != null);
+    if (pts.length < 2) return `<p class="st-empty">${t('추이를 그리기에는 결정 건이 부족해요.', 'Not enough decisions for a trend yet.')}</p>`;
+    const W = 320, H = 200, l = 30, r = 16, top = 28, b = 26, iw = W - l - r, ih = H - top - b, max = Math.max(60, Math.ceil(Math.max(...pts.map(p => p.v)) / 15) * 15);
+    const y = v => top + ih - v / max * ih, x = i => l + i * iw / (months.length - 1), first = pts[0], last = pts.at(-1), unit = t('분', 'min');
+    let s = [0, max / 2, max].map(v => `<line class="grid" x1="${l}" x2="${W - r}" y1="${y(v)}" y2="${y(v)}"/><text x="${l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`).join('');
+    const line = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(' ');
+    s += `<path d="${line} L${x(last.i)} ${y(0)} L${x(first.i)} ${y(0)} Z" fill="var(--brand)" opacity=".12"/><path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    months.forEach((m, i) => { s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${stMonth(m.month)}</text>`; });
+    pts.forEach(p => { const end = p === first || p === last; s += `<circle cx="${x(p.i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="${end ? 4 : 3}" fill="var(--brand)" stroke="var(--surface)" stroke-width="2"/>`; if (end) s += `<text x="${x(p.i)}" y="${y(p.v) - 10}" text-anchor="${p === first ? 'start' : 'end'}" class="ink">${p.v}</text>`; const bw = iw / (months.length - 1); s += `<rect class="hit" x="${x(p.i) - bw / 2}" y="${top}" width="${bw}" height="${ih}" data-tip="${esc(`${stMonth(p.m)} · ${p.v}${unit}`)}"/>`; });
+    const diff = first.v - last.v;
+    const cap = t(`${stMonth(first.m)} ${first.v}분에서 ${stMonth(last.m)} ${last.v}분으로 ${diff === 0 ? '같아요' : `${Math.abs(diff)}분 ${diff > 0 ? '줄었어요' : '늘었어요'}`}. 모든 달이 1시간 이내예요.`, `From ${first.v} min in ${stMonth(first.m)} to ${last.v} min in ${stMonth(last.m)}. Every month is under an hour.`);
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('월별 평균 심사 소요시간', 'Average time to decision by month')}">${s}</svg><p class="st-cap">${cap}</p>`;
+  }
+  function stContent(d) {
+    const r = d.reviewStats[stState.market] || d.reviewStats.ALL, m = r.months, f = r.fraudOutcome, ft = f.rejected + f.pending + f.approved;
+    const flagTotal = r.fraudTypes.reduce((a, b) => a + b.count, 0);
+    const partial = t(`${stMonth(m.at(-1).month)}은 진행 중인 달이라 요약에서 빼고 ${stMonth(m.at(-2).month)}을 보여줘요.`, `${stMonth(m.at(-1).month)} is still under way, so the summary shows ${stMonth(m.at(-2).month)}.`);
+    const out = [[t('거절', 'Rejected'), f.rejected, 'var(--critical)'], [t('사람 확인 중(보류)', 'Being checked'), f.pending, 'var(--text-3)'], [t('확인 후 승인', 'Approved after a check'), f.approved, 'var(--brand)']];
+    const raw = m.map(x => `<tr><td class="l">${stMonth(x.month)}</td><td>${x.applications}</td><td>${x.approved}</td><td>${x.pending}</td><td>${x.rejected}</td><td>${stPct1(x.approvalRate)}%</td><td>${stMin(x.avgDecisionHours) ?? '–'}</td><td>${stPct1(x.agentRate)}%</td><td>${x.fraudApplications}</td></tr>`).join('');
+    return `<section class="st-kpis" aria-label="${t('월간 요약', 'Monthly summary')}">${stKpis(m)}</section>
+      <p class="st-cap" style="margin:-6px 0 0">${partial}</p>
+      <div class="st-row2">
+        <section class="st-panel"><div class="st-phead"><h2>${t('월별 심사 결과', 'Review results by month')}</h2><div class="st-legend"><span><i style="background:var(--brand)"></i>${t('승인', 'Approved')}</span><span><i style="background:var(--text-3)"></i>${t('보류', 'Pending')}</span><span><i style="background:var(--critical)"></i>${t('거절', 'Rejected')}</span></div></div><div class="st-body st-chart">${stStack(m)}<p class="st-cap">${t('막대 위 숫자는 그 달에 접수된 신청 건수예요.', 'The number above each bar is the applications filed that month.')}</p></div></section>
+        <section class="st-panel"><div class="st-phead"><h2>${t('월별 승인율', 'Approval rate by month')}</h2><div class="st-legend"><span><i style="background:var(--brand)"></i>${t('승인율', 'Approval')}</span></div></div><div class="st-body st-chart">${stLines(m)}<p class="st-cap">${t('승인 ÷ (승인 + 거절) 기준이에요.', 'Approved ÷ (approved + rejected).')}</p></div></section>
+      </div>
+      <div class="st-row3">
+        <section class="st-panel"><div class="st-phead"><h2>${t('거절 사유', 'Rejection reasons')}</h2><span class="st-legend">${t(`6개월 · 거절 ${r.rejected}건`, `6 months · ${r.rejected} rejected`)}</span></div><div class="st-body">${stBars(r.rejectReasons, 'var(--brand)')}<p class="st-cap">${t('거절된 신청의 가장 심각한 Risk Flag 기준이에요.', "Counted by each rejected application's most severe risk flag.")}</p></div></section>
+        <section class="st-panel"><div class="st-phead"><h2>${t('위조·사기 플래그 유형', 'Fraud flag types')}</h2><span class="st-legend">${t(`6개월 · ${flagTotal}건`, `6 months · ${flagTotal} flags`)}</span></div><div class="st-body">${stBars(r.fraudTypes, 'var(--serious)')}
+          ${ft ? `<p class="st-cap">${t(`경고가 걸린 신청 ${ft}건의 처리 결과`, `Outcome of the ${ft} applications with a warning`)}</p><div class="st-strip">${out.filter(o => o[1]).map(o => `<i style="width:${(o[1] / ft * 100).toFixed(1)}%;background:${o[2]}" data-tip="${esc(`${o[0]} · ${o[1]}`)}"></i>`).join('')}</div><div class="st-legend" style="margin-top:8px">${out.map(o => `<span><i style="background:${o[2]}"></i>${o[0]} <b>${o[1]}</b></span>`).join('')}</div>` : ''}</div></section>
+        <section class="st-panel"><div class="st-phead"><h2>${t('평균 심사 소요시간', 'Average time to decision')}</h2><span class="st-legend">${t('단위: 분', 'minutes')}</span></div><div class="st-body st-chart">${stTat(m)}</div></section>
+      </div>
+      <details class="st-panel"><summary>${t('월별 원자료 표로 보기', 'Show the monthly figures as a table')}</summary><div class="st-table"><table><thead><tr><th class="l">${t('월', 'Month')}</th><th>${t('신청', 'Apps')}</th><th>${t('승인', 'Approved')}</th><th>${t('보류', 'Pending')}</th><th>${t('거절', 'Rejected')}</th><th>${t('승인율', 'Approval')}</th><th>${t('평균 소요(분)', 'Avg time (min)')}</th><th>${t('Agent 자동 처리', 'Agent handled')}</th><th>${t('위조 경고', 'Fraud')}</th></tr></thead><tbody>${raw}</tbody></table></div></details>
+      <section class="st-panel st-notes" aria-label="${t('지표 정의', 'Definitions')}">
+        <div><b>${t('승인율', 'Approval rate')}</b> ${t('승인 ÷ (승인 + 거절). 보류는 진행 중이거나 심사 대기, 서류 재요청 중인 신청이에요.', 'Approved ÷ (approved + rejected). Pending means in progress, waiting for an officer, or waiting for new documents.')}</div>
+        <div><b>${t('Agent 자동 처리', 'Agent handled')}</b> ${t('리스크 평가가 끝난 신청 중 서류 재요청, 담당자 검토, 위조·사기 경고 없이 심사 대기까지 온 비율이에요. 최종 승인과 거절은 언제나 심사원이 해요.', 'The share of assessed applications that reached review with no re-request, officer hand-off or fraud warning. An officer always makes the final decision.')}</div>
+        <div><b>${t('위조·사기 경고', 'Fraud warnings')}</b> ${t('Risk Flag 중 위조·사기 신호가 하나라도 걸린 신청이에요. 경고가 있어도 모두 거절은 아니며, 사람 확인 후 승인되는 건도 있어요.', 'Applications with at least one fraud signal among their risk flags. Not all are rejected: some are approved after a person checks them.')}</div>
+        <div><b>${t('집계 기준', 'How it is counted')}</b> ${t('각 신청은 접수한 달에 집계돼요. 연체·상환 데이터는 이 시스템에 없어 포함하지 않아요.', 'Each application counts in the month it was filed. Repayment data is not held in this system, so it is not included.')}</div>
+      </section>`;
+  }
+  function statsTab(d) {
+    const months = d.reviewStats.ALL.months, name = c => { const x = (d.byCountry || []).find(y => y.code === c); return x ? L(x, 'name') : c; };
+    const period = `${months[0].month.replace('-', '.')}~${months.at(-1).month.slice(5)}`;
+    const chips = [...d.countries.map(c => [c, name(c)]), ['ALL', t('전체', 'All')]];
+    return `<div class="st"><div class="st-head"><div><h2 id="st-title">${stState.market === 'ALL' ? t('전체 심사통계', 'Review statistics, all markets') : t(`${name(stState.market)} 심사통계`, `${name(stState.market)} review statistics`)} <small>${t(`딜러 경유 신청 기준 · 최근 6개월(${period}) · 심사 Agent 처리 결과 포함`, `dealer-filed applications · last 6 months (${period}) · includes the review agent`)}</small></h2></div>
+      <div class="st-ctl"><div class="dl-chips" role="group" aria-label="${t('국가 선택', 'Market')}">${chips.map(([c, l]) => `<button type="button" class="dl-chip" data-st-market="${c}" aria-pressed="${stState.market === c}">${esc(l)}</button>`).join('')}</div>${d.totals.demoApplications ? `<span class="dl-sample">${t('데모 데이터 포함 · 실제 수치·딜러 아님', 'Includes demo data · not real figures or dealers')}</span>` : ''}</div></div>
+      <div id="st-content" class="st">${stContent(d)}</div></div>`;
+  }
+  function stRepaint() {
+    const panel = main.querySelector('[data-panel="stats"]'); if (!panel || !lastData) return;
+    panel.innerHTML = statsTab(lastData);
+    bindTips(panel);
+    const board = main.querySelector('#dl-wrap'); if (board) { board.innerHTML = dealerBoard(lastData); bindTips(board); }
+  }
+  /* From a dealer on the fraud console: open its market on the analysis tab's dealer board, with the dealer selected. */
+  function stOpenDealer(code, country) {
+    stState.market = country; dlState.sel = code; dlState.grade = 'all'; dlState.q = '';
+    stRepaint(); showTab('overview');
+    $('#dl-board')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  main.addEventListener('click', e => {
+    const jump = e.target.closest('[data-scroll]');
+    if (jump) { document.getElementById(jump.dataset.scroll)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    const b = e.target.closest('[data-st-market]'); if (!b) return;
+    stState.market = b.dataset.stMarket;
+    stRepaint();
+  });
+
+  /* Pipeline tab: a stage number filters the list below it to that stage. The choice survives the auto-refresh. */
+  let pipeFilter = null;
+  function pipeList(d) {
+    const all = d.inProgress || [], stage = pipeFilter ? (d.pipeline || []).find(s => s.code === pipeFilter) : null;
+    const rows = stage ? all.filter(r => r.current === stage.code) : all.filter(r => r.status !== 'READY_FOR_REVIEW');
+    const head = stage
+      ? `<h3 class="pipe-head">${t('신청 목록', 'Applications')} <span class="sub" style="display:inline">${esc(L(stage))} ${t(`단계 · ${rows.length}건 · 최근 활동순`, `stage · ${rows.length} · most recent activity first`)}</span><button type="button" class="dl-chip" data-pipe-clear="1">✕ ${t('전체 보기', 'Show all')}</button></h3>`
+      : `<h3 class="pipe-head">${t('진행 중인 신청', 'In progress')} <span class="sub" style="display:inline">${t(`아직 심사 대기 전 · ${rows.length}건 · 최근 활동순 · 위 숫자를 누르면 그 단계만 보여요`, `not yet waiting for an officer · ${rows.length} · most recent activity first · press a number above to see that stage`)}</span></h3>`;
+    if (!rows.length) return head + `<p class="empty">${stage ? t('이 단계의 신청이 없습니다.', 'Nothing at this stage.') : t('진행 중인 신청이 없습니다.', 'Nothing in progress.')}</p>`;
+    return head + `<div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('국가', 'Country')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('고객', 'Customer')}</th><th>${t('상태', 'Status')}</th><th>${t('진행', 'Progress')}</th><th>${t('현재 단계', 'Current stage')}</th><th class="num">${t('마지막 활동', 'Last activity')}</th></tr></thead><tbody>${
+      rows.map(r => `<tr${newInTab.pipeline.rowAttrs(r.applicationNumber)}><td>${appLink(r.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td><span class="dots" title="${r.done}/${r.total}">${r.stageStates.map(s => `<i class="${esc(s)}"></i>`).join('')}</span> <span class="sub">${r.done}/${r.total}</span></td><td><b>${esc(curStage(r))}</b>${noteOf(r) ? `<br><span class="sub">${esc(noteOf(r))}</span>` : ''}</td><td class="num" title="${esc(fmtTime(r.updatedAt))}">${r.idleHours != null && r.idleHours >= 24 ? `<span style="color:var(--serious);font-weight:600">${agoText(r.idleHours)}</span>` : `<span class="sub">${agoText(r.idleHours)}</span>`}</td></tr>`).join('')
+    }</tbody></table></div>`;
+  }
+  main.addEventListener('click', e => {
+    if (!lastData) return;
+    const clear = e.target.closest('[data-pipe-clear]'), tile = e.target.closest('[data-pipe-stage]');
+    if (!clear && !tile) return;
+    pipeFilter = clear || tile.dataset.pipeStage === pipeFilter ? null : tile.dataset.pipeStage;
+    main.querySelectorAll('[data-pipe-stage]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pipeStage === pipeFilter)));
+    const list = $('#pipe-list'); if (list) list.innerHTML = pipeList(lastData);
+  });
 
   function render(d) {
     lastData = d; pipelineStages = d.pipeline || [];
+    newInTab.pipeline.track((d.inProgress || []).filter(r => r.status !== 'READY_FOR_REVIEW').map(r => r.applicationNumber));
+    newInTab.queue.track(d.reviewQueue.map(q => q.applicationNumber));
     const tt = d.totals;
     const tiles = [
       [t('총 신청', 'Applications'), tt.applications], [t('진행 중', 'In progress'), tt.inProgress], [t('심사 대기', 'Ready for review'), tt.readyForReview],
@@ -525,41 +908,48 @@
       [t('최장 대기', 'Oldest waiting'), hrs(tt.oldestWaitingHours)], [t('평균 결정 시간', 'Avg time to decision'), hrs(tt.avgDecisionHours)],
       [t('진행 정체 (24h+)', 'Stalled in progress (24h+)'), (d.inProgress || []).filter(r => r.status !== 'READY_FOR_REVIEW' && r.idleHours != null && r.idleHours >= 24).length, true],
     ];
-    const P = {};
+    const P = { stats: statsTab(d) };
     let h = '';
-    h += `<section class="card"><div class="tiles">${tiles.map(([label, v, alert]) =>
-      `<div class="tile ${alert && v > 0 ? 'alert' : ''}"><div class="k">${label}</div><div class="v">${v}</div></div>`).join('')}</div></section>`;
+    // The charts carry the page; the same figures follow in small type as a reference.
+    const stalled = (d.inProgress || []).filter(r => r.status !== 'READY_FOR_REVIEW' && r.idleHours != null && r.idleHours >= 24).length;
+    const waitBuckets = [[t('6시간 미만', 'Under 6h'), 0, 6], [t('6~24시간', '6-24h'), 6, 24], [t('1~3일', '1-3 days'), 24, 72], [t('3일 이상', '3 days+'), 72, Infinity]]
+      .map(([label, lo, hi]) => ({ label, value: d.reviewQueue.filter(q => q.waitingHours != null && q.waitingHours >= lo && q.waitingHours < hi).length, grad: ['#0b5563', '#3fb8c4'] }));
+    h += `<div class="row an-charts">
+      <section class="card"><h2>${t('신청 현황', 'Where applications stand')} <small>${t(`전체 ${tt.applications}건`, `${tt.applications} in total`)}</small></h2>${softBars([
+        { label: t('승인', 'Approved'), value: tt.approved, grad: ['#028090', '#3fb8c4'] }, { label: t('심사 대기', 'Ready for review'), value: tt.readyForReview, grad: ['#f2a541', '#f8c878'] },
+        { label: t('진행 중', 'In progress'), value: tt.inProgress, grad: ['#7f98a0', '#b7d3d7'] }, { label: t('거절', 'Rejected'), value: tt.rejected, grad: ['#c0392b', '#e8796b'] },
+      ], { left: 76, aria: t('상태별 신청 건수', 'Applications by status') })}</section>
+      <section class="card"><h2>${t('확인이 필요한 신청', 'Needs attention')} <small>${t(`리스크 평가 ${tt.assessed}건 기준`, `of ${tt.assessed} assessed`)}</small></h2>${softBars([
+        { label: t('고위험 (C·D)', 'High risk (C·D)'), value: tt.highRisk }, { label: t('위조·사기 경고', 'Fraud warnings'), value: tt.fraudWarnings },
+        { label: t('진행 정체 24h+', 'Stalled 24h+'), value: stalled }, { label: t('서류 재요청 중', 'Documents requested'), value: tt.documentsRequested }, { label: t('담당자 검토', 'Officer review'), value: tt.officerReviewRequired },
+      ].map(x => ({ ...x, grad: ['#e8743b', '#f6b26b'] })), { left: 104, aria: t('확인이 필요한 신청 건수', 'Applications needing attention') })}</section>
+      <section class="card"><h2>${t('심사 대기 시간', 'Time waiting for review')} <small>${t(`심사 대기 ${d.reviewQueue.length}건`, `${d.reviewQueue.length} waiting`)}</small></h2>${softBars(waitBuckets, { left: 76, aria: t('대기 시간별 심사 대기 건수', 'Applications waiting, by time') })}
+        <p class="an-cap">${t(`최장 대기 ${hrs(tt.oldestWaitingHours)} · 평균 결정 시간 ${hrs(tt.avgDecisionHours)}`, `Oldest ${hrs(tt.oldestWaitingHours)} · average to decision ${hrs(tt.avgDecisionHours)}`)}</p></section>
+    </div>`;
+    h += `<section class="an-nums" aria-label="${t('수치 요약', 'Figures')}">${tiles.map(([label, v, alert]) => `<div class="an-num ${alert && v > 0 ? 'alert' : ''}"><span>${label}</span><b>${v}</b></div>`).join('')}</section>`;
     h += `<div id="copilot-slot"></div>`;   // the persistent copilot card is moved in here after every render (mountCopilot)
+    h += `<div id="dl-wrap" style="margin-top:16px">${dealerBoard(d)}</div>`;
     P.overview = h; h = '';
 
-    // pipeline tab: live pipeline board (where every open application is right now) and the review queue
+    // pipeline tab: live pipeline board (where every open application is right now) and the applications still in progress
     const pipe = d.pipeline || [], openTotal = pipe.reduce((s, x) => s + x.count, 0);
     h += `<section class="card"><h2>${t('온보딩 진행 현황', 'Pipeline')} <small>${t(`열린 신청 ${openTotal}건의 현재 단계 · 실시간`, `${openTotal} open applications by current stage · live`)}</small></h2>
       <div class="segbar" role="img" aria-label="Open applications by stage">${pipe.map((s, i) => s.count ? `<i style="width:${(s.count / Math.max(openTotal, 1)) * 100}%;background:${STAGE_COLORS[i]}" data-tip="${esc(L(s) + ': ' + s.count)}"></i>` : '').join('')}</div>
-      <div class="stages">${pipe.map((s, i) => `<div class="s ${s.count ? '' : 'zero'}" style="border-left-color:${s.count ? STAGE_COLORS[i] : ''}"><div class="n">${s.count}</div><div class="k">${esc(L(s))}</div></div>`).join('')}</div>`;
-    const rows = (d.inProgress || []).filter(r => r.status !== 'READY_FOR_REVIEW');
-    h += `<h3 style="margin:16px 0 6px;font-size:13px;color:var(--text-2)">${t('진행 중인 신청', 'In progress')} <span class="sub" style="display:inline">${t(`아직 심사 대기 전 · ${rows.length}건 · 최근 활동순`, `not yet waiting for an officer · ${rows.length} · most recent activity first`)}</span></h3>`;
-    if (!rows.length) h += `<p class="empty">${t('진행 중인 신청이 없습니다.', 'Nothing in progress.')}</p>`;
-    else h += `<div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('국가', 'Country')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('고객', 'Customer')}</th><th>${t('상태', 'Status')}</th><th>${t('진행', 'Progress')}</th><th>${t('현재 단계', 'Current stage')}</th><th class="num">${t('마지막 활동', 'Last activity')}</th></tr></thead><tbody>${
-      rows.map(r => `<tr><td>${appLink(r.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[r.country] || 'var(--text-3)'}"></span>${esc(r.country)}</td><td>${esc(r.dealerCode || '–')}</td><td>${esc(r.customerName || '–')}</td><td>${pill(r.status)}</td><td><span class="dots" title="${r.done}/${r.total}">${r.stageStates.map(s => `<i class="${esc(s)}"></i>`).join('')}</span> <span class="sub">${r.done}/${r.total}</span></td><td><b>${esc(curStage(r))}</b>${noteOf(r) ? `<br><span class="sub">${esc(noteOf(r))}</span>` : ''}</td><td class="num" title="${esc(fmtTime(r.updatedAt))}">${r.idleHours != null && r.idleHours >= 24 ? `<span style="color:var(--serious);font-weight:600">${agoText(r.idleHours)}</span>` : `<span class="sub">${agoText(r.idleHours)}</span>`}</td></tr>`).join('')
-    }</tbody></table></div>`;
+      <div class="stages" role="group" aria-label="${t('단계별 목록 필터', 'Filter the list by stage')}">${pipe.map((s, i) => `<button type="button" class="s ${s.count ? '' : 'zero'}" data-pipe-stage="${esc(s.code)}" aria-pressed="${pipeFilter === s.code}" ${s.count ? '' : 'disabled'} style="border-left-color:${s.count ? STAGE_COLORS[i] : ''}"><div class="n">${s.count}</div><div class="k">${esc(L(s))}</div></button>`).join('')}</div>`;
+    h += `<div id="pipe-list">${pipeList(d)}</div>`;
     h += `</section>`;
+    P.pipeline = h; h = '';
 
+    // queue tab: what an officer should open next
     h += `<section class="card"><h2>${t('심사 대기 큐', 'Review queue')} <small>${t('리스크 높은 순', 'highest risk first')} · <a class="app" href="/review">${t('심사 화면 열기 →', 'Open the review page →')}</a></small></h2>`;
     if (!d.reviewQueue.length) h += `<p class="empty">${t('심사 대기 중인 신청이 없습니다.', 'Nothing waiting for an officer.')}</p>`;
     else h += `<div class="scroll"><table><thead><tr><th>${t('신청번호', 'Application')}</th><th>${t('국가', 'Country')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('고객', 'Customer')}</th><th>${t('AI 리스크 등급', 'AI risk grade')}</th><th class="num">${t('위조 경고', 'Fraud')}</th><th>${t('담당자 검토', 'Officer review')}</th><th class="num">${t('대기 시간', 'Waiting')}</th></tr></thead><tbody>${
-      d.reviewQueue.map(q => `<tr><td>${appLink(q.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[q.country] || 'var(--text-3)'}"></span>${esc(q.country)}</td><td>${esc(q.dealerCode || '–')}</td><td>${esc(q.customerName || '–')}</td><td>${gradeCell(q.grade)}${q.score != null ? ` <span class="sub">${q.score}</span>` : ''}</td><td class="num">${q.fraudWarnings ? `<span style="color:var(--critical);font-weight:600">⚠ ${q.fraudWarnings}</span>` : '–'}</td><td>${q.officerReviewRequired ? `<span class="chip">${t('필요', 'required')}</span>` : '–'}</td><td class="num" title="${esc(fmtTime(q.waitingSince))}">${hrs(q.waitingHours)}</td></tr>`).join('')
+      d.reviewQueue.map(q => `<tr${newInTab.queue.rowAttrs(q.applicationNumber)}><td>${appLink(q.applicationNumber)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[q.country] || 'var(--text-3)'}"></span>${esc(q.country)}</td><td>${esc(q.dealerCode || '–')}</td><td>${esc(q.customerName || '–')}</td><td>${gradeCell(q.grade)}${q.score != null ? ` <span class="sub">${q.score}</span>` : ''}</td><td class="num">${q.fraudWarnings ? `<span style="color:var(--critical);font-weight:600">⚠ ${q.fraudWarnings}</span>` : '–'}</td><td>${q.officerReviewRequired ? `<span class="chip">${t('필요', 'required')}</span>` : '–'}</td><td class="num" title="${esc(fmtTime(q.waitingSince))}">${hrs(q.waitingHours)}</td></tr>`).join('')
     }</tbody></table></div>`;
     h += `</section>`;
-    P.pipeline = h; h = P.overview;
+    P.queue = h; h = '';
 
-    h += `<div class="row">
-      <section class="card"><h2>${t('주간 추이', 'Weekly trend')} <small>${t('ISO 주별 신청 생성 (최근 8주)', 'applications created per ISO week (last 8 weeks)')}</small></h2>${trendChart(d.trend)}</section>
-      <section class="card"><h2>${t('국가별 신청 현황', 'Applications by country')} <small>${t('상태별', 'by status')}</small></h2>${countryStacked(d.byCountry)}</section>
-    </div>`;
-
-    P.overview = h; h = '';
-
+    h += `<div id="fds-slot"></div>`;
     h += fraudNetworkCard(lastNetwork);
     h += `<div class="row">
       <section class="card"><h2>${t('고객 리스크 등급 분포', 'AI risk grade distribution')} <small>${t(`평가 ${esc(d.totals.assessed)}건`, `${esc(d.totals.assessed)} assessed`)}</small></h2>
@@ -584,18 +974,6 @@
     </div>`;
     P.risk = h; h = '';
 
-    h += `<section class="card"><h2>${t('국가별 통계', 'Per-country statistics')} <small>${t('인도네시아 · 미얀마 · 캄보디아', 'Indonesia · Myanmar · Cambodia')}</small></h2><div class="scroll"><table>
-      <thead><tr><th>${t('국가', 'Country')}</th><th>${t('신분증', 'ID doc')}</th><th class="num">${t('딜러', 'Dealers')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('진행 중', 'In progress')}</th><th class="num">${t('심사 대기', 'Ready')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('거절', 'Rejected')}</th><th class="num">${t('고위험', 'High risk')}</th><th class="num">${t('위조 경고', 'Fraud')}</th><th class="num">${t('신원 일치율', 'ID match')}</th><th class="num">${t('평균 신용점수', 'Avg credit score')}</th><th>${t('등급 A/B/C/D', 'Grades A/B/C/D')}</th><th class="num">${t('우수 재무', 'Fin. badge')}</th><th class="num">${t('우수 딜러 유입', 'Dealer badge')}</th></tr></thead>
-      <tbody>${d.byCountry.map(c => `<tr><td><span class="dot" style="background:${COUNTRY_COLOR[c.code]}"></span>${esc(L(c, 'name'))} <span class="sub" style="display:inline">${esc(c.code)}</span></td><td>${esc(c.idDocument)}</td><td class="num">${c.dealers}</td><td class="num">${c.applications}</td><td class="num">${c.inProgress}</td><td class="num">${c.readyForReview}</td><td class="num">${c.approved}</td><td class="num">${c.rejected}</td><td class="num">${c.highRisk}</td><td class="num">${c.fraudWarnings}</td><td class="num">${pct(c.identityMatchRate)}</td><td class="num">${num(c.avgCreditScore)}</td><td>${['A','B','C','D'].map(g => `<span title="${g}">${g}:${c.grades[g] || 0}</span>`).join(' ')}</td><td class="num">${c.badges.FINANCIAL_STABILITY || 0}</td><td class="num">${c.badges.EXCELLENT_DEALER_REFERRAL || 0}</td></tr>`).join('')}</tbody>
-    </table></div></section>`;
-
-    h += `<div class="row">
-      <section class="card"><h2>${t('온보딩 퍼널', 'Onboarding funnel')}</h2>${hbars(d.funnel.map(f => ({ label: L(f, 'stage'), value: f.count, color: 'var(--seq)', tip: `${L(f, 'stage')}: ${f.count}` })), { left: 110, aria: 'Onboarding funnel' })}</section>
-      <section class="card"><h2>${t('딜러별 현황', 'Per dealer')}</h2><div class="scroll"><table><thead><tr><th>${t('코드', 'Code')}</th><th>${t('딜러', 'Dealer')}</th><th>${t('국가', 'Country')}</th><th>${t('등급', 'Tier')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('고위험', 'High risk')}</th></tr></thead><tbody>${d.dealers.map(x => `<tr><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${x.tier === 'EXCELLENT' ? '★ ' + t('우수 딜러', 'Excellent') : t('일반', 'Standard')}</td><td class="num">${x.metrics.applications}</td><td class="num">${x.metrics.approved}</td><td class="num">${x.metrics.highRisk}</td></tr>`).join('')}</tbody></table></div></section>
-    </div>`;
-
-    P.country = h; h = '';
-
     const ag = d.agent;
     h += `<section class="card"><h2>${t('AI 에이전트 활동', 'AI agent activity')} <small>${t(`파이프라인과 리뷰 에이전트가 전체 신청에서 한 일 (${ag.steps}단계)`, `what the pipeline and the review agent did across all applications (${ag.steps} steps)`)}</small></h2><div class="tiles">${[
       [t('Claude 비전 분석', 'Vision analyses') + (ag.avgVisionMs != null ? ' · avg ' + (ag.avgVisionMs / 1000).toFixed(1) + 's' : ''), ag.visionAnalyses],
@@ -614,49 +992,22 @@
 
     P.agent = h; h = '';
 
-    // excellent dealers: tier comparison, weekly volume per tier, and the dealer ranking
-    const tierOf = Object.fromEntries((d.dealerTiers || []).map(x => [x.tier, x]));
-    const ex = tierOf.EXCELLENT || { dealers: 0, metrics: {} }, st = tierOf.STANDARD || { dealers: 0, metrics: {} };
-    const em = ex.metrics, sm = st.metrics;
-    const exDealers = d.dealers.filter(x => x.tier === 'EXCELLENT');
-    const better = (a, b, lowerIsBetter) => a == null || b == null ? '' : (lowerIsBetter ? a < b : a > b) ? 'good' : (a === b ? '' : 'alert');
-    h += `<section class="card"><div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">${t('우수 딜러 현황', 'Excellent dealers')} <small>${t('등급은 아래 기준으로 분기마다 검토합니다', 'tiers are reviewed quarterly against the standard below')}</small></h2><button type="button" class="btn-standard" data-standard="dealer">${t('우수 딜러 기준 보기', 'Excellent dealer standard')}</button></div><div class="tiles">
-      <div class="tile"><div class="k">${t('우수 딜러', 'Excellent dealers')} <small>${t('전체 딜러 중', 'of all dealers')}</small></div><div class="v">${ex.dealers} <span class="sub" style="display:inline;font-size:14px">/ ${d.dealers.length}</span></div></div>
-      <div class="tile"><div class="k">${t('우수 딜러 경유 신청', 'Via excellent dealers')}</div><div class="v">${em.applications ?? 0} <span class="sub" style="display:inline;font-size:14px">${pct(tt.applications ? (em.applications || 0) / tt.applications : null)}</span></div></div>
-      <div class="tile ${better(em.approvalRate, sm.approvalRate)}"><div class="k">${t('우수 딜러 승인율', 'Approval rate, excellent')} <small>${t('일반', 'standard')} ${pct(sm.approvalRate)}</small></div><div class="v">${pct(em.approvalRate)}</div></div>
-      <div class="tile ${better(em.highRiskRate, sm.highRiskRate, true)}"><div class="k">${t('우수 딜러 고위험 비율', 'High-risk share, excellent')} <small>${t('일반', 'standard')} ${pct(sm.highRiskRate)}</small></div><div class="v">${pct(em.highRiskRate)}</div></div>
-      <div class="tile ${better(em.fraudRate, sm.fraudRate, true)}"><div class="k">${t('우수 딜러 위조 경고 비율', 'Fraud-warning share, excellent')} <small>${t('일반', 'standard')} ${pct(sm.fraudRate)}</small></div><div class="v">${pct(em.fraudRate)}</div></div>
-      <div class="tile"><div class="k">${t('우수 딜러 유입 배지 고객', 'Referral badge customers')}</div><div class="v">${em.referralBadges ?? 0}</div></div>
-      <div class="tile"><div class="k">${t('최근 30일 신청', 'Applications, 30 days')} <small>${t('우수 / 일반', 'excellent / standard')}</small></div><div class="v">${em.applications30d ?? 0} <span class="sub" style="display:inline;font-size:14px">/ ${sm.applications30d ?? 0}</span></div></div>
-    </div></section>`;
-
-    const tierRow = (x, star) => { const m = x.metrics; return `<tr><td><b>${star ? '★ ' : ''}${esc(L(x))}</b></td><td class="num">${x.dealers}</td><td class="num">${m.applications ?? 0}</td><td class="num">${m.approved ?? 0}</td><td class="num">${m.rejected ?? 0}</td><td class="num">${pct(m.approvalRate)}</td><td class="num">${pct(m.highRiskRate)}</td><td class="num">${pct(m.fraudRate)}</td><td class="num">${m.avgRiskScore == null ? '–' : m.avgRiskScore.toFixed(0)}</td><td class="num">${num(m.avgCreditScore)}</td><td class="num">${pct(m.identityMatchRate)}</td></tr>`; };
-    h += `<div class="row">
-      <section class="card"><h2>${t('우수 딜러 vs 일반 딜러', 'Excellent vs standard dealers')} <small>${t('전체 기간 누적', 'all time')}</small></h2><div class="scroll"><table><thead><tr><th>${t('등급', 'Tier')}</th><th class="num">${t('딜러', 'Dealers')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('거절', 'Rejected')}</th><th class="num">${t('승인율', 'Approval')}</th><th class="num">${t('고위험', 'High risk')}</th><th class="num">${t('위조 경고', 'Fraud')}</th><th class="num">${t('평균 리스크', 'Avg risk')}</th><th class="num">${t('평균 신용', 'Avg credit')}</th><th class="num">${t('신원 일치', 'ID match')}</th></tr></thead><tbody>${tierRow(ex, true)}${tierRow(st, false)}</tbody></table></div>
-        <p class="sub" style="margin:8px 0 0">${t('고위험·위조 경고는 리스크 평가가 끝난 신청 중 비율, 승인율은 결정이 난 신청 중 비율이에요.', 'High-risk and fraud shares are over assessed applications; the approval rate is over decided ones.')}</p></section>
-      <section class="card"><h2>${t('주간 신청 추이 · 등급별', 'Weekly applications by tier')} <small>${t('최근 8주, 우수 딜러 vs 일반 딜러', 'last 8 weeks, excellent vs standard')}</small></h2>${tierTrendChart(d.trend)}</section>
-    </div>`;
-
-    h += `<section class="card"><h2>${t('딜러 순위', 'Dealer ranking')} <small>${t('우수 딜러 먼저, 신청 많은 순', 'excellent dealers first, most applications first')}</small></h2><div class="scroll"><table><thead><tr><th>${t('딜러', 'Dealer')}</th><th>${t('국가', 'Country')}</th><th>${t('등급', 'Tier')}</th><th class="num">${t('신청', 'Apps')}</th><th class="num">${t('진행 중', 'Open')}</th><th class="num">${t('승인', 'Approved')}</th><th class="num">${t('거절', 'Rejected')}</th><th class="num">${t('승인율', 'Approval')}</th><th class="num">${t('고위험', 'High risk')}</th><th class="num">${t('위조 경고', 'Fraud')}</th><th class="num">${t('평균 리스크', 'Avg risk')}</th><th class="num">${t('배지 고객', 'Badge')}</th><th class="num">${t('30일', '30 d')}</th><th>${t('최근 신청', 'Last application')}</th></tr></thead><tbody>${
-      d.dealers.map(x => { const m = x.metrics, exr = x.tier === 'EXCELLENT'; return `<tr${exr ? ' style="background:var(--info-bg)"' : ''}><td><b>${esc(x.name)}</b><br><span class="sub">${esc(x.code)}</span></td><td><span class="dot" style="background:${COUNTRY_COLOR[x.country] || 'var(--text-3)'}"></span>${esc(x.country)}</td><td>${exr ? `<span class="chip badge">★ ${esc(L(x, 'tierLabel'))}</span>` : `<span class="chip">${esc(L(x, 'tierLabel'))}</span>`}</td><td class="num">${m.applications}</td><td class="num">${m.open}</td><td class="num">${m.approved}</td><td class="num">${m.rejected}</td><td class="num">${pct(m.approvalRate)}</td><td class="num">${m.highRisk ? `<span style="color:var(--critical);font-weight:600">${m.highRisk}</span>` : '0'}</td><td class="num">${m.fraudWarnings ? `<span style="color:var(--critical);font-weight:600">⚠ ${m.fraudWarnings}</span>` : '0'}</td><td class="num">${m.avgRiskScore == null ? '–' : m.avgRiskScore.toFixed(0)}</td><td class="num">${m.referralBadges}</td><td class="num">${m.applications30d}</td><td><span class="sub">${m.lastApplicationAt ? fmtTime(m.lastApplicationAt) : '–'}</span></td></tr>`; }).join('') || `<tr><td colspan="14" class="empty">${t('등록된 딜러가 없습니다.', 'No dealers registered.')}</td></tr>`
-    }</tbody></table></div></section>`;
-
-    h += `<section class="card"><h2>${t('우수 딜러란', 'What an excellent dealer is')}</h2>
-      <p class="sub" style="display:block;margin:6px 0 0">${t('딜러마다 등급(일반 · 우수)이 있어요. 우수 딜러가 만든 신청의 고객은 리스크 평가에서 "우수 딜러 유입 고객" 배지를 받고, 심사 화면과 고객 리포트에 표시돼요. 배지는 참고 정보이며 등급 점수를 바꾸지는 않아요. 이 탭은 우수 딜러 경유 고객이 실제로 더 낮은 리스크와 더 높은 승인율을 보이는지 추적해, 딜러 등급을 유지하거나 조정하는 근거를 줘요.', 'Each dealer has a tier (standard or excellent). Customers filed by an excellent dealer receive the "referred by an excellent dealer" badge in the risk assessment, shown on the review page and the customer report. The badge is informational and does not change the grade score. This tab tracks whether customers from excellent dealers really come with lower risk and higher approval rates, as evidence for keeping or adjusting dealer tiers.')}</p>
-      <p style="margin:10px 0 0"><button type="button" class="btn-standard" data-standard="dealer">${t('우수 딜러 기준 보기', 'Show the excellent dealer standard')}</button></p></section>`;
-    P.dealers = h; h = '';
-
     const footer = `<p class="status">${t('생성 시각', 'Generated')} ${fmtTime(d.generatedAt)}${tt.demoApplications ? ` · ${t(`데모 데이터 ${tt.demoApplications}건 포함 (DELETE /admin/demo/seed 로 제거)`, `includes ${tt.demoApplications} demo applications (remove with DELETE /admin/demo/seed)`)}` : ''}</p>`;
-    const counts = { pipeline: openTotal + d.reviewQueue.length, risk: tt.highRisk, agent: ag.steps, dealers: exDealers.length };
+    const counts = { pipeline: openTotal, queue: d.reviewQueue.length, risk: tt.highRisk, agent: ag.steps };
     const wasOpen = new Set([...main.querySelectorAll('details[open] > summary')].map(s => s.textContent.trim()));
+    const searching = document.activeElement?.id === 'dl-q' ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+    // The chat box is moved back in below; moving it resets its scroll, so the reader's place is kept.
+    const copilotScroll = copilotEl.querySelector('#copilot-log')?.scrollTop;
     main.innerHTML = `<div class="tabs" role="tablist" aria-label="Dashboard sections">${TABS.map(([id, ko, en]) =>
-      `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}">${t(ko, en)}${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
+      `<button type="button" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === activeTab}" data-tab="${id}"${newInTab[id] ? newInTab[id].tabAttrs() : ''}>${t(ko, en)}${counts[id] ? `<span class="n">${counts[id]}</span>` : ''}</button>`).join('')}</div>`
       + TABS.map(([id]) => `<div class="panel" role="tabpanel" id="panel-${id}" aria-labelledby="tab-${id}" data-panel="${id}"${id === activeTab ? '' : ' hidden'}>${P[id]}</div>`).join('')
       + footer;
+    if (searching) { const q = $('#dl-q'); q.focus(); q.setSelectionRange(...searching); }
     mountCopilot();
+    if (copilotScroll != null) { const log = copilotEl.querySelector('#copilot-log'); if (log) log.scrollTop = copilotScroll; }
+    fds.mount(d, lastNetwork, $('#fds-slot'));
     main.querySelectorAll('details > summary').forEach(s => { if (wasOpen.has(s.textContent.trim())) s.parentElement.open = true; });
     bindTips(main);
-    bindNetworkDrag(main);
   }
 
   /* AI dashboard copilot: portfolio-level questions answered from the same statistics this page shows
@@ -666,7 +1017,7 @@
   const copilotLog = [];   // [{ role, content, mode, model, ms, err, inputTokens, outputTokens, label, showEngine, typing }]
   let copilotBusy = false;
   const AI_NAME = 'NEXUS AI';     // default assistant name; answers carry the server's label (app.copilot-label)
-  const engineOf = m => m.mode === 'claude' ? esc(m.model || 'Claude') : t('규칙 엔진', 'rules engine');
+  const engineOf = m => m.mode === 'rules' ? t('규칙 엔진', 'rules engine') : esc(m.model || m.mode);
   const labelOf = m => esc(m.label || AI_NAME) + (m.showEngine ? ' · ' + engineOf(m) : '');
   const thinkPause = () => new Promise(r => setTimeout(r, 700 + Math.random() * 900));   // a beat before the answer, even when the engine is instant
   /** Reveals an answer progressively in its bubble, then repaints with the footer. */
@@ -699,12 +1050,12 @@
   };
   function renderCopilot() {
     const last = [...copilotLog].reverse().find(m => m.role === 'assistant' && !m.err);
-    const mode = `<span class="mode">${last ? labelOf(last) : AI_NAME}</span>`;
+    const mode = last?.showEngine ? `<span class="mode">${labelOf(last)}</span>` : '';   // the title already gives the name
     const tt = lastData && lastData.totals;
     const intro = tt
       ? t(`신청 ${tt.applications}건 · 심사 대기 ${tt.readyForReview}건 · 고위험 ${tt.highRisk}건 · 위조 경고 ${tt.fraudWarnings}건 기준으로 답합니다 (${fmtShort(lastData.generatedAt)} 집계).`, `Answers are based on ${tt.applications} applications, ${tt.readyForReview} ready for review, ${tt.highRisk} high risk and ${tt.fraudWarnings} fraud warnings (as of ${fmtShort(lastData.generatedAt)}).`)
       : t('대시보드 데이터를 불러오면 질문할 수 있습니다.', 'Load the dashboard data first.');
-    return `<h2>${t('AI 대시보드 코파일럿', 'AI dashboard copilot')} <small>${t('추이·국가·딜러·리스크·심사 대기 큐·AI 에이전트 활동에 대해 물어보세요 · 결정은 심사원이 합니다', 'Ask about trends, countries, dealers, risk, the review queue and the AI agents · the officer decides')}</small>${mode}</h2>
+    return `<h2>NEXUS AI <small>${t('추이·국가·딜러·리스크·심사 대기 큐·AI 에이전트 활동에 대해 물어보세요 · 결정은 심사원이 합니다', 'Ask about trends, countries, dealers, risk, the review queue and the AI agents · the officer decides')}</small>${mode}</h2>
       <div class="chips">${COPILOT_PROMPTS.map(([ko, en]) => `<button type="button" data-q="${esc(t(ko, en))}">${esc(t(ko, en))}</button>`).join('')}${copilotLog.length ? `<button type="button" data-clear="1" title="${t('이 대화를 지웁니다', 'Clear this conversation')}">${t('대화 지우기', 'Clear chat')}</button>` : ''}</div>
       <div class="log" id="copilot-log">${copilotLog.length ? copilotLog.map(m => m.role === 'user'
         ? `<div class="msg user">${esc(m.content)}</div>`
@@ -839,7 +1190,8 @@
   LANG.onChange(() => { if (standardDlg.open) standardDlg.innerHTML = renderStandard(standardKind); });
 
   function showTab(id) {
-    if (!TABS.some(x => x[0] === id)) id = 'overview';
+    id = tabAlias(id);
+    if (!TABS.some(x => x[0] === id)) id = 'stats';
     activeTab = id;
     try { sessionStorage.setItem('dashboardTab', id); } catch {}
     if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
@@ -852,7 +1204,7 @@
     const i = TABS.findIndex(x => x[0] === b.dataset.tab); const n = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length][0];
     showTab(n); main.querySelector(`[data-tab="${n}"]`).focus(); e.preventDefault();
   });
-  window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id && id !== activeTab) showTab(id); });
+  window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id && tabAlias(id) !== activeTab) showTab(id); });
 
   async function load() {
     status.textContent = t('불러오는 중…', 'Loading…'); status.className = 'status';

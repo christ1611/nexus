@@ -192,10 +192,16 @@ class DashboardAndRiskFlowTest @Autowired constructor(
     }
 
     @Test
+    fun `the fraud console is served to both pages that use it`() {
+        listOf("/fds.js", "/fds.css").forEach { mockMvc.get(it).andExpect { status { isOk() } } }
+        listOf("/dashboard", "/review").forEach { page -> mockMvc.get(page).andExpect { content { string(containsString("/fds.js")) } } }
+    }
+
+    @Test
     fun `dashboard page is public`() {
         mockMvc.get("/dashboard").andExpect {
             status { isOk() }
-            content { string(containsString("NEXUS ASEAN 온보딩 대시보드")) }
+            content { string(containsString("NEXUS AI 온보딩 대시보드")) }
         }
     }
 
