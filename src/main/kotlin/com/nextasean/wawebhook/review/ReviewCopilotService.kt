@@ -66,9 +66,18 @@ class ReviewCopilotService(
 
     val enabled: Boolean get() = client.ifAvailable != null
 
-    fun ask(app: DealerApplication, question: String, history: List<Turn>, reviewer: String?): Answer {
+    /** Third guard layer: a model answer that drifts onto a blocked subject is replaced by the refusal. */
+    fun ask(app: DealerApplication, question: String, history: List<Turn>, reviewer: String?): Answer =
+        askEngine(app, question, history, reviewer).let { a ->
+            if (a.mode != "guard" && a.mode != "rules" && CopilotScope.mentionsBlocked(a.answer, appProps.copilotBlockedTerms)) {
+                log.info("Review copilot | engine={} answer named a blocked subject; replaced by the refusal | application={}", a.mode, app.applicationNumber)
+                a.copy(answer = CopilotScope.refusal(question, CopilotScope.Desk.REVIEW), mode = "guard")
+            } else a
+        }
+
+    private fun askEngine(app: DealerApplication, question: String, history: List<Turn>, reviewer: String?): Answer {
         val started = System.currentTimeMillis()
-        CopilotScope.decline(question, history, CopilotScope.Desk.REVIEW)?.let { reply ->
+        CopilotScope.decline(question, history, CopilotScope.Desk.REVIEW, appProps.copilotBlockedTerms)?.let { reply ->
             log.info("Review copilot | engine=guard | application={} | off-topic question declined", app.applicationNumber)
             return Answer(reply, "guard", null, durationMs = System.currentTimeMillis() - started, label = appProps.copilotLabel, showEngine = appProps.copilotShowEngine)
         }

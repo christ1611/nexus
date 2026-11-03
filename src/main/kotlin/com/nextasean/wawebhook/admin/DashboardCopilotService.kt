@@ -47,9 +47,18 @@ class DashboardCopilotService(
     /** A question with the earlier turns of this conversation (oldest first). */
     data class Request(val question: String = "", val history: List<Turn> = emptyList(), val reviewer: String? = null)
 
-    fun ask(stats: Stats, question: String, history: List<Turn>, reviewer: String?): Answer {
+    /** Third guard layer: a model answer that drifts onto a blocked subject is replaced by the refusal. */
+    fun ask(stats: Stats, question: String, history: List<Turn>, reviewer: String?): Answer =
+        askEngine(stats, question, history, reviewer).let { a ->
+            if (a.mode != "guard" && a.mode != "rules" && CopilotScope.mentionsBlocked(a.answer, appProps.copilotBlockedTerms)) {
+                log.info("Dashboard copilot | engine={} answer named a blocked subject; replaced by the refusal", a.mode)
+                a.copy(answer = CopilotScope.refusal(question, CopilotScope.Desk.DASHBOARD), mode = "guard")
+            } else a
+        }
+
+    private fun askEngine(stats: Stats, question: String, history: List<Turn>, reviewer: String?): Answer {
         val started = System.currentTimeMillis()
-        CopilotScope.decline(question, history, CopilotScope.Desk.DASHBOARD)?.let { reply ->
+        CopilotScope.decline(question, history, CopilotScope.Desk.DASHBOARD, appProps.copilotBlockedTerms)?.let { reply ->
             log.info("Dashboard copilot | engine=guard | off-topic question declined")
             return Answer(reply, "guard", null, durationMs = System.currentTimeMillis() - started, label = appProps.copilotLabel, showEngine = appProps.copilotShowEngine)
         }

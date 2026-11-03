@@ -5,6 +5,7 @@ import com.nextasean.wawebhook.review.ReviewCopilotService.Turn
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -31,6 +32,7 @@ class CopilotScopeTest {
         listOf(
             "왜 이 점수가 나왔어?", "승인해도 될까?", "이 고객 대출 상환 능력은 어때?", "APP-2026-001007 어때?", "DLR-003 실적은?",
             "Is the credit score good enough for the loan?", "Any fraud on this applicant?", "Berapa cicilan nasabah ini?",
+            "국가별 현황을 요약해줘", "인도네시아 고객 실적은?", "Indonesia market trend",
         ).forEach { assertTrue(CopilotScope.inScope(it, emptyList()), "blocked: $it") }
     }
 
@@ -40,7 +42,11 @@ class CopilotScopeTest {
             val reply = assertNotNull(CopilotScope.decline(it, emptyList(), Desk.REVIEW), "passed: $it")
             assertTrue(reply.contains("심사"), reply)
         }
-        listOf("What's the weather in Jakarta?", "Write me a poem about the sea", "Who won the World Cup?").forEach {
+        // Everyday questions that only name a market or a generic word, the cases that once slipped through.
+        listOf("인도네시아 수도는 어디야?", "캄보디아 여행지 추천해줘", "한국 경제 현황 알려줘", "고객 응대 잘하는 법").forEach {
+            assertNotNull(CopilotScope.decline(it, emptyList(), Desk.DASHBOARD), "passed: $it")
+        }
+        listOf("What's the weather in Jakarta?", "Write me a poem about the sea", "Who won the World Cup?", "Who is the president of Indonesia?").forEach {
             val reply = assertNotNull(CopilotScope.decline(it, emptyList(), Desk.DASHBOARD), "passed: $it")
             assertTrue(reply.startsWith("This copilot only answers"), reply)
         }
@@ -51,6 +57,27 @@ class CopilotScopeTest {
         val onTopic = listOf(Turn("user", "왜 이 점수가 나왔어?"), Turn("assistant", "등급 A ..."))
         assertNull(CopilotScope.decline("더 자세히", onTopic, Desk.REVIEW))
         assertNull(CopilotScope.decline("And why?", onTopic, Desk.REVIEW))
+        // Off-topic subjects are declined even as a short follow-up, and even next to a work word.
+        listOf("한국 대통령", "한국 대통령은?", "Who is the president of Korea?", "대통령 신용 점수는?").forEach {
+            assertNotNull(CopilotScope.decline(it, onTopic, Desk.DASHBOARD), "passed: $it")
+            assertNotNull(CopilotScope.decline(it, emptyList(), Desk.REVIEW), "passed: $it")
+        }
+        // People outside the work: refused alone, as a follow-up and next to finance words.
+        listOf("손흥민", "손흥민은?", "손흥민 연봉 알려줘", "손흥민 신용 점수는?", "Who is Son Heung-min?", "BTS 멤버는?").forEach {
+            assertNotNull(CopilotScope.decline(it, onTopic, Desk.DASHBOARD), "passed: $it")
+            assertNotNull(CopilotScope.decline(it, emptyList(), Desk.REVIEW), "passed: $it")
+        }
+        // Finance words that merely contain a blocked syllable still pass.
+        listOf("선수금", "배우자 소득", "금융감독원", "고객에게 보낸 메시지", "factor", "trumpet").forEach {
+            assertFalse(CopilotScope.mentionsBlocked(it), "blocklist hit: $it")
+        }
+        assertNull(CopilotScope.decline("배우자 소득도 심사에 반영돼?", emptyList(), Desk.REVIEW))
+        // A short new subject is not a follow-up; a continuation is.
+        assertNotNull(CopilotScope.decline("이강민은?", onTopic, Desk.REVIEW))
+        assertNull(CopilotScope.decline("그럼 두 번째는?", onTopic, Desk.REVIEW))
+        // Names added for the demo through app.copilot-blocked-terms.
+        assertNotNull(CopilotScope.decline("홍길동 신용 점수는?", emptyList(), Desk.REVIEW, listOf("홍길동")))
+        assertTrue(CopilotScope.mentionsBlocked("손흥민 선수는 토트넘에서 뛰었습니다."))
         val offTopic = listOf(Turn("user", "오늘 날씨 어때?"), Turn("assistant", "..."))
         assertNotNull(CopilotScope.decline("더 자세히", offTopic, Desk.REVIEW))
         // A long new question has to stand on its own, even mid-conversation.

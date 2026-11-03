@@ -187,20 +187,20 @@ class DashboardAndRiskFlowTest @Autowired constructor(
     fun `the root address shows the landing page with a START button to the dashboard`() {
         mockMvc.get("/").andExpect {
             status { isOk() }
-            content { string(containsString("NEXUS-ASEAN")) }
+            content { string(containsString("<h1>NEXUS AI</h1>")) }
             content { string(containsString("href=\"/dashboard\">START")) }
         }
         // Log out on both back-office pages leads to the closing page with the three keywords.
         listOf("/dashboard", "/review").forEach { page -> mockMvc.get(page).andExpect { content { string(containsString("href=\"/closing\"")) } } }
         mockMvc.get("/closing").andExpect {
             status { isOk() }
-            listOf("접근성", "신속성", "확장성", "감사합니다").forEach { content { string(containsString(it)) } }
+            listOf("접근성", "신속성", "보안성", "확장성").forEach { content { string(containsString(it)) } }
         }
     }
 
     @Test
     fun `the fraud console is served to both pages that use it`() {
-        listOf("/fds.js", "/fds.css").forEach { mockMvc.get(it).andExpect { status { isOk() } } }
+        listOf("/fds.js", "/fds.css", "/brand/jb-logo.png").forEach { mockMvc.get(it).andExpect { status { isOk() } } }
         listOf("/dashboard", "/review").forEach { page -> mockMvc.get(page).andExpect { content { string(containsString("/fds.js")) } } }
     }
 

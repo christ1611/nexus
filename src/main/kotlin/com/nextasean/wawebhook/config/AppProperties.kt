@@ -27,6 +27,8 @@ data class AppProperties(
     val copilotEngine: String = "auto",
     /** Show which engine produced a copilot answer (model name or rules) next to the label. Off for demos. */
     val copilotShowEngine: Boolean = false,
+    /** Extra words or names the copilots always decline (COPILOT_BLOCKED_TERMS, comma separated), on top of the built-in list. */
+    val copilotBlockedTerms: List<String> = emptyList(),
 ) {
     val zoneId: ZoneId get() = ZoneId.of(timeZone)
 

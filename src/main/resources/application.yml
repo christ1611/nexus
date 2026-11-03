@@ -57,6 +57,8 @@ app:
   copilot-show-engine: ${COPILOT_SHOW_ENGINE:false}
   # auto = Claude when document-check=claude, otherwise rules; ollama = local model below (rules if it cannot answer).
   copilot-engine: ${COPILOT_ENGINE:auto}
+  # Extra words or names the copilots always decline (comma separated), on top of the built-in off-topic list.
+  copilot-blocked-terms: ${COPILOT_BLOCKED_TERMS:}
 
 # Local Ollama server for the copilots (used only when app.copilot-engine=ollama). See OLLAMA_DEMO.md.
 ollama:

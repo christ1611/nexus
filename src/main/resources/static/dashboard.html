@@ -159,7 +159,7 @@
   .dl-kpi .l, .dl-kpi .note { font-size: 12px; color: var(--text-2); }
   .dl-kpi .v { font-size: 26px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .dl-kpi .v small { font-size: 13px; font-weight: 400; color: var(--text-2); margin-left: 4px; }
-  .dl-podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .dl-podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 6px 2px 10px; }
   .dl-card { position: relative; font: inherit; text-align: left; cursor: pointer; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   button.dl-card:hover:not(:disabled) { border-color: var(--hot-line); color: var(--text); }
   .dl-card[aria-pressed="true"] { border-color: var(--hot-line); box-shadow: 0 0 0 1px var(--hot-line); }
@@ -174,13 +174,45 @@
   .dl-card .meta div { display: flex; flex-direction: column; }
   .dl-card .meta span:first-child { color: var(--text-2); }
   .dl-card .meta span:last-child { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .dl-card.p1, button.dl-card.p1:hover:not(:disabled) { color: var(--hot-ink); border: 4px solid transparent; padding: 11px 13px;
-    background: linear-gradient(160deg, #f7c06e, #f2a541 60%, #f5b35a) padding-box, linear-gradient(135deg, #fde5bd 0%, #d98f2b 22%, #fbdca8 45%, #a86a14 70%, #f7c987 100%) border-box;
-    box-shadow: 0 0 0 1px #a86a14, 0 8px 24px rgba(242, 165, 65, .45); }
-  .dl-card.p1[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px #a86a14, 0 8px 24px rgba(242, 165, 65, .55); }
-  .dl-card.p1 .rk { color: inherit; }
-  .dl-card.p1 .rg, .dl-card.p1 .meta span:first-child { color: inherit; opacity: .8; }
-  .dl-card.p1 .meta { border-top-color: rgba(43, 29, 0, .28); }
+  /* Podium: white cards wrapped in a wide band of polished gold, silver or bronze that glints. The band is the
+     element's own 16px border painted with a conic metal gradient (light runs around it), a bevel on top, and a
+     ::before layer of twinkling star glints masked to the band. The inside stays white in both themes. */
+  @property --metal-turn { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  .dl-card.p1, .dl-card.p2, .dl-card.p3,
+  button.dl-card.p1:hover:not(:disabled), button.dl-card.p2:hover:not(:disabled), button.dl-card.p3:hover:not(:disabled) {
+    color: #1b2a30; border: 16px solid transparent; padding: 4px 6px; border-radius: 22px; isolation: isolate;
+    background:
+      linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(180deg, rgba(255, 255, 255, .5) 0%, rgba(255, 255, 255, 0) 35%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, .3) 100%) border-box,
+      conic-gradient(from var(--metal-turn), var(--m1), var(--m2), var(--m3), var(--m4), var(--m1), var(--m2), var(--m3), var(--m4), var(--m1)) border-box;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25), inset 0 3px 6px rgba(0, 0, 0, .14),
+      0 0 0 1px var(--m-edge), 0 3px 0 1px rgba(0, 0, 0, .2), 0 0 26px var(--m-glow), 0 12px 28px var(--m-glow);
+    animation: metal-turn 7s linear infinite; }
+  .dl-card.p1 { --m1: #6e4208; --m2: #e0a13a; --m3: #fff6d8; --m4: #b97a1f; --m-edge: #6e4208; --m-glow: rgba(242, 165, 65, .5); --metal-ink: #9a5f0f; }
+  .dl-card.p2 { --m1: #4f5762; --m2: #b9c1cb; --m3: #ffffff; --m4: #8a939e; --m-edge: #4f5762; --m-glow: rgba(140, 150, 165, .5); --metal-ink: #5b6470; }
+  .dl-card.p3 { --m1: #5c300c; --m2: #c47b40; --m3: #ffe8d2; --m4: #9a5524; --m-edge: #5c300c; --m-glow: rgba(176, 103, 43, .48); --metal-ink: #80481a; }
+  /* star glints, only on the band */
+  .dl-card.p1::before, .dl-card.p2::before, .dl-card.p3::before {
+    content: ""; position: absolute; inset: -16px; padding: 16px; border-radius: 22px; pointer-events: none; z-index: 1;
+    background:
+      radial-gradient(circle at 12% 0%, #fff 0 1.5px, rgba(255, 255, 255, .9) 2px, transparent 6px),
+      radial-gradient(circle at 0% 62%, #fff 0 1.5px, rgba(255, 255, 255, .85) 2px, transparent 5px),
+      radial-gradient(circle at 78% 100%, #fff 0 1.5px, rgba(255, 255, 255, .9) 2px, transparent 6px),
+      radial-gradient(circle at 100% 28%, #fff 0 1.5px, rgba(255, 255, 255, .85) 2px, transparent 5px),
+      radial-gradient(circle at 52% 0%, #fff 0 1px, transparent 4px),
+      radial-gradient(circle at 34% 100%, #fff 0 1px, transparent 4px);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    animation: metal-twinkle 2.4s ease-in-out infinite; }
+  .dl-card.p2::before { animation-delay: .8s; } .dl-card.p3::before { animation-delay: 1.6s; }
+  .dl-card.p1[aria-pressed="true"], .dl-card.p2[aria-pressed="true"], .dl-card.p3[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25), 0 0 0 3px var(--surface), 0 0 0 6px var(--m-edge), 0 0 30px var(--m-glow), 0 12px 28px var(--m-glow); }
+  .dl-card.p1 .rk, .dl-card.p2 .rk, .dl-card.p3 .rk { color: var(--metal-ink); }
+  .dl-card.p1 .rg, .dl-card.p2 .rg, .dl-card.p3 .rg, .dl-card.p1 .meta span:first-child, .dl-card.p2 .meta span:first-child, .dl-card.p3 .meta span:first-child { color: #5b6b72; }
+  .dl-card.p1 .meta, .dl-card.p2 .meta, .dl-card.p3 .meta { border-top-color: #e3e8ea; }
+  @keyframes metal-turn { to { --metal-turn: 360deg; } }
+  @keyframes metal-twinkle { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .dl-card.p1, .dl-card.p2, .dl-card.p3, .dl-card.p1::before, .dl-card.p2::before, .dl-card.p3::before { animation: none; } }
   .dl-main { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; align-items: start; }
   .dl-phead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .dl-phead h2 { margin: 0; font-size: 15px; }
@@ -216,7 +248,7 @@
   .dl-grade.C { background: var(--warn-bg); color: var(--hot-text); }
   .dl-grade.none { background: transparent; color: var(--text-3); border-color: var(--border); font-weight: 500; }
   .dl-card .dl-grade.S, .dl-card .dl-grade.A { background: var(--hot-soft); color: var(--hot-text); border: 0; }
-  .dl-card.p1 .dl-grade.S, .dl-card.p1 .dl-grade.A { background: var(--hot-ink); color: #f2a541; }
+  .dl-card.p1 .dl-grade.S, .dl-card.p2 .dl-grade.S, .dl-card.p3 .dl-grade.S, .dl-card.p1 .dl-grade.A, .dl-card.p2 .dl-grade.A, .dl-card.p3 .dl-grade.A { background: #fce9c8; color: #8a5700; }
   .dl-flag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px; color: var(--critical); background: var(--critical-bg); }
   .dl-flag.review { color: var(--hot-text); background: var(--hot-soft); }
   .dl-empty { padding: 28px 16px; text-align: center; color: var(--text-2); }
@@ -330,6 +362,8 @@
   @keyframes pulse { 0% { opacity: 1; } 50% { opacity: .45; } 100% { opacity: 1; } }
   .auto { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); }
   .auto .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 1.4s infinite; }
+  .auto.off .pulse { background: var(--text-3); animation: none; }
+  .auto-btn[aria-pressed="false"] { border-color: var(--serious); color: var(--serious); }
   .status { font-size: 12px; color: var(--text-3); }
   .status.err { color: var(--critical); }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -423,7 +457,8 @@
   </nav>
   <div class="key">
     <button class="primary" id="refresh" data-ko="새로고침" data-en="Refresh">새로고침</button>
-    <span class="auto" id="auto" hidden><span class="pulse"></span><span data-ko="15초마다 자동 갱신" data-en="refreshes every 15s">15초마다 자동 갱신</span></span>
+    <button type="button" id="auto-toggle" class="auto-btn" aria-pressed="true"></button>
+    <span class="auto" id="auto" hidden><span class="pulse"></span><span id="auto-label">15초마다 자동 갱신</span></span>
     <span class="status" id="status"></span>
     <a class="logout" href="/closing" data-ko="로그아웃" data-en="Log out">로그아웃</a>
   </div>
@@ -1222,12 +1257,30 @@
       status.textContent = t('오류: ', 'Error: ') + e.message; status.className = 'status err';
     }
   }
+
+  /* Auto refresh on/off, shared by the dashboard and the review page. Manual refresh always works. */
+  let autoOn = true;
+  try { autoOn = localStorage.getItem('autoRefresh') !== 'off'; } catch {}
+  function paintAutoToggle() {
+    const b = document.getElementById('auto-toggle'); if (!b) return;
+    b.textContent = autoOn ? t('⏸ 자동 갱신 끄기', '⏸ Pause auto refresh') : t('▶ 자동 갱신 켜기', '▶ Resume auto refresh');
+    b.setAttribute('aria-pressed', String(autoOn));
+    b.title = autoOn ? t('15초마다 자동으로 새로고침 중 · 누르면 멈춰요', 'Refreshing every 15 s · press to pause') : t('자동 갱신이 꺼져 있어요 · 새로고침 버튼은 그대로 동작해요', 'Auto refresh is paused · the refresh button still works');
+  }
+  function setAuto(on) { autoOn = on; try { localStorage.setItem('autoRefresh', on ? 'on' : 'off'); } catch {} paintAutoToggle(); }
+  function paintAuto() {
+    paintAutoToggle();
+    $('#auto').classList.toggle('off', !autoOn);
+    $('#auto-label').textContent = autoOn ? t('15초마다 자동 갱신', 'refreshes every 15s') : t('자동 갱신 꺼짐', 'auto refresh paused');
+  }
+  $('#auto-toggle').addEventListener('click', () => { setAuto(!autoOn); paintAuto(); if (autoOn) load(); });
+  paintAuto();
   $('#refresh').addEventListener('click', load);
   // Language switch: redraw the last payload; the static markup is swapped by lang.js itself.
-  LANG.onChange(() => { if (lastData) render(lastData); if (copilotEl.innerHTML) paintCopilot(); });
+  LANG.onChange(() => { if (lastData) render(lastData); if (copilotEl.innerHTML) paintCopilot(); paintAuto(); });
   load();
-  setInterval(() => { if (!document.hidden) load(); }, AUTO_MS);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+  setInterval(() => { if (autoOn && !document.hidden) load(); }, AUTO_MS);
+  document.addEventListener('visibilitychange', () => { if (autoOn && !document.hidden) load(); });
 })();
 </script>
 </body>

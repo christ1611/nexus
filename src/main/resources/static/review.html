@@ -81,6 +81,7 @@
   .logout:hover { border-color: var(--brand-3); color: var(--brand); }
   input, select, textarea { font: inherit; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
   .key input { border-radius: 999px; padding: 7px 12px; }
+  .auto-btn[aria-pressed="false"] { border-color: var(--serious); color: var(--serious); }
   input[type=password], input[type=text] { min-width: 160px; }
   textarea { width: 100%; min-height: 56px; resize: vertical; }
   button { font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
@@ -122,9 +123,22 @@
   .pill.REJECTED { background: var(--critical-bg); color: var(--critical); }
   .pill.DRAFT, .pill.SUBMITTED { background: var(--surface-2); color: var(--text-2); }
   .grade { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
-  .grade .ic { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .grade .ic { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .grade .gl { font-size: 22px; font-weight: 800; line-height: 1; }
   .gradebox { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border); }
-  .gradebox .big { font-size: 26px; font-weight: 700; line-height: 1; }
+  .gradebox .big { font-size: 40px; font-weight: 800; line-height: 1; }
+  .gradebox { gap: 14px; padding: 10px 16px; border: 2px solid var(--gc, var(--border)); background: color-mix(in srgb, var(--gc, transparent) 9%, transparent); }
+  .gradebox .big.gfill { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 14px; background: var(--gc); font-size: 40px; box-shadow: 0 4px 12px color-mix(in srgb, var(--gc) 35%, transparent); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .gradebox > div > div:nth-child(1) b { color: var(--gc); }
+  .gscale { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 10px; max-width: 460px; }
+  .gstep { border-radius: 8px; padding: 6px 4px 5px; text-align: center; background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border); line-height: 1.2; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .gstep b { display: block; font-size: 15px; } .gstep span { font-size: 11px; }
+  .gstep.on { background: var(--gc); color: var(--gi); border-color: var(--gc); transform: translateY(-2px); box-shadow: 0 3px 10px color-mix(in srgb, var(--gc) 40%, transparent); }
+  .gstep.on b { font-size: 18px; }
+  .grade .gl.gfill { display: inline-grid; place-items: center; min-width: 30px; height: 28px; padding: 0 6px; border-radius: 7px; font-size: 18px; }
+  .gradebox > div > div:nth-child(1) { font-size: 20px; line-height: 1.3; }
+  .gradebox > div > div.sub:nth-child(2) { font-size: 16px; line-height: 1.4; margin-top: 2px; }
+  .gradebox > div > div.sub:nth-child(3) { font-size: 13px; margin-top: 2px; }
   .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 13px; }
   /* Review agent summary inside the basic-information card */
   .summary { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
@@ -281,6 +295,22 @@
   .tabs button[aria-selected="true"] .n { background: var(--brand); color: #fff; }
   #stats { grid-column: 1 / -1; display: grid; gap: 16px; }
   #stats[hidden], #queue[hidden], #detail[hidden] { display: none; }
+  /* The application detail reads larger than the queue: it is what officers (and an audience) look at. */
+  #detail { font-size: 16px; }
+  #detail h2 { font-size: 18px; }
+  #detail h2 small, #detail .sub { font-size: 14px; }
+  #detail .kv { font-size: 16px; gap: 6px 16px; }
+  #detail table { font-size: 15px; } #detail th { font-size: 14px; }
+  #detail .chip { font-size: 13px; padding: 3px 9px; }
+  #detail .flag { padding: 10px 0; } #detail .flag .sev { font-size: 18px; } #detail .flag .t { font-size: 16px; } #detail .flag .d { font-size: 15px; }
+  #detail .timeline li { font-size: 15px; grid-template-columns: 170px 1fr; } #detail .timeline time { font-size: 14px; }
+  #detail .notice { font-size: 15px; }
+  #detail .doc .meta { font-size: 14px; }
+  #detail pre { font-size: 14px; }
+  #detail .fold > summary .hint { font-size: 14px; }
+  #detail .gradebox > div > div:nth-child(1) { font-size: 22px; }
+  #detail .gradebox > div > div.sub:nth-child(2) { font-size: 17px; }
+  #detail .gradebox > div > div.sub:nth-child(3) { font-size: 14px; }
   .srow { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
   .tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
   .tile { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
@@ -371,17 +401,40 @@
   .fds-modal-head h2 { margin: 0; font-size: 18px; }
   /* customer report popup (opened from a decided application's header) */
   #report { position: fixed; inset: 0; background: rgba(11,60,73,.55); display: none; align-items: flex-start; justify-content: center; z-index: 30; overflow: auto; padding: 24px 12px; }
-  #report .sheet { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); width: min(920px, 100%); padding: 20px 24px 24px; position: relative; }
+  #report .sheet { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); width: min(920px, 100%); padding: 20px 24px 24px; position: relative; counter-reset: rp; }
+  #report .rp-band { margin: -20px -24px 18px; padding: 18px 24px 16px; border-radius: 16px 16px 0 0; background: linear-gradient(120deg, #0b3c49 0%, #0b5563 60%, #028090 100%); color: #fff; display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; justify-content: space-between; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #report .rp-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  #report .rp-logo { display: flex; align-items: center; }
+  #report .rp-logo img { height: 40px; width: 40px; display: block; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  #report .rp-logo .txt { font-weight: 800; color: #0b3c49; font-size: 14px; letter-spacing: -0.01em; white-space: nowrap; }
+  #report .rp-brand .div { width: 1px; align-self: stretch; background: rgba(255,255,255,.35); }
+  #report .rp-brand .prod { font-size: 11px; letter-spacing: .14em; font-weight: 700; color: #f2b059; }
+  #report .rp-brand h2 { margin: 2px 0 0; font-size: 20px; color: #fff; }
+  #report .rp-brand h2 small { font-size: 12px; font-weight: 500; color: rgba(255,255,255,.75); margin-left: 6px; }
+  #report .rp-id { text-align: right; }
+  #report .rp-id .no { font-size: 18px; font-weight: 800; letter-spacing: .01em; }
+  #report .rp-id .meta { font-size: 12px; color: rgba(255,255,255,.8); margin-top: 2px; }
+  #report .rp-id .pill { margin-left: 6px; vertical-align: 2px; }
+  #report .rp-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 4px; }
+  #report .rp-kpi { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: var(--surface-2); }
+  #report .rp-kpi .l { font-size: 11px; color: var(--text-3); font-weight: 600; }
+  #report .rp-kpi .v { font-size: 22px; font-weight: 800; margin-top: 2px; line-height: 1.15; }
+  #report .rp-kpi .v small { font-size: 12px; font-weight: 600; color: var(--text-3); margin-left: 3px; }
+  #report .rp-kpi .n { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  @media (max-width: 640px) { #report .rp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } #report .rp-id { text-align: left; } }
   #report .sheet-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid var(--brand); margin-bottom: 14px; }
   #report .sheet-head h2 { font-size: 20px; margin: 0; }
   #report .sheet-tools { display: flex; gap: 8px; align-items: center; }
-  #report .sec { margin-top: 16px; }
-  #report .sec h3 { font-size: 14px; margin: 0 0 6px; color: var(--brand); display: flex; align-items: baseline; gap: 6px; }
+  #report .sec { margin-top: 14px; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; break-inside: avoid; }
+  #report .sec h3 { font-size: 14px; margin: 0 0 8px; color: var(--brand); display: flex; align-items: baseline; gap: 6px; counter-increment: rp; }
+  #report .sec h3::before { content: counter(rp); display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 800; align-self: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   #report .sec h3 small { font-size: 11px; font-weight: 400; color: var(--text-3); }
   #report table { width: 100%; border-collapse: collapse; font-size: 13px; }
   #report th, #report td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
   #report th { color: var(--text-3); font-weight: 600; font-size: 12px; }
-  #report .foot { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; }
+  #report .foot { margin-top: 18px; padding-top: 10px; border-top: 2px solid var(--brand); font-size: 11px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; align-items: center; }
+  #report .foot .fb { display: flex; align-items: center; gap: 8px; }
+  #report .foot .rp-logo img { height: 18px; width: 18px; border-radius: 4px; box-shadow: none; }
   @media print {
     body > *:not(#report) { display: none !important; }
     #report { display: block !important; position: static; background: none; padding: 0; overflow: visible; }
@@ -410,6 +463,7 @@
   <div class="key">
     <input id="reviewer" type="text" data-ko-placeholder="심사자 이름" data-en-placeholder="Reviewer name" placeholder="심사자 이름" autocomplete="off" data-ko-title="결정과 이력에 기록됩니다" data-en-title="Recorded on decisions and the timeline" title="결정과 이력에 기록됩니다">
     <button class="primary" id="load" data-ko="새로고침" data-en="Refresh">새로고침</button>
+    <button type="button" id="auto-toggle" class="auto-btn" aria-pressed="true"></button>
     <span class="status" id="status"></span>
     <a class="logout" href="/closing" data-ko="로그아웃" data-en="Log out">로그아웃</a>
   </div>
@@ -514,6 +568,16 @@
   const ago = iso => { if (!iso) return ''; const h = (Date.now() - new Date(iso).getTime()) / 36e5; return h < 1 ? Math.round(h * 60) + t('분', ' min') : h < 48 ? h.toFixed(1) + t('시간', ' h') : (h / 24).toFixed(1) + t('일', ' d'); };
   const agoText = iso => { const a = ago(iso); return a ? t(a + ' 전', a + ' ago') : ''; };
   const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
+  /* Auto refresh on/off, shared by the dashboard and the review page. Manual refresh always works. */
+  let autoOn = true;
+  try { autoOn = localStorage.getItem('autoRefresh') !== 'off'; } catch {}
+  function paintAutoToggle() {
+    const b = document.getElementById('auto-toggle'); if (!b) return;
+    b.textContent = autoOn ? t('⏸ 자동 갱신 끄기', '⏸ Pause auto refresh') : t('▶ 자동 갱신 켜기', '▶ Resume auto refresh');
+    b.setAttribute('aria-pressed', String(autoOn));
+    b.title = autoOn ? t('15초마다 자동으로 새로고침 중 · 누르면 멈춰요', 'Refreshing every 15 s · press to pause') : t('자동 갱신이 꺼져 있어요 · 새로고침 버튼은 그대로 동작해요', 'Auto refresh is paused · the refresh button still works');
+  }
+  function setAuto(on) { autoOn = on; try { localStorage.setItem('autoRefresh', on ? 'on' : 'off'); } catch {} paintAutoToggle(); }
   let apps = [], queueLoaded = false, current = null, blobs = new Map(), tracePoll = null, traceLastId = 0, traceSeenUpdatedAt = null;
   let traceOpen = false;                       // AI timeline fold: closed by default, the officer's choice survives re-renders
   const foldOpen = new Set();                  // evidence panels (docs, extracted, lookups, risk) the officer opened; remembered per browser
@@ -629,7 +693,7 @@
   const miniBar = p => p ? `<span class="mini ${p.stages.some(s => s.state === 'WARN' || s.state === 'FAIL') ? 'warn' : (p.done === p.total ? 'done' : '')}" title="${esc(p.done + '/' + p.total + ' · ' + curStage(p))}"><i style="width:${p.percent}%"></i></span>` : '';
 
   /* The "AI agent timeline": a one-line flow strip plus the detailed stepper with evidence. */
-  const traceTitle = (steps, live) => `${t('AI Agent 판단 타임라인', 'AI agent timeline')} <small>${t(`파이프라인과 리뷰 에이전트가 한 일, 단계별 · ${steps.length}단계`, `What the pipeline and the review agent did, step by step · ${steps.length} steps`)}</small> ${live ? `<span class="live"><span class="pulse"></span>${t('실시간', 'live')}</span> <span class="sub" id="trace-checked" title="${t('새 단계가 기록되면 자동으로 갱신됩니다', 'Refreshes itself when a new step is recorded')}">${t(`${TRACE_POLL_MS / 1000}초마다 자동 갱신`, `refreshes every ${TRACE_POLL_MS / 1000}s`)}</span>` : ''}`;
+  const traceTitle = (steps, live) => `${t('AI Agent 판단 타임라인', 'AI agent timeline')} <small>${t(`파이프라인과 리뷰 에이전트가 한 일, 단계별 · ${steps.length}단계`, `What the pipeline and the review agent did, step by step · ${steps.length} steps`)}</small> ${live ? `<span class="live"><span class="pulse"></span>${t('실시간', 'live')}</span> <span class="sub" id="trace-checked" title="${t('새 단계가 기록되면 자동으로 갱신됩니다', 'Refreshes itself when a new step is recorded')}">${autoOn ? t(`${TRACE_POLL_MS / 1000}초마다 자동 갱신`, `refreshes every ${TRACE_POLL_MS / 1000}s`) : t('자동 갱신 꺼짐', 'auto refresh paused')}</span>` : ''}`;
   /* The timeline folded under the onboarding stepper: closed by default, the chevron (or the whole header) toggles it. */
   function renderTraceSection(steps, live, newSince) {
     return `<details id="trace-details" class="trace-details"${traceOpen ? ' open' : ''}><summary title="${t('AI 에이전트 판단 타임라인 펼치기/접기', 'Expand or collapse the AI agent timeline')}"><span class="chev" aria-hidden="true">▸</span><h2 id="trace-title">${traceTitle(steps, live)}</h2><span class="sub hint"></span></summary><div id="trace-panel">${renderTrace(steps, live, newSince)}</div></details>`;
@@ -699,11 +763,19 @@
   }
   function startTracePolling(number) {
     stopTracePolling();
-    tracePoll = setInterval(() => traceTick(number), TRACE_POLL_MS);
+    tracePoll = setInterval(() => { if (autoOn) traceTick(number); }, TRACE_POLL_MS);
   }
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && current && tracePoll) traceTick(current.applicationNumber); });
+  document.addEventListener('visibilitychange', () => { if (autoOn && !document.hidden && current && tracePoll) traceTick(current.applicationNumber); });
   detail.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details[data-sid]')) { const id = Number(d.dataset.sid); if (d.open) openSteps.add(id); else openSteps.delete(id); } else if (d.id === 'trace-details') traceOpen = d.open; else if (d.matches && d.matches('details.fold')) { if (d.open) foldOpen.add(d.dataset.fold); else foldOpen.delete(d.dataset.fold); try { localStorage.setItem('reviewFolds', JSON.stringify([...foldOpen])); } catch {} } }, true);
 
+  $('#auto-toggle').addEventListener('click', () => {
+    setAuto(!autoOn);
+    if (autoOn) { if (activeTab === 'stats') loadStats(); else loadQueue(); if (current && tracePoll) traceTick(current.applicationNumber); }
+    else if (apps.length) renderQueue();
+    const lbl = $('#trace-checked'); if (lbl && !autoOn) lbl.textContent = t('자동 갱신 꺼짐', 'auto refresh paused');
+  });
+  paintAutoToggle();
+  LANG.onChange(paintAutoToggle);
   try { const r = localStorage.getItem('reviewerName'); if (r) reviewerInput.value = r; } catch {}
   reviewerInput.addEventListener('change', () => { try { localStorage.setItem('reviewerName', reviewerInput.value.trim()); } catch {} });
 
@@ -722,7 +794,11 @@
   function hideTip() { tip.style.opacity = 0; }
   function bindTips(root) { root.querySelectorAll('[data-tip]').forEach(el => { el.addEventListener('mouseenter', e => showTip(e, el.dataset.tip)); el.addEventListener('mousemove', moveTip); el.addEventListener('mouseleave', hideTip); }); }
 
-  const gradeCell = (g, score) => { const m = GRADE[g]; return m ? `<span class="grade"><span class="ic" style="background:${m.color}"></span>${esc(g)} <span class="sub">${gradeName(g)}${score != null ? ' · ' + score : ''}</span></span>` : `<span class="sub">${t('미평가', 'not assessed')}</span>`; };
+  /** Text colour on a filled grade badge: dark on the yellow of B, white elsewhere. */
+  const gradeInk = g => g === 'B' ? '#2b1d00' : '#fff';
+  /** A-D level scale with the current grade lit: where this customer sits at a glance. */
+  const gradeScale = g => `<div class="gscale" role="img" aria-label="${esc(t(`리스크 등급 ${g} (A 저위험 ~ D 위험)`, `Risk grade ${g} (A low to D critical)`))}">${['A', 'B', 'C', 'D'].map(x => `<div class="gstep${x === g ? ' on' : ''}" style="--gc:${GRADE[x].color};--gi:${gradeInk(x)}"><b>${x}</b><span>${esc(gradeName(x))}</span></div>`).join('')}</div>`;
+  const gradeCell = (g, score) => { const m = GRADE[g]; return m ? `<span class="grade"><span class="gl gfill" style="background:${m.color};color:${gradeInk(g)}">${esc(g)}</span> <span class="sub">${gradeName(g)}${score != null ? ' · ' + score : ''}</span></span>` : `<span class="sub">${t('미평가', 'not assessed')}</span>`; };
   const pill = s => `<span class="pill ${esc(s)}">${esc(statusName(s))}</span>`;
   const countryCell = c => `<span class="dot" style="background:${COUNTRY_COLOR[c] || 'var(--text-3)'}"></span>${esc(c)}`;
 
@@ -775,7 +851,7 @@
         <td>${pill(a.status)}${a.review?.officerReviewRequired ? `<br><span class="chip warn">${t('담당자 검토', 'Officer review')}</span>` : ''}${a.progress && a.status !== 'APPROVED' && a.status !== 'REJECTED' ? `<br><span style="white-space:nowrap">${miniBar(a.progress)} <span class="sub">${esc(curStage(a.progress))}</span></span>` : ''}</td>
         <td>${r ? gradeCell(r.grade, r.score) : '<span class="sub">–</span>'}${r && r.fraudWarnings ? `<br><span class="chip fraud">⚠ ${t('위조', 'fraud')} ${r.fraudWarnings}</span>` : ''}</td>
         <td class="num"><span class="sub" title="${esc(fmtTime(waitingSince))}">${a.status === 'READY_FOR_REVIEW' ? ago(waitingSince) : ago(a.updatedAt)}</span></td></tr>`; }).join('')}</tbody></table></div>
-      <p class="sub" style="margin:8px 0 0">${t(`${apps.length}건 · 최신 신청 순 · ${QUEUE_POLL_MS / 1000}초마다 갱신`, `${apps.length} applications · newest first · refreshes every ${QUEUE_POLL_MS / 1000}s`)}</p>`;
+      <p class="sub" style="margin:8px 0 0">${autoOn ? t(`${apps.length}건 · 최신 신청 순 · ${QUEUE_POLL_MS / 1000}초마다 갱신`, `${apps.length} applications · newest first · refreshes every ${QUEUE_POLL_MS / 1000}s`) : t(`${apps.length}건 · 최신 신청 순 · 자동 갱신 꺼짐`, `${apps.length} applications · newest first · auto refresh paused`)}</p>`;
     const waitingCount = apps.filter(a => a.status === 'READY_FOR_REVIEW').length; $('#n-work').textContent = waitingCount; $('#n-work').hidden = !waitingCount;
     list.querySelectorAll('tr.row').forEach(tr => tr.addEventListener('click', () => open(tr.dataset.n)));
   }
@@ -809,7 +885,7 @@
           <div style="margin-top:6px"><b>${esc(customerName(a))}</b> ${a.customerPhone ? `<span class="sub">+${esc(a.customerPhone)}</span>` : `<span class="sub">${t('(START 링크를 아직 열지 않음)', '(START link not opened yet)')}</span>`}</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          ${r ? `<div class="gradebox" style="border-color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}"><span class="big" style="color:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}">${esc(r.grade)}</span><div><div><b>${esc(L(r, 'gradeLabel'))}</b></div><div class="sub">${t('점수', 'score')} ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ ${t('위조·사기 경고', 'fraud / forgery warnings')} ${r.fraudWarnings}</span>` : t('위조 신호 없음', 'no fraud signal')}</div><div class="sub">${esc(methodName(r.method))} · ${fmtTime(r.assessedAt)}</div></div></div>` : `<span class="sub">${t('리스크 미평가 (서류 미완료)', 'Not assessed yet (documents incomplete)')}</span>`}
+          ${r ? `<div class="gradebox" style="--gc:${(GRADE[r.grade] || { color: 'var(--text-3)' }).color}"><span class="big gfill" style="color:${gradeInk(r.grade)}">${esc(r.grade)}</span><div><div><b>${esc(L(r, 'gradeLabel'))}</b></div><div class="sub">${t('점수', 'score')} ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ ${t('위조·사기 경고', 'fraud / forgery warnings')} ${r.fraudWarnings}</span>` : t('위조 신호 없음', 'no fraud signal')}</div><div class="sub">${esc(methodName(r.method))} · ${fmtTime(r.assessedAt)}</div></div></div>${gradeScale(r.grade)}` : `<span class="sub">${t('리스크 미평가 (서류 미완료)', 'Not assessed yet (documents incomplete)')}</span>`}
           <button type="button" id="btn-fds"${r?.fraudWarnings ? '' : ' hidden'} title="${t('이 신청이 다른 신청과 어떻게 이어져 있는지 봅니다', 'See how this application links to others')}">🕸 ${t('사기 연결망 보기', 'Fraud link graph')}</button>
         </div>
       </div>
@@ -868,11 +944,6 @@
           <input type="text" id="rq-selfie-reason" placeholder="e.g. your face is not clearly visible" style="width:100%" ${noPhone ? 'disabled' : ''}>
           <label>${t('추가 안내 (선택)', 'Extra note (optional)')}</label><input type="text" id="rq-note" style="width:100%" ${noPhone ? 'disabled' : ''}>
           <div class="btns"><button id="btn-request-docs" ${noPhone ? 'disabled' : ''}>📷 ${t('고객에게 재요청', 'Ask the customer')}</button>${!a.customerPhone ? `<span class="sub">${t('고객 번호가 아직 없습니다', 'No customer number yet')}</span>` : ''}</div></div>
-        <div class="action"><h3>${t('딜러 폼 재제출 · 메모 · 재평가', 'Dealer form · note · re-assess')}</h3>
-          <label>${t('딜러 폼 재제출 이유', 'Reason for the dealer to resubmit the form')} <span class="sub">${t('딜러에게 새 일회용 링크가 전송됩니다', 'a new one-time link goes to the dealer')}</span></label><input type="text" id="rs-reason" style="width:100%" ${final ? 'disabled' : ''} placeholder="e.g. income field missing">
-          <div class="btns"><button id="btn-resubmit" ${final ? 'disabled' : ''}>🔗 ${t('딜러 재제출 요청', 'Request resubmission')}</button><button id="btn-reassess" ${!r ? 'disabled' : ''}>↻ ${t('리스크 재평가', 'Re-assess risk')}</button></div>
-          <label>${t('심사 메모', 'Review note')} <span class="sub">${t('내부 메모, 이력에만 기록', 'internal, timeline only')}</span></label><input type="text" id="note-text" style="width:100%">
-          <div class="btns"><button id="btn-note">✎ ${t('메모 추가', 'Add note')}</button></div></div>
       </div></div>`;
 
     // documents
@@ -1057,7 +1128,7 @@
     fdsModal.hidden = false; paintFdsHead(null);
     $('#fds-modal-close').focus();
     loadFds(true);
-    clearInterval(fdsTimer); fdsTimer = setInterval(() => { if (!document.hidden) loadFds(false); }, 15000);
+    clearInterval(fdsTimer); fdsTimer = setInterval(() => { if (autoOn && !document.hidden) loadFds(false); }, 15000);
   }
   function closeFds() {
     if (!fdsFor) return;
@@ -1411,12 +1482,17 @@
       sheet.querySelectorAll('.rp-close').forEach(b => b.addEventListener('click', closeReport));
       sheet.querySelector('.rp-print').addEventListener('click', () => window.print());
       sheet.querySelector('.rp-pdf').addEventListener('click', e => downloadDecisionReport(number, e.target.closest('button')));
-      sheet.querySelector('.rp-open').addEventListener('click', () => { closeReport(); showTab('work'); open(number); });
       bindTips(sheet);
     } catch (e) {
       sheet.innerHTML = `<div class="sheet-head"><h2 id="report-title">${esc(number)}</h2><div class="sheet-tools">${closeBtn()}</div></div><p class="notice crit">${t('리포트를 불러오지 못했습니다', 'Could not load the report')}: ${esc(e.message)}</p>`;
       sheet.querySelector('.rp-close').addEventListener('click', closeReport);
     }
+  }
+
+  /* JB Financial Group logo: the official file at /brand/jb-logo.png when it is there, the group name as text otherwise. */
+  function brandLogo(small) {
+    const img = `<img src="/brand/jb-logo.png" alt="${t('JB금융그룹', 'JB Financial Group')}" onerror="this.replaceWith(Object.assign(document.createElement('span'), { className: 'txt', textContent: this.alt }))">`;
+    return `<span class="rp-logo">${img}</span>`;
   }
 
   /* One-page report built from the application detail: who, risk, documents, checks, flags, agent summary, decision, history. */
@@ -1433,15 +1509,22 @@
       return `<tr><td><b>${esc(DOC[d.type] ? pair(DOC, d.type) : d.typeLabel)}</b>${d.needsOfficerReview ? ` <span class="chip warn">${t('담당자 검토', 'officer review')}</span>` : ''}</td><td>${check}</td><td>${an ? `${esc(an.documentType || '')} ${pct(an.documentTypeConfidence)}` : '<span class="sub">–</span>'}</td><td>${tamper ? `<span class="bad">⚠ ${t('위조 의심', 'forgery signals')} ${tamper}</span>` : issues ? `<span class="mid">${t('품질 문제', 'quality issues')} ${issues}</span>` : `<span class="ok">${t('없음', 'none')}</span>`}</td><td class="num"><span class="sub">${fmtTime(d.createdAt)}</span></td></tr>`;
     };
     const events = (a.events || []).slice(-10).reverse();
-    return `<div class="sheet-head">
-        <div><h2 id="report-title">${esc(a.applicationNumber)} ${pill(a.status)}</h2>
-          <div class="sub">${t('고객 리포트', 'Customer report')} · ${countryCell(a.country)} ${esc(countryName(a.country))} · ${t('딜러', 'dealer')} ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''}</div></div>
-        <div class="sheet-tools no-print"><button type="button" class="rp-open">${t('상세 열기', 'Open detail')}</button><button type="button" class="rp-pdf">📑 ${t('근거 보고서 PDF', 'Evidence PDF')}</button><button type="button" class="rp-print">🖨 ${t('인쇄', 'Print')}</button>${closeBtn()}</div>
+    const kpi = (l, v, n, color) => `<div class="rp-kpi"><div class="l">${l}</div><div class="v"${color ? ` style="color:${color}"` : ''}>${v}</div>${n ? `<div class="n">${n}</div>` : ''}</div>`;
+    return `<div class="sheet-tools no-print" style="justify-content:flex-end;margin:-6px 0 14px"><button type="button" class="rp-pdf">📑 ${t('근거 보고서 PDF', 'Evidence PDF')}</button><button type="button" class="rp-print">🖨 ${t('인쇄', 'Print')}</button>${closeBtn()}</div>
+      <div class="rp-band">
+        <div class="rp-brand">${brandLogo()}<span class="div" aria-hidden="true"></span><div><div class="prod">NEXUS AI</div><h2 id="report-title">${t('고객 심사 리포트', 'Customer review report')}<small>Customer Review Report</small></h2></div></div>
+        <div class="rp-id"><div class="no">${esc(a.applicationNumber)} ${pill(a.status)}</div><div class="meta">${esc(countryName(a.country))} · ${t('딜러', 'dealer')} ${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}${a.dealerTier === 'EXCELLENT' ? ' ★' : ''}</div></div>
+      </div>
+      <div class="rp-kpis">
+        ${kpi(t('AI 리스크 등급', 'AI risk grade'), r ? `${esc(r.grade)}<small>${esc(L(r, 'gradeLabel'))}</small>` : '–', r ? t(`점수 ${r.score} / 100`, `score ${r.score} / 100`) : t('미평가', 'not assessed'), r ? g.color : null)}
+        ${kpi(t('위조·사기 경고', 'Fraud warnings'), r ? String(r.fraudWarnings) : '–', r ? (r.fraudWarnings ? t('확인 필요', 'needs checking') : t('신호 없음', 'no signal')) : '', r?.fraudWarnings ? 'var(--critical)' : null)}
+        ${kpi(t('신원·신용 조회', 'Identity & credit'), a.creditCheck?.score != null ? `${esc(a.creditCheck.score)}<small>${t('점', 'pts')}</small>` : '–', [a.idVerification && L(a.idVerification), a.creditCheck && L(a.creditCheck)].filter(Boolean).map(esc).join(' · ') || t('미실행', 'not run'))}
+        ${kpi(t('심사 결정', 'Decision'), esc(statusName(a.status)), final ? fmtTime(a.decidedAt || a.updatedAt) : (a.progress ? esc(curStage(a.progress)) : ''), a.status === 'APPROVED' ? 'var(--good)' : a.status === 'REJECTED' ? 'var(--critical)' : null)}
       </div>
       <div class="grid2">
         <div>${sec(t('고객', 'Customer'), '', `<dl class="kv"><dt>${t('이름', 'Name')}</dt><dd><b>${esc(customerName(a))}</b></dd><dt>${t('전화', 'Phone')}</dt><dd>${a.customerPhone ? '+' + esc(a.customerPhone) : `<span class="sub">${t('아직 없음', 'not yet')}</span>`}</dd><dt>${t('국가', 'Country')}</dt><dd>${esc(countryName(a.country) || a.country)}</dd><dt>${t('딜러', 'Dealer')}</dt><dd>${esc(a.dealerCode || '–')} ${esc(a.dealerName || '')}</dd><dt>${t('생성', 'Created')}</dt><dd>${fmtTime(a.createdAt)}</dd><dt>${t('최근 변경', 'Updated')}</dt><dd>${fmtTime(a.updatedAt)}</dd>${a.progress ? `<dt>${t('진행 단계', 'Stage')}</dt><dd>${esc(curStage(a.progress))} <span class="sub">${a.progress.done}/${a.progress.total}</span></dd>` : ''}</dl>`)}</div>
-        <div>${sec(t('AI 리스크 등급', 'AI risk grade'), '', r ? `<div class="gradebox" style="border-color:${g.color}"><span class="big" style="color:${g.color}">${esc(r.grade)}</span><div><div><b>${esc(L(r, 'gradeLabel'))}</b></div><div class="sub">${t('점수', 'score')} ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ ${t('위조·사기 경고', 'fraud / forgery warnings')} ${r.fraudWarnings}</span>` : t('위조 신호 없음', 'no fraud signal')}</div><div class="sub">${esc(methodName(r.method))} · ${fmtTime(r.assessedAt)}</div></div></div>
-            <div style="margin-top:8px">${(r.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(L(b))}</span>`).join('') || `<span class="sub">${t('배지 없음', 'No badges')}</span>`}${a.review?.officerReviewRequired ? `<span class="chip warn">${t('담당자 검토 필요', 'Officer review required')}</span>` : ''}</div>` : none(t('리스크 미평가 (서류 미완료)', 'Not assessed yet (documents incomplete)')))}</div>
+        <div>${sec(t('AI 리스크 등급', 'AI risk grade'), '', r ? `<div class="gradebox" style="--gc:${g.color}"><span class="big gfill" style="color:${gradeInk(r.grade)}">${esc(r.grade)}</span><div><div><b>${esc(L(r, 'gradeLabel'))}</b></div><div class="sub">${t('점수', 'score')} ${r.score} / 100 · ${r.fraudWarnings ? `<span class="bad">⚠ ${t('위조·사기 경고', 'fraud / forgery warnings')} ${r.fraudWarnings}</span>` : t('위조 신호 없음', 'no fraud signal')}</div><div class="sub">${esc(methodName(r.method))} · ${fmtTime(r.assessedAt)}</div></div></div>
+            ${gradeScale(r.grade)}<div style="margin-top:8px">${(r.badges || []).map(b => `<span class="chip badge" data-tip="${esc(b.description)}">✓ ${esc(L(b))}</span>`).join('') || `<span class="sub">${t('배지 없음', 'No badges')}</span>`}${a.review?.officerReviewRequired ? `<span class="chip warn">${t('담당자 검토 필요', 'Officer review required')}</span>` : ''}</div>` : none(t('리스크 미평가 (서류 미완료)', 'Not assessed yet (documents incomplete)')))}</div>
       </div>
       ${sec(t('추출 데이터', 'Extracted data'), t('신분증에서 읽은 값', 'from the ID document'), a.extracted ? extractedList(a.extracted) : none(t('아직 추출된 데이터가 없습니다.', 'No extracted data yet.')))}
       ${sec(t('신원·신용 조회', 'Identity & credit checks'), '', a.idVerification || a.creditCheck ? lookupList(a) : none(t('아직 조회가 실행되지 않았습니다.', 'Lookups have not run yet.')))}
@@ -1450,7 +1533,7 @@
       ${a.review ? sec(t('자동 리뷰 요약', 'Review agent summary'), `${esc(a.review.decision || '')} · ${t('라운드', 'rounds')} ${a.review.rounds}`, summaryOf(a.review) ? `<pre>${esc(summaryOf(a.review))}</pre>` : none(t('요약이 아직 없습니다.', 'No summary yet.'))) : ''}
       ${sec(t('심사 결정', 'Decision'), '', final ? `<div class="notice ${a.status === 'APPROVED' ? 'ok' : 'crit'}" style="margin:0"><b>${esc(statusName(a.status))}</b> · ${fmtTime(a.decidedAt || a.updatedAt)}${a.decidedBy ? ' · ' + esc(a.decidedBy) : ''}${a.decisionNote ? '<br>' + esc(a.decisionNote) : ''}</div>` : `<p class="empty" style="padding:4px 0">${t('아직 결정되지 않았습니다 · 현재 상태', 'Not decided yet · current status')} ${esc(statusName(a.status))}${a.resubmissionReason ? `<br><span class="sub">${esc(a.resubmissionReason)}</span>` : ''}</p>`)}
       ${sec(t('최근 이력', 'Recent history'), t(`최근 ${events.length}건 / 전체 ${(a.events || []).length}건`, `last ${events.length} of ${(a.events || []).length}`), events.length ? `<ul class="timeline">${events.map(eventRow).join('')}</ul>` : none(t('아직 이력이 없습니다.', 'No history yet.')))}
-      <div class="foot"><span>NEXUS AI · ${t('심사 백오피스 리포트', 'review back office report')}</span><span>${t('생성', 'generated')} ${fmtTime(new Date().toISOString())}${reviewerInput.value.trim() ? ' · ' + esc(reviewerInput.value.trim()) : ''}</span></div>`;
+      <div class="foot"><span class="fb">${brandLogo(true)}<span>NEXUS AI · ${t('심사 백오피스 리포트', 'review back office report')}</span></span><span>${t('생성', 'generated')} ${fmtTime(new Date().toISOString())}${reviewerInput.value.trim() ? ' · ' + esc(reviewerInput.value.trim()) : ''}</span></div>`;
   }
 
   function bindActions(a, final) {
@@ -1467,7 +1550,6 @@
     if (!final) {
       $('#btn-approve').addEventListener('click', e => { if (!confirmDecision(['승인', 'Approve'])) return; run(e.target, async () => after(t('승인 완료', 'Approved'), await api('/admin/applications/' + n + '/decision', { method: 'POST', body: JSON.stringify({ decision: 'APPROVED', note: $('#dec-note').value, reviewer: reviewer() }) }))); });
       $('#btn-reject').addEventListener('click', e => { if (!confirmDecision(['거절', 'Reject'])) return; run(e.target, async () => after(t('거절 완료', 'Rejected'), await api('/admin/applications/' + n + '/decision', { method: 'POST', body: JSON.stringify({ decision: 'REJECTED', note: $('#dec-note').value, reviewer: reviewer() }) }))); });
-      $('#btn-resubmit').addEventListener('click', e => { const reason = $('#rs-reason').value.trim(); if (!reason) { setStatus(t('재제출 이유를 입력하세요.', 'Enter a reason for the resubmission.'), true); return; } run(e.target, async () => after(t('딜러에게 재제출 요청 전송', 'Resubmission request sent to the dealer'), await api('/admin/applications/' + n + '/request-resubmission', { method: 'POST', body: JSON.stringify({ reason, reviewer: reviewer() }) }))); });
       if (a.customerPhone) $('#btn-request-docs').addEventListener('click', e => {
         const items = [];
         if ($('#rq-ktp').checked) items.push({ type: 'KTP', reason: $('#rq-ktp-reason').value.trim() || 'please send a clearer photo of your KTP' });
@@ -1476,10 +1558,8 @@
         run(e.target, async () => after(t('고객에게 서류 재요청 전송', 'Document request sent to the customer'), await api('/admin/applications/' + n + '/request-documents', { method: 'POST', body: JSON.stringify({ items, note: $('#rq-note').value.trim() || null, reviewer: reviewer() }) })));
       });
     }
-    $('#btn-reassess').addEventListener('click', e => run(e.target, async () => { await api('/admin/applications/' + n + '/assess-risk' + (reviewer() ? '?reviewer=' + encodeURIComponent(reviewer()) : ''), { method: 'POST' }); after(t('리스크 재평가 완료', 'Risk re-assessed')); }));
     $('#btn-report')?.addEventListener('click', () => showReport(a.applicationNumber));
     $('#btn-decision-report')?.addEventListener('click', e => downloadDecisionReport(a.applicationNumber, e.target.closest('button')));
-    $('#btn-note').addEventListener('click', e => { const note = $('#note-text').value.trim(); if (!note) { setStatus(t('메모를 입력하세요.', 'Enter a note.'), true); return; } run(e.target, async () => { await api('/admin/applications/' + n + '/note', { method: 'POST', body: JSON.stringify({ note, reviewer: reviewer() }) }); after(t('메모 추가 완료', 'Note added')); }); });
   }
 
   /* ---------- new application (demo start without a dealer phone) ---------- */
@@ -1679,7 +1759,7 @@
   showTab(activeTab);
   loadQueue().then(() => { if (wanted) open(wanted, true); }); if (activeTab === 'stats') loadStats();
   // Same cadence as the dashboard, so a new application shows up on both screens within the same quarter minute.
-  setInterval(() => { if (activeTab === 'stats') loadStats(); else if (!document.activeElement.closest('#detail')) loadQueue(); }, QUEUE_POLL_MS);
+  setInterval(() => { if (!autoOn) return; if (activeTab === 'stats') loadStats(); else if (!document.activeElement.closest('#detail')) loadQueue(); }, QUEUE_POLL_MS);
 })();
 </script>
 </body>
